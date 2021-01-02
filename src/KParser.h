@@ -1,6 +1,7 @@
 #pragma once
 #include <any>
 #include <functional>
+#include <optional>
 
 namespace KParser {
     struct KObject {
@@ -15,28 +16,70 @@ namespace KParser {
             KObject::count--;
         }
     };
+    using IT = std::vector<std::any>::iterator;
 
-    struct Match : private KObject {
-        virtual std::string str() = 0;
-        virtual std::any& value() = 0;
-        virtual void visit(std::function<void(Match* m)> visitor) = 0;
-        virtual ~Match() = default;
+    struct DataStack : private KObject {
+        template<typename T>
+        void emplace(T&& t) {
+            push_any(std::any(std::forward<T&&>(t)));
+        }
 
         template<typename T>
-        T* get() {
-            try {
-                std::any* r = &value();
-                return std::any_cast<T>(r);
-            }
-            catch (const std::exception& _) {
-                return nullptr;
-            }
+        void push(T t) {
+            push_any(std::any(t));
         }
+        template<typename T>
+        std::optional<T> pop() {
+            try {
+                return std::any_cast<T>(pop_any());
+            }
+            catch (const std::exception& ex) {
+                printf("fail to cast %s", ex.what());
+            }
+            return {};
+        }
+
+        template<typename T>
+        void set(T t) {
+            set_any(std::any(t));
+        }
+        template<typename T>
+        T* get(size_t i) {
+            try {
+                return std::any_cast<T>(&get_any(i));
+            }
+            catch (const std::exception& ex) {
+                printf("fail to cast %s", ex.what());
+            }
+            return nullptr;
+        }
+
+        virtual void push_any(std::any&& t) = 0;
+        virtual std::any pop_any() = 0;
+        virtual std::any& get_any(size_t i) = 0;
+        virtual void set_any(std::any&& t, size_t i) = 0;
+        virtual void clear() = 0;
+        virtual size_t size() = 0;
+    };
+
+
+    struct Match : private KObject {
+        virtual std::string occupied_str() = 0;
+        virtual size_t length() = 0;
+        virtual std::string str() = 0;
+        virtual std::string prefix() = 0;
+        virtual std::string suffix() = 0;
+        virtual DataStack& global_data() = 0;
+        virtual const char* global_text() = 0;
+        virtual std::any& global_value() = 0;
     };
 
     struct Rule : private KObject {
         virtual std::unique_ptr<Match> parse(const std::string& text) = 0;
-        virtual Rule* on(std::function<void(Match*)> handle) = 0;
+        // handle(Match& m, bool is_begin)
+        virtual Rule* visit(std::function<void(Match&, bool)> handle) = 0;
+        // eval(std::vector<std::any>& argments)->std::any
+        virtual Rule* eval(std::function<std::any(Match& m, IT arg, IT noarg)> eval) = 0;
         virtual std::string toString() = 0;
         virtual void appendChild(Rule* r) = 0;
 
@@ -52,14 +95,12 @@ namespace KParser {
         }
     };
 
-
     struct ParserImpl;
+    using PredT = std::function<void(const char* begin, const char* textEnd, const char*& matchBegin, const char*& matchEnd, const char*& end)>;
     class Parser : private KObject {
         ParserImpl* impl;
-        // match Pattern1 or Pattern2... or PatternN
     public:
         Parser(size_t lookback = 20, bool skipBlanks = true);
-
 
         // match Pattern1 + Pattern2... + PatternN
         Rule* all();
@@ -80,7 +121,7 @@ namespace KParser {
         // item1 dem item2 dem...itemN // for example: 1,2,3...N
         Rule* list(Rule* item, Rule* dem);
         // match regex forward
-        Rule* regex(const std::string& strRe);
+        Rule* regex(const std::string& strRe, bool startWith = true);
         // match c identifier/variable 
         Rule* identifier();
         // match c integer
@@ -88,8 +129,7 @@ namespace KParser {
         // match c float
         Rule* float_();
         // user rule
-        Rule* pred(std::function<const char* (const char* start, const char* end, std::any& matchVal)> p);
-
+        Rule* pred(PredT p);
 
         // match Pattern1 or Pattern2... or PatternN
         template<typename ...TS>
@@ -109,7 +149,6 @@ namespace KParser {
             return root;
         }
         
-
         ~Parser() override;
     };
 };

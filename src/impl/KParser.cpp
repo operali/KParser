@@ -7,7 +7,6 @@
 
 
 namespace KParser {
-
     size_t KObject::count = 0;
     std::vector<KObject*> KObject::all;
 
@@ -63,24 +62,31 @@ namespace KParser {
     }
 
     Rule* Parser::until(Rule* node) {
-        return pred([=](const char* b, const char* e, AnyT& val)->const char* {
+        return pred([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
             const char* c = b;
+            auto n = ((RuleNode*)node);
+            auto psrc = n->m_gen->m_cache;
             while (c != e) {
-                auto m = ((RuleNode*)node)->match(c, e - c, 0);
+                auto m = n->match(c-psrc);
                 std::unique_ptr<MatchR> um;
                 um.reset(m);
                 if (um->alter()) {
-                    return c;
+                    cb = b;
+                    ce = c;
+                    me = c;
+                    return;
                 }
                 c++;
             }
-            return nullptr;
+            cb = nullptr;
+            ce = nullptr;
+            me = nullptr;
+            return;
             });
     }
 
     // ...(pattern)
     Rule* Parser::till(Rule* cond) {
-        MatchR* rootM = nullptr;
         return all(until(cond), cond);
     }
 
@@ -91,32 +97,50 @@ namespace KParser {
         return all(first, tail);
     }
 
-    Rule* Parser::regex(const StrT& strRe) {
+    Rule* Parser::regex(const StrT& strRe, bool startWith) {
         std::regex re(strRe);
-        return pred([=](const char* b, const char* e, AnyT& val)->const char* {
-            std::smatch results;
-            // multiple line mode, cannot match to nextline
-            const char* nl = b;
-            do {
-                if (*nl == '\r'|| *nl == '\n') {
-                    break;
+        
+        return pred([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+            std::match_results<const char*> results;
+            if (std::regex_search<const char*>(b, e, results, re)) {
+                auto pos = results.position();
+                if (startWith) {
+                    if (pos != 0) {
+                        cb = nullptr;
+                        ce = nullptr;
+                        me = nullptr;
+                        return;
+                    }
                 }
-                nl++;
-            } while (true);
-            std::string toSearch(b, nl);
-            if (std::regex_search(toSearch, results, re)) {
-                val = results.str();
-                return b + results.position() + results.length();
+                if (results.size() > 1) {
+                    auto c = results[1];
+                    cb = c.first;
+                    ce = c.second;
+                    me = b + results.position() + results.length();
+                }
+                else {
+                    cb = b + results.position();
+                    ce = cb + results.length();
+                    me = ce;
+                }
+                return;
             }
-            return nullptr;
+            cb = nullptr;
+            ce = nullptr;
+            me = nullptr;
+            return;
             });
     }
 
     Rule* Parser::identifier() {
         return regex("^_?[a-zA-Z0-9]+");
-            auto i = pred([](const char* b, const char* e, AnyT& val)->const char* {
+            char* ob;
+            char* oe;
+            pred([this](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
             if (b == e) {
-                return nullptr;
+                cb = nullptr;
+                ce = nullptr;
+                me = nullptr;
             }
             auto i = b;
             auto c = *i++;
@@ -125,7 +149,10 @@ namespace KParser {
 
             if (isChar(c) || c == '_') {
                 if (i == e) {
-                    return i;
+                    cb = b;
+                    ce = i;
+                    me = i;
+                    return;
                 }
                 while(c = *i++) {
                     if (!isChar(c) && !isNum(c)) {
@@ -135,10 +162,16 @@ namespace KParser {
                         break;
                     }
                 }
-                return i;
+                cb = b;
+                ce = i;
+                me = i;
+                return;
             }
             else {
-                return nullptr;
+                cb = nullptr;
+                ce = nullptr;
+                me = nullptr;
+                return;
             }
             });
     }

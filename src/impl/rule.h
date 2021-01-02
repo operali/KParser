@@ -3,40 +3,48 @@
 #include "impl.h"
 #include <optional>
 #include <vector>
+#include <any>
 
 namespace KParser {
 
     struct RuleNode;
     
     struct MatchR : public Match {
-        const char* m_text;
-        size_t m_textLen;
-        size_t m_startPos;
-        AnyT m_val;
-        enum LEN : int {
+        int32_t m_startPos;
+        int32_t m_matchstartPos;
+        int32_t m_matchstopPos;
+        int32_t m_length;
+        enum LEN : int16_t {
             FAIL = -2,
             INIT = -1,
             SUCC = 0
         };
-        int m_matchLength;
+        
         RuleNode* m_ruleNode;
-        MatchR(const char* text, size_t length, size_t start, RuleNode* rule);
+        MatchR(size_t start, RuleNode* rule);
         virtual ~MatchR() = default;
 
         inline bool succ(){
-            return m_matchLength >= LEN::SUCC;
+            return m_length >= LEN::SUCC;
         }
         
-        inline size_t size() {
-            return (size_t)m_matchLength;
+        inline size_t length() override {
+            return (size_t)m_length;
         }
 
         inline void accept(size_t sz) {
-            m_matchLength = sz;
+            m_length = sz;
         }
 
-        StrT str() override;
-        std::any& value() override;
+        StrT occupied_str() override;
+        std::string str() override;
+        StrT prefix() override;
+        StrT suffix() override;
+
+        DataStack& global_data() override;
+        const char* global_text() override;
+
+        std::any& global_value() override;
         
         template<typename T>
         T* get() {
@@ -58,7 +66,7 @@ namespace KParser {
         };
 
         virtual bool alter();
-        void visit(std::function<void(Match* m)> visitor) override;
+        virtual void visit(std::function<void(Match& m, bool capture)> visitor);
         virtual MatchR* visitStep();
 
         virtual void release();
@@ -76,12 +84,14 @@ namespace KParser {
             return nullptr;
         }
 
-        virtual MatchR* match(const char* text, size_t length, size_t start) = 0;
-        std::function<void(Match*)> m_eval;
+        virtual MatchR* match(size_t start) = 0;
+        std::function<void(Match& m, bool on)> m_visitHandle;
+        std::function<std::any(Match& m, IT arg, IT noarg)> m_evalHandle;
 
         std::unique_ptr<Match> parse(const std::string& text) override;
 
-        RuleNode* on(std::function<void(Match*)> act) override;
+        RuleNode* visit(std::function<void(Match&, bool)> act) override;
+        RuleNode* eval(std::function<std::any(Match& m, IT arg, IT noarg)> eval) override;
         void appendChild(Rule* r) override;
         std::string toString() override;
     };
@@ -95,20 +105,31 @@ namespace KParser {
             return std::decay_t<decltype(*this)>::CLS();
         }
 
-        MatchR* match(const char* text, size_t length, size_t start) final;
+        MatchR* match(size_t start) final;
     };
 
     struct RuleStr : public RuleNode{
-        StrT m_text;
-        RuleStr(ParserImpl* gen, StrT&& text):RuleNode(gen), m_text(text){
+        char* buff;
+        size_t len;
+        RuleStr(ParserImpl* gen, StrT text):RuleNode(gen){
+            auto ptext = text.c_str();
+            len = text.length();
+            if (len == 0) {
+                buff = nullptr;
+                return;
+            }
+            buff = new char[len];
+            memcpy(buff, ptext, len);
         }
-        ~RuleStr() override = default;
+        ~RuleStr() {
+            delete[] buff;
+        }
         static CLSINFO* CLS();
         CLSINFO* getCLS() final {
             return std::decay_t<decltype(*this)>::CLS();
         }
 
-        MatchR* match(const char* text, size_t length, size_t start) final;
+        MatchR* match(size_t start) final;
     };
 
     struct RulePred : public RuleNode {
@@ -120,7 +141,7 @@ namespace KParser {
             return std::decay_t<decltype(*this)>::CLS();
         }
 
-        MatchR* match(const char* text, size_t length, size_t start) final;
+        MatchR* match(size_t start) final;
     };
 
     struct RuleAll : public RuleNode  {
@@ -135,7 +156,7 @@ namespace KParser {
         }
 
         RuleAll(ParserImpl* gen) :RuleNode(gen) {};
-        MatchR* match(const char* text, size_t length, size_t start) final;
+        MatchR* match(size_t start) final;
     };
 
     struct RuleAny : public RuleNode  {
@@ -148,6 +169,6 @@ namespace KParser {
             return std::decay_t<decltype(*this)>::CLS();
         }
         RuleAny(ParserImpl* gen) :RuleNode(gen) {};
-        MatchR* match(const char* text, size_t length, size_t start) final;
+        MatchR* match(size_t start) final;
     };
 }
