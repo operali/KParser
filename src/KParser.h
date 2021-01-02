@@ -58,7 +58,7 @@ namespace KParser {
         ParserImpl* impl;
         // match Pattern1 or Pattern2... or PatternN
     public:
-        Parser(bool skipBlanks = true);
+        Parser(size_t lookback = 20, bool skipBlanks = true);
 
 
         // match Pattern1 + Pattern2... + PatternN

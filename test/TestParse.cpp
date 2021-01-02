@@ -358,6 +358,20 @@ TEST(FEATURE, until) {
     }
 }
 
+TEST(FEATURE, until_2) {
+    KParser::Parser p;
+    auto to_dem = p.until(p.str(","));
+    auto count = 0;
+    auto dem = p.str(",")->on([&](auto* m) {
+        count++;
+        });
+    auto r = p.many(p.all(to_dem, dem));
+    {
+        auto m = r->parse("");
+        EXPECT_EQ(count, 0);
+    }
+}
+
 TEST(FEATURE, until_1) {
     KParser::Parser p;
     auto to_dem = p.until(p.str(","));
@@ -531,7 +545,7 @@ TEST(example, s_exp) {
 
 TEST(PRESSURE, length___) {
     // 20201230 (debug: 1287 ms, release:290)
-    // 
+    // 20201231 (debug: 1292 ms, release:194)
     EXPECT_EQ(KParser::KObject::count, 0);
     {
         auto text = "abc";
@@ -637,6 +651,56 @@ TEST(DEBUG, trace_back) {
         r->parse("AbcAbcAbcAbcAbcAbcAbcAbcAbcAbc123");
 
         EXPECT_EQ(count, 7);
+
+    }
+    EXPECT_EQ(KParser::KObject::count, 0);
+}
+
+TEST(DEBUG, trace_back2) {
+    {
+        KParser::Parser p(30);
+        int count = 0;
+        auto counter = [&](KParser::Match* m) {
+            count++;
+        };
+        int depth = 9;
+        std::stringstream ssToMatch;
+        std::stringstream ssSubstr;
+        for (auto i = 0; i < depth; ++i) {
+            ssToMatch << "Abc";
+            ssSubstr << "Abc";
+        }
+        ssToMatch << "AbcAb1234";
+        ssSubstr << "Ab1234";
+
+        auto r1 = p.many(p.str("Abc")->on(counter));
+        auto r2 = p.str(ssSubstr.str());
+        auto r = p.all(r1, r2);
+        EXPECT_EQ(r->parse(ssToMatch.str()) != nullptr, true);
+
+        EXPECT_EQ(count, 1);
+    }
+    {
+        KParser::Parser p(30);
+        int count = 0;
+        auto counter = [&](KParser::Match* m) {
+            count++;
+        };
+        int depth = 11;
+        std::stringstream ssToMatch;
+        std::stringstream ssSubstr;
+        for (auto i = 0; i < depth; ++i) {
+            ssToMatch << "Abc";
+            ssSubstr << "Abc";
+        }
+        ssToMatch << "AbcAb1234";
+        ssSubstr << "Ab1234";
+
+        auto r1 = p.many(p.str("Abc")->on(counter));
+        auto r2 = p.str(ssSubstr.str());
+        auto r = p.all(r1, r2);
+        EXPECT_EQ(r->parse(ssToMatch.str()) == nullptr, true);
+        EXPECT_EQ(count, 0);
 
     }
     EXPECT_EQ(KParser::KObject::count, 0);
