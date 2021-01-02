@@ -7,11 +7,11 @@ namespace KParser {
         static size_t count;
         static std::vector<KObject*> all;
         KObject() {
-            all.push_back(this);
+            //all.push_back(this);
             KObject::count++;
         }
         virtual ~KObject() {
-            all.erase(std::remove(all.begin(), all.end(), this));
+            //all.erase(std::remove(all.begin(), all.end(), this));
             KObject::count--;
         }
     };
@@ -19,8 +19,7 @@ namespace KParser {
     struct Match : private KObject {
         virtual std::string str() = 0;
         virtual std::any& value() = 0;
-        virtual bool alter() = 0;
-        virtual void visit() = 0;
+        virtual void visit(std::function<void(Match* m)> visitor) = 0;
         virtual ~Match() = default;
 
         template<typename T>
@@ -36,7 +35,7 @@ namespace KParser {
     };
 
     struct Rule : private KObject {
-        virtual std::unique_ptr<Match> match(const std::string& text) = 0;
+        virtual std::unique_ptr<Match> parse(const std::string& text) = 0;
         virtual Rule* on(std::function<void(Match*)> handle) = 0;
         virtual std::string toString() = 0;
         virtual void appendChild(Rule* r) = 0;
@@ -95,6 +94,8 @@ namespace KParser {
         Rule* optional(Rule* node);
         // (...)pattern
         Rule* until(Rule* cond);
+        // ...(pattern)
+        Rule* till(Rule* cond);
         // item1 dem item2 dem...itemN // for example: 1,2,3...N
         Rule* list(Rule* item, Rule* dem);
         // match regex forward
