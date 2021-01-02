@@ -2,6 +2,10 @@
 #include <iostream>
 #include <sstream>
 
+#define isspace(ch) ((ch) == ' ' || (ch) == '\t' || (ch) == '\r' || (ch) == '\n' || (ch) == '\v')
+
+// #define isspace(ch) (std::isspace(ch) != 0)
+
 namespace KParser {
     MatchR::MatchR(const char* text, size_t length, size_t start, RuleNode* rule) 
         :m_text(text), m_textLen(length), m_startPos(start), m_ruleNode(rule), m_matchLength(LEN::INIT) {
@@ -193,7 +197,7 @@ namespace KParser {
                                 for (int i = vec.size() - 1; i > -1; --i) {
                                     vec[i]->release();
                                 }
-                                std::cerr << "lookback max than " << headMax << "chars, abandon\n";
+                                std::cerr << "lookback more than max length of " << headMax << " chars, abandon\n";
                                 return false;
                             }
                         }
@@ -212,18 +216,23 @@ namespace KParser {
     StrT MatchR::str() {
         auto start = m_text + m_startPos;
         auto end = start + size();
+        const char* left = start;
+        const char* right = end-1;
         if (m_ruleNode->m_gen->m_skipBlank) {
-            while (true) {
-                if (start == end) {
-                    return "";
-                }
-                if (!std::isblank(*start)) {
+            while (left < end) {
+                if (!isspace(*left)) {
                     break;
                 }
-                ++start;
+                ++left;
+            }
+            while (left < right) {
+                if (!isspace(*right)) {
+                    break;
+                }
+                --right;
             }
         }
-        return StrT(start, end);
+        return StrT(left, right+1);
     }
 
     std::any& MatchR::value() {
@@ -528,7 +537,7 @@ namespace KParser {
                     if (m_curStart == textLen) {
                         break;
                     }
-                    if (!std::isblank(*cptr)) {
+                    if (!isspace(*cptr)) {
                         break;
                     }
                     cptr++;

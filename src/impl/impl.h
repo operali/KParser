@@ -16,8 +16,6 @@ namespace KParser {
         std::string m_toparse;
         VecT<RuleNode*> rules;
 
-        VecT<RuleNode*> ruleCache;
-
         ParserImpl(Parser* parser, size_t lookback, bool skipBlank);
         ~ParserImpl();
         void reset();

@@ -1,9 +1,30 @@
 #include "gtest/gtest.h"
-#include "../src/KParser.h"
+#include "../src/kparser.h"
 #include "../src/impl/rule.h"
 #include <sstream>
-#include <Windows.h>
 #include <exception>
+
+TEST(BASIC, remove_space) {
+    {
+        KParser::Parser p;
+        std::vector<std::string> v;
+        auto k = p.many1(p.identifier()->on([&](auto* m) {
+            v.push_back(m->str());
+            }));
+        k->parse(R"(a1
+b1
+ c1 d1
+e1 f1)");
+        ASSERT_EQ(v.size(), 6);
+        EXPECT_EQ(v[0], "a1");
+        EXPECT_EQ(v[1], "b1");
+        EXPECT_EQ(v[2], "c1");
+        EXPECT_EQ(v[3], "d1");
+        EXPECT_EQ(v[4], "e1");
+        EXPECT_EQ(v[5], "f1");
+
+    }
+}
 
 TEST(BASIC, class_) {
     EXPECT_EQ(KParser::KObject::count, 0);
@@ -399,6 +420,16 @@ TEST(FEATURE, till) {
     }
 }
 
+TEST(FEATURE, till_1) {
+    KParser::Parser p;
+    int count = 0;
+    {
+        auto r = p.till(p.str("*/"));
+        auto m = r->parse("   */   ");
+        ASSERT_EQ(m->str(), "*/");
+    }
+}
+
 TEST(FEATURE, regex) {
     KParser::Parser p;
     {
@@ -427,7 +458,7 @@ TEST(FEATURE, regex_1) {
         std::string v;
         auto r = p.all(
             p.none(),
-            p.regex("^[a-zA-Z_][a-zA-Z0-9_]*$")->on([&](auto* m) {
+            p.regex("^[a-zA-Z_][a-zA-Z0-9_]*")->on([&](auto* m) {
                 v = *m->get<std::string>();
                 })
         );
@@ -628,7 +659,7 @@ TEST(DEBUG, tostring) {
         auto ks = p.many(r);
         auto s = ks->toString();
         EXPECT_EQ(s,
-            R"(Any:0
+           R"(Any:0
   All
     Str(abc)
     Any:0

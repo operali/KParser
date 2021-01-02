@@ -95,7 +95,15 @@ namespace KParser {
         std::regex re(strRe);
         return pred([=](const char* b, const char* e, AnyT& val)->const char* {
             std::smatch results;
-            std::string toSearch(b, e);
+            // multiple line mode, cannot match to nextline
+            const char* nl = b;
+            do {
+                if (*nl == '\r'|| *nl == '\n') {
+                    break;
+                }
+                nl++;
+            } while (true);
+            std::string toSearch(b, nl);
             if (std::regex_search(toSearch, results, re)) {
                 val = results.str();
                 return b + results.position() + results.length();
@@ -105,7 +113,34 @@ namespace KParser {
     }
 
     Rule* Parser::identifier() {
-        return regex(R"(^[a-zA-Z_][a-zA-Z0-9_]*)");
+        return regex("^_?[a-zA-Z0-9]+");
+            auto i = pred([](const char* b, const char* e, AnyT& val)->const char* {
+            if (b == e) {
+                return nullptr;
+            }
+            auto i = b;
+            auto c = *i++;
+            auto isChar = [](char c) {return (c <= 'Z' && c >= 'A') || (c <= 'z' && c >= 'a'); };
+            auto isNum = [](char c) {return c <= '9' && c >= '0'; };
+
+            if (isChar(c) || c == '_') {
+                if (i == e) {
+                    return i;
+                }
+                while(c = *i++) {
+                    if (!isChar(c) && !isNum(c)) {
+                        break;
+                    }
+                    if (i == e) {
+                        break;
+                    }
+                }
+                return i;
+            }
+            else {
+                return nullptr;
+            }
+            });
     }
 
     Rule* Parser::integer_() {

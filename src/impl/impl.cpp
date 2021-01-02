@@ -13,12 +13,6 @@ namespace KParser {
     }
 
     void ParserImpl::reset() {
-        for (auto r : ruleCache) {
-            delete r;
-        }
-        ruleCache.resize(0);
-        ruleCache.clear();
-
         m_toparse = "";
         m_headMax = 0;
     }
