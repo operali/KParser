@@ -12,6 +12,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 file(GLOB_RECURSE SOURCE
   ./src/*.h
   ./src/*.cpp
+  ./test/*.cpp
 )
 
 add_subdirectory(third_party/gtest)
