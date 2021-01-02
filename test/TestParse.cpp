@@ -74,12 +74,10 @@ TEST(BASIC, leaf_str) {
         }
 
         {
-            p.reset();
             EXPECT_EQ(r->parse("123"), nullptr);
         }
 
         {
-            p.reset();
             auto m = r->parse("12345");
             EXPECT_EQ(m != nullptr, true);
         }

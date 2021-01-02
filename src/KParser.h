@@ -60,26 +60,7 @@ namespace KParser {
     public:
         Parser(bool skipBlanks = true);
 
-        void reset();
 
-        // match Pattern1 or Pattern2... or PatternN
-        template<typename ...TS>
-        Rule* any(TS ...nodes) {
-            auto root = any();
-            root->add(nodes...);
-            return root;
-        }
-        // match Pattern1 | Pattern2... | PatternN
-        Rule* any();
-
-        // match Pattern1 + Pattern2... + PatternN
-        template<typename ...TS>
-        Rule* all(TS ...nodes) {
-            auto root = all();
-            root->add(nodes...);
-            return root;
-        }
-        
         // match Pattern1 + Pattern2... + PatternN
         Rule* all();
         // epsilon
@@ -108,6 +89,26 @@ namespace KParser {
         Rule* float_();
         // user rule
         Rule* pred(std::function<const char* (const char* start, const char* end, std::any& matchVal)> p);
+
+
+        // match Pattern1 or Pattern2... or PatternN
+        template<typename ...TS>
+        Rule* any(TS ...nodes) {
+            auto root = any();
+            root->add(nodes...);
+            return root;
+        }
+        // match Pattern1 | Pattern2... | PatternN
+        Rule* any();
+
+        // match Pattern1 + Pattern2... + PatternN
+        template<typename ...TS>
+        Rule* all(TS ...nodes) {
+            auto root = all();
+            root->add(nodes...);
+            return root;
+        }
+        
 
         ~Parser() override;
     };
