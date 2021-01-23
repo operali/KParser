@@ -1,4 +1,5 @@
 #include "impl.h"
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 
@@ -18,29 +19,34 @@ std::string trim(const std::string& s)
     return std::string(it, rit.base());
 }
 
+
 namespace KParser {
+    struct LINE {
+        RuleNode* node;
+        int iden;
+        int id;
+    };
+
     MatchR::MatchR(size_t start, RuleNode* rule) 
         :m_startPos(start), m_matchstartPos(start), m_matchstopPos(start), m_ruleNode(rule), m_length(LEN::INIT) {
     }
 
-    using LINE = std::tuple<RuleNode*, int, int>; // (node, iden, id)
     using LINES = VecT<LINE>;
     static int idCount = 0;
     static void collectRuleInfo(RuleNode* n, LINES& r, int iden) {
         LINE line;
-        std::get<0>(line) = n;
-        std::get<1>(line) = iden;
-        std::get<2>(line) = -1;
-        auto it = std::find_if(r.begin(), r.end(), [&](auto& l) {
-            auto lineNode = std::get<0>(l);
-            return n == lineNode;
+        line.node = n;
+        line.iden = iden;
+        line.id = -1;
+        auto it = std::find_if(r.begin(), r.end(), [&](LINE& l) {
+            return n == l.node;
             });
         if (it != r.end()) {
-            auto& id = std::get<2>(*it);
+            auto& id = it->id;
             if (id == -1) {
                 id = idCount++;
             }
-            std::get<2>(line) = id;
+            line.id = id;
             r.push_back(line);
             return;
         }
@@ -97,13 +103,18 @@ namespace KParser {
         gen->rules.push_back(this);
     }
 
-    RuleNode* RuleNode::on(std::function<void(Match&, bool)> act) {
-        m_eval = act;
+    RuleNode* RuleNode::visit(std::function<void(Match&, bool)> act) {
+        m_visitHandle = act;
         return this;
     };
 
+    RuleNode* RuleNode::eval(std::function<libany::any(Match& m, IT arg, IT noarg)> eval){
+        m_evalHandle = eval;
+        return this;
+    }
+
     void RuleNode::appendChild(Rule* r) {
-        throw std::exception("unimplemented");
+        throw std::exception();//TODO
     };
 
     std::string RuleNode::toString() {
@@ -112,18 +123,22 @@ namespace KParser {
         collectRuleInfo(this, lns, 0);
         std::stringstream ss;
         for (auto& ln : lns) {
-            auto [node, iden, id] = ln;
-            for (auto i = 0; i < iden; ++i) {
+            
+            for (auto i = 0; i < ln.iden; ++i) {
                 ss << "  ";
             }
-            if (id == -1) {
-                ss << printRuleLine(node) << "\n";
+            if (ln.id == -1) {
+                ss << printRuleLine(ln.node) << "\n";
             }
             else {
-                ss << printRuleLine(node) << ":" << id << "\n";
+                ss << printRuleLine(ln.node) << ":" << ln.id << "\n";
             }
         }
         return ss.str();
+    }
+
+    Parser* RuleNode::host() {
+        return m_gen->m_interface;
     }
 
     std::unique_ptr<Match> RuleNode::parse(const std::string& text) {
@@ -133,12 +148,17 @@ namespace KParser {
         auto m = this->match(0);
         std::unique_ptr<Match> um;
         um.reset(m);
+
+        std::vector<libany::any>& expStk = m_gen->m_expStk;
+        using IT = std::vector<libany::any>::iterator;
+        std::vector<size_t> opStk;
+
         auto r = m->alter();
         if (!r) {
             return nullptr;
         }
-        m_gen->dataStk.clear();
-        auto f = m->m_ruleNode->m_eval;
+        // m_gen->dataStk.clear();
+        auto f = m->m_ruleNode->m_visitHandle;
         if (f) {
             try {
                 f(*m, true);
@@ -147,10 +167,12 @@ namespace KParser {
                 std::cerr << e.what() << std::endl;
             }
         }
+        opStk.push_back(expStk.size());
 
-        um->visit([&](auto& m, bool is_begin) {
+        m->visit([&](KParser::Match& m, bool is_begin) {
             auto mr = (MatchR*)&m;
-            auto f = mr->m_ruleNode->m_eval;
+            auto rule = mr->m_ruleNode;
+            auto f = rule->m_visitHandle;
             if (f) {
                 try {
                     f(*mr, is_begin);
@@ -159,11 +181,28 @@ namespace KParser {
                     std::cerr << e.what() << std::endl;
                 }
             }
-            if (!is_begin) {
+            if (is_begin) {
+                opStk.push_back(expStk.size());
+            } else {
+                auto eval = ((MatchR*)&m)->m_ruleNode->m_evalHandle;
+                if (eval) {
+                    libany::any res;
+                    auto from = opStk.back();
+                    IT b = expStk.begin() + from;
+                    try {
+                        auto v = eval(*mr, b, expStk.end());
+                        std::swap(v, res);
+                    }
+                    catch (std::exception& e) {
+                        std::cerr << e.what() << std::endl;
+                    }
+                    expStk.erase(b, expStk.end());
+                    expStk.emplace_back(std::move(res));
+                }
+                opStk.pop_back();
                 delete mr;
             }
         });
-        
         if (f) {
             try {
                 f(*m, false);
@@ -171,6 +210,22 @@ namespace KParser {
             catch (std::exception& e) {
                 std::cerr << e.what() << std::endl;
             }
+        }
+        auto eval = m->m_ruleNode->m_evalHandle;
+        if (eval) {
+            libany::any res;
+            auto from = opStk.back();
+            IT b = expStk.begin() + from;
+            try {
+                auto v = eval(*m, b, expStk.end());
+                std::swap(v, res);
+            }
+            catch (std::exception& e) {
+                std::cerr << e.what() << std::endl;
+            }
+            expStk.erase(b, expStk.end());
+            expStk.emplace_back(std::move(res));
+            opStk.pop_back();
         }
         return um;
     }
@@ -197,8 +252,8 @@ namespace KParser {
         
         while (true) {
             auto st = curM->stepIn();
-            if (st.index() == 0) {
-                auto stBool = std::get<bool>(st);
+            if (st.mr == nullptr) {
+                auto stBool = st.res;
                 if (curM == this) {
                     return stBool;
                 }
@@ -231,30 +286,33 @@ namespace KParser {
                 }
             }
             else {
-                MatchR* matcher = std::get<MatchR*>(st);
+                MatchR* matcher = st.mr;
                 vec.push_back(curM);
                 curM = matcher;
             }
         }
     }
-    DataStack& MatchR::global_data() {
-        return m_ruleNode->m_gen->dataStk;
-    }
 
-    const char* MatchR::global_text() {
-        return m_ruleNode->m_gen->m_cache;
+    libany::any* MatchR::capture(size_t i) {
+        if (i >= m_ruleNode->m_gen->m_expStk.size()) {
+            return nullptr;
+        }
+        return &m_ruleNode->m_gen->m_expStk.at(i);
     }
 
     StrT MatchR::prefix() {
-        return StrT(global_text(), global_text() + m_startPos);
+        const char* globalText = m_ruleNode->m_gen->m_cache;
+        return StrT(globalText, globalText + m_startPos);
     }
 
     StrT MatchR::suffix() {
-        return StrT(global_text(), global_text() + m_startPos+ m_length);
+        const char* globalText = m_ruleNode->m_gen->m_cache;
+        return StrT(globalText, globalText + m_startPos+ m_length);
     }
 
     StrT MatchR::occupied_str() {
-        auto start = global_text() + m_startPos;
+        const char* globalText = m_ruleNode->m_gen->m_cache;
+        auto start = globalText + m_startPos;
         auto stop = start + length();
         /*const char* left = start;
         const char* right = stop-1;
@@ -277,8 +335,9 @@ namespace KParser {
     }
 
     StrT MatchR::str() {
-        auto start = global_text() + m_matchstartPos;
-        auto stop = global_text() + m_matchstopPos;
+        const char* globalText = m_ruleNode->m_gen->m_cache;
+        auto start = globalText + m_matchstartPos;
+        auto stop = globalText + m_matchstopPos;
         if (m_matchstartPos == m_matchstopPos) {
             return "";
         }
@@ -294,14 +353,14 @@ namespace KParser {
     }
 
     void MatchR::release() {
-        visit([](auto& m, bool begin) {
-            if (!begin) {
+        visit([](KParser::Match& m, bool capture) {
+            if (!capture) {
                 delete& m;
             }
             });
     }
 
-    void MatchR::visit(std::function<void(Match& m, bool begin)> visitor) {
+    void MatchR::visit(std::function<void(Match& m, bool capture)> visitor) {
         std::vector<MatchR*> matchers;
         MatchR* curM = this;
         for (; true;) {
@@ -341,12 +400,12 @@ namespace KParser {
         MatchREmpty(size_t start, RuleNode* rule) 
             :MatchR(start, rule) {
         }
-        std::variant<bool, MatchR*> stepIn() override {
+        StepInT stepIn() override {
             if (m_length == LEN::SUCC) {
-                return false;
+                return StepInT{false, nullptr};
             }
             m_length = LEN::SUCC;
-            return true;
+            return StepInT{ true, nullptr };
         };
     };
 
@@ -367,9 +426,9 @@ namespace KParser {
             :MatchR(start, rule) {
         }
         
-        std::variant<bool, MatchR*> stepIn() override {
+        StepInT stepIn() override {
             if (m_length == LEN::FAIL || m_length >= LEN::SUCC) {
-                return false;
+                return StepInT{ false, nullptr };
             }
             auto parser = m_ruleNode->m_gen;
             const char* bptr = parser->m_cache + m_startPos;
@@ -381,24 +440,24 @@ namespace KParser {
             auto text_len = parser->length;
             if (toMatch == nullptr) {
                 m_length = rule->len;
-                return true;
+                return StepInT{ true, nullptr };
             }
             while (true) {
                 if (toMatch == toMatchEnd) {
                     m_matchstopPos = cptr - parser->m_cache;
                     m_length = rule->len;
-                    return true;
+                    return StepInT{ true, nullptr };
                 }
                 if (cptr == eptr) {
                     break;
                 }
                 if (*(cptr++) != *(toMatch++)) {
                     m_length = LEN::FAIL;
-                    return false;
+                    return StepInT{ false, nullptr };
                 }
             }
             m_length = LEN::FAIL;
-            return false;
+            return StepInT{ false, nullptr };
         };
     };
 
@@ -430,9 +489,9 @@ namespace KParser {
             :MatchR(start, rule) {
         }
         
-        std::variant<bool, MatchR*> stepIn() override {
+        StepInT stepIn() override {
             if (m_length != LEN::INIT) {
-                return false;
+                return StepInT{ false, nullptr };
             }
             auto parser = m_ruleNode->m_gen;
             auto ptext = parser->m_cache;
@@ -449,11 +508,11 @@ namespace KParser {
                 m_matchstartPos = matchStart - start + m_startPos;
                 m_matchstopPos = matchStop - start + m_startPos;
                 m_length = end - start;
-                return true;
+                return StepInT{ true, nullptr };
             }
             else {
                 m_length = LEN::FAIL;
-                return false;
+                return StepInT{ false, nullptr };
             }
         }
     };
@@ -530,18 +589,17 @@ namespace KParser {
         }
 
         bool fromStepOut = false;
-        std::variant<bool, MatchR*> stepIn() override {
+        StepInT stepIn() override {
             if (m_length >= LEN::SUCC && fromStepOut) {
                 fromStepOut = false;
                 m_matchstopPos = m_startPos + m_length;
-                return true;
+                return StepInT{ true, nullptr };
             }
             if (!m_curMatcher) {
                 m_length = LEN::FAIL;
-                return false;
+                return StepInT{ false, nullptr };
             }
-            
-            return m_curMatcher;
+            return StepInT{ false, m_curMatcher };
         };
 
         void stepOut(MatchR* r) override {
@@ -634,8 +692,8 @@ namespace KParser {
                 return false;
             }
             auto m = childMatch.back();
-            m->visit([](auto& child, bool begin) {
-                if (!begin) {
+            m->visit([](Match& child, bool capture) {
+                if (!capture) {
                     delete& child;
                 }
                 });
@@ -645,24 +703,24 @@ namespace KParser {
         }
 
         bool fromStepOut = false;
-        std::variant<bool, MatchR*> stepIn() override {
+        StepInT stepIn() override {
             if ( m_length >= LEN::SUCC && fromStepOut) {
                 fromStepOut = false;
                 m_matchstopPos = m_startPos + m_length;
-                return true;
+                return StepInT{ true, nullptr };
             }
             else if (m_length == LEN::FAIL) {
-                return false;
+                return StepInT{ false, nullptr };
             }
             auto len = childMatch.size();
             if (len == 0) {
                 m_length = LEN::FAIL;
-                return false;
+                return StepInT{ false, nullptr };
             }
 
             MatchR* matcher = childMatch.back();
             m_curStart = matcher->m_startPos;
-            return matcher;
+            return StepInT{ true, matcher };
         };
 
         void stepOut(MatchR* r) override {

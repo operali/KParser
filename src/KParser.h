@@ -1,12 +1,14 @@
 #pragma once
-#include <any>
+#include "impl/any.h"
+#include <type_traits>
 #include <functional>
-#include <optional>
+#include <memory>
+#include <vector>
 
 namespace KParser {
     struct KObject {
         static size_t count;
-        static std::vector<KObject*> all;
+        //static std::vector<KObject*> all;
         KObject() {
             //all.push_back(this);
             KObject::count++;
@@ -16,50 +18,7 @@ namespace KParser {
             KObject::count--;
         }
     };
-
-    struct DataStack : private KObject {
-        template<typename T>
-        void emplace(T&& t) {
-            push_any(std::any(std::forward<T&&>(t)));
-        }
-
-        template<typename T>
-        void push(T t) {
-            push_any(std::any(t));
-        }
-        template<typename T>
-        std::optional<T> pop() {
-            try {
-                return std::any_cast<T>(pop_any());
-            }
-            catch (const std::exception& ex) {
-                printf("fail to cast %s", ex.what());
-            }
-            return {};
-        }
-
-        template<typename T>
-        void set(T t) {
-            set_any(std::any(t));
-        }
-        template<typename T>
-        T* get(size_t i) {
-            try {
-                return std::any_cast<T>(&get_any(i));
-            }
-            catch (const std::exception& ex) {
-                printf("fail to cast %s", ex.what());
-            }
-            return nullptr;
-        }
-
-        virtual void push_any(std::any&& t) = 0;
-        virtual std::any pop_any() = 0;
-        virtual std::any& get_any(size_t i) = 0;
-        virtual void set_any(std::any&& t, size_t i) = 0;
-        virtual void clear() = 0;
-        virtual size_t size() = 0;
-    };
+    using IT = std::vector<libany::any>::iterator;
 
 
     struct Match : private KObject {
@@ -68,36 +27,16 @@ namespace KParser {
         virtual std::string str() = 0;
         virtual std::string prefix() = 0;
         virtual std::string suffix() = 0;
-        virtual DataStack& global_data() = 0;
-        virtual const char* global_text() = 0;
-        
-        virtual void visit(std::function<void(Match&, bool)> visitor) = 0;
+        virtual libany::any* capture(size_t i) = 0;
     };
 
-    struct Rule : private KObject {
-        virtual std::unique_ptr<Match> parse(const std::string& text) = 0;
-        virtual Rule* on(std::function<void(Match&, bool)> handle) = 0;
-        virtual std::string toString() = 0;
-        virtual void appendChild(Rule* r) = 0;
-
-        template<typename T, typename ...TS>
-        void add(T node, TS ...nodes) {
-            appendChild(node);
-            add(nodes...);
-        }
-
-        template<typename T>
-        void add(T node) {
-            appendChild(node);
-        }
-    };
-
+    struct Rule;
     struct ParserImpl;
     using PredT = std::function<void(const char* begin, const char* textEnd, const char*& matchBegin, const char*& matchEnd, const char*& end)>;
     class Parser : private KObject {
         ParserImpl* impl;
     public:
-        Parser(size_t lookback = 20, bool skipBlanks = true);
+        Parser(size_t lookback = 42, bool skipBlanks = true);
 
         // match Pattern1 + Pattern2... + PatternN
         Rule* all();
@@ -107,16 +46,22 @@ namespace KParser {
         Rule* str(std::string&& str);
         // pattern*
         Rule* many(Rule* node);
+        Rule* many(const char* strNode);
         // pattern+
         Rule* many1(Rule* node);
+        Rule* many1(const char* strNode);
         // pattern?
         Rule* optional(Rule* node);
+        Rule* optional(const char* strNode);
         // (...)pattern
         Rule* until(Rule* cond);
+        Rule* until(const char* strNode);
         // ...(pattern)
         Rule* till(Rule* cond);
+        Rule* till(const char* strNode);
         // item1 dem item2 dem...itemN // for example: 1,2,3...N
         Rule* list(Rule* item, Rule* dem);
+        Rule* list(Rule*, const char* dem);
         // match regex forward
         Rule* regex(const std::string& strRe, bool startWith = true);
         // match c identifier/variable 
@@ -130,22 +75,66 @@ namespace KParser {
 
         // match Pattern1 or Pattern2... or PatternN
         template<typename ...TS>
-        Rule* any(TS ...nodes) {
-            auto root = any();
-            root->add(nodes...);
-            return root;
-        }
+        Rule* any(TS ...nodes);
+
         // match Pattern1 | Pattern2... | PatternN
         Rule* any();
 
         // match Pattern1 + Pattern2... + PatternN
         template<typename ...TS>
-        Rule* all(TS ...nodes) {
-            auto root = all();
-            root->add(nodes...);
-            return root;
-        }
-        
+        Rule* all(TS ...nodes);
+
         ~Parser() override;
     };
+
+
+
+    struct Rule : private KObject {
+        virtual std::unique_ptr<Match> parse(const std::string& text) = 0;
+        virtual Rule* visit(std::function<void(Match&, bool)> handle) = 0;
+        virtual Rule* eval(std::function<libany::any(Match& m, IT arg, IT noarg)> eval) = 0;
+        virtual std::string toString() = 0;
+        virtual void appendChild(Rule* r) = 0;
+        virtual Parser* host() = 0;
+
+        template<typename T, typename ...TS>
+        void add(T node, TS ...nodes) {
+            this->add(node);
+            this->add(nodes...);
+        }
+
+        template<typename T>
+        void add(T node) {
+
+            // to make sure static assert is valid
+#if __cpp_static_assert > 201400
+            static_assert(std::is_same_v<T, Rule*>);
+#endif
+            this->appendChild(node);
+        }
+    };
+
+    template<>
+    inline void Rule::add(const char* node) {
+        Parser* p = this->host();
+        this->appendChild(p->str(node));
+    }
+
+
+    // match Pattern1 or Pattern2... or PatternN
+    template<typename ...TS>
+    inline Rule* Parser::any(TS ...nodes) {
+        auto root = any();
+        root->add(nodes...);
+        return root;
+    }
+
+
+    // match Pattern1 + Pattern2... + PatternN
+    template<typename ...TS>
+    inline Rule* Parser::all(TS ...nodes) {
+        auto root = all();
+        root->add(nodes...);
+        return root;
+    }
 };

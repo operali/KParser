@@ -1,3 +1,4 @@
+#pragma once
 #include "../KParser.h"
 #include <vector>
 #include <unordered_map>
@@ -21,7 +22,7 @@ struct DSLContext : public KParser::Parser {
 };
 
 struct DSLNode {
-    constexpr const char* CLSNAME() {
+    static const char* CLSNAME() {
         return "abstruct";
     }
     virtual std::string cls() {
@@ -37,7 +38,7 @@ struct DSLNode {
 };
 
 struct DSLStr : public DSLNode {
-    constexpr const char* CLSNAME() {
+    static const char* CLSNAME() {
         return "str";
     }
     virtual std::string cls() {
@@ -50,7 +51,7 @@ struct DSLStr : public DSLNode {
 };
 
 struct DSLRule : public DSLNode {
-    constexpr const char* CLSNAME() {
+    static const char* CLSNAME() {
         return "rule";
     }
     virtual std::string cls() {
@@ -64,7 +65,7 @@ struct DSLRule : public DSLNode {
 };
 
 struct DSLRuleList : public DSLNode {
-    constexpr const char* CLSNAME() {
+    static const char* CLSNAME() {
         return "rule";
     }
     virtual std::string cls() {
@@ -77,7 +78,7 @@ struct DSLRuleList : public DSLNode {
 };
 
 struct DSLAll : public DSLNode {
-    constexpr const char* CLSNAME() {
+    static const char* CLSNAME() {
         return "str";
     }
     virtual std::string cls() {
@@ -92,7 +93,7 @@ struct DSLAll : public DSLNode {
 };
 
 struct DSLAny : public DSLNode {
-    constexpr const char* CLSNAME() {
+    static const char* CLSNAME() {
         return "any";
     }
     virtual std::string cls() {
@@ -117,95 +118,46 @@ DSLContext::DSLContext() {
     rrule = all(rid, str("="), any(ritem, rall, rany), str(";"));
     rruleList = many1(rrule);
     
-    rruleList->on([this](auto& m, bool begin) {
-            if (!begin) {
-                auto& ds = m.global_data();
-                for (int i = 0; i < ds.size(); ++i) {
-                    DSLNode* r = *ds.get<DSLNode*>(i);
-                    DSLRule* rule = (DSLRule*)r;
-                    this->root->rules.push_back(rule);
-                }
-            }
-        });
-
-    rid->on([this](auto& m, bool begin) {
-        if(!begin){
-            auto& d = m.global_data();
-            DSLStr* node = new DSLStr(this);
-            node->str = m.str();
-            d.push<DSLNode*>(node);
+    rruleList->eval([this](KParser::Match& m, KParser::IT b, KParser::IT e) {
+        DSLRuleList* rl = new DSLRuleList(this);
+        for (; b != e; ++b) {
+            rl->rules.push_back((DSLRule*)libany::any_cast<DSLNode*>(*b));
         }
+        return rl;
     });
     
-    rall->on([this](KParser::Match& m, bool begin) {
-        auto& d = m.global_data();
-        auto sz = d.size();
-        if(begin){
-            auto node = new DSLAll(this);
-            this->matchMap[&m] = sz;
-            d.push<DSLNode*>(node);
-        } else {
-            size_t from = this->matchMap[&m];
-            DSLAll* allNode = (DSLAll*)(*d.get<DSLNode*>(from));
-            for (int i = from+1; i < sz; ++i) {
-                DSLNode* n = *d.get<DSLNode*>(i);
-                allNode->nodes.push_back(n);
-            }
-            for (int i = sz - 1; i > from; --i) {
-                d.pop_any();
-            }
-        }
-    });
 
-    rany->on([this](KParser::Match& m, bool begin) {
-        auto& d = m.global_data();
-        auto sz = d.size();
-        if (begin) {
-            auto node = new DSLAny(this);
-            this->matchMap[&m] = sz;
-            d.push<DSLNode*>(node);
-        }
-        else {
-            size_t from = this->matchMap[&m];
-            DSLAny* allNode = (DSLAny*)(*d.get<DSLNode*>(from));
-            for (int i = from + 1; i < sz; ++i) {
-                DSLNode* n = *d.get<DSLNode*>(i);
-                allNode->nodes.push_back(n);
-            }
-            for (int i = sz - 1; i > from; --i) {
-                d.pop_any();
-            }
-        }
+    rid->eval([this](KParser::Match& m, KParser::IT b, KParser::IT e) {
+        DSLStr* rl = new DSLStr(this);
+        rl->str = m.str();
+        return (DSLNode*)rl;
         });
 
-    rrule->on([this](KParser::Match& m, bool begin) {
-        auto& d = m.global_data();
-        auto sz = d.size();
-        if (begin) {
-            auto node = new DSLRule(this);
-            this->matchMap[&m] = sz;
-            d.push<DSLNode*>(node);
+    rall->eval([this](KParser::Match& m, KParser::IT b, KParser::IT e) {
+        DSLAll* rl = new DSLAll(this);
+        for (; b != e; ++b) {
+            rl->nodes.push_back(libany::any_cast<DSLNode*>(*b));
         }
-        else {
-            size_t from = this->matchMap[&m];
-            DSLRule* ruleNode = (DSLRule*)(*d.get<DSLNode*>(from));
-            DSLStr* n = (DSLStr*)*d.get<DSLNode*>(from+1);
-            ruleNode->ruleName = n->str;
-            DSLNode* n1 = *d.get<DSLNode*>(from + 2);
-            ruleNode->ruleNode = n1;
-            d.pop_any();
-            d.pop_any();
-        }
-    });
+        return (DSLNode*)rl;
+        });
 
-    //rrule->on([this](auto& m) {
-    //    auto& d = m.global_data();
-    //    auto sz = d.size();
-    //    auto node = new DSLRule(this);
-    //    std::optional<DSLNode**> n = d.get<DSLNode*>(i);
-    //    node->nodes.push_back(*n.value());
-    //    });
-        
+    rany->eval([this](KParser::Match& m, KParser::IT b, KParser::IT e) {
+        DSLAny* rl = new DSLAny(this);
+        for (; b != e; ++b) {
+            rl->nodes.push_back(libany::any_cast<DSLNode*>(*b));
+        }
+        return (DSLNode*)rl;
+        });
+
+    rrule->eval([this](KParser::Match& m, KParser::IT b, KParser::IT e) {
+        DSLRule* rl = new DSLRule(this);
+        DSLNode* nameNode = libany::any_cast<DSLNode*>(*b++);
+        auto name = (DSLStr*)nameNode;
+        auto node = libany::any_cast<DSLNode*>(*b);
+        rl->ruleName = name->str;
+        rl->ruleNode = node;
+        return (DSLNode*)rl;
+    });
 }
 
 bool DSLContext::parse(std::string strRuleList) {
@@ -213,119 +165,9 @@ bool DSLContext::parse(std::string strRuleList) {
     if (m == nullptr) {
         return false;
     }
-    auto& data = m->global_data();
+    auto** data = libany::any_cast<DSLRuleList*>(m->capture(0));
+    ;
+    // EXPECT_EQ(libany::any_cast<int>(m->global_value()), 1);
     return true;
 }
-
-
-
-
-
-
-
-
-
-
-
-using namespace KParser;
-class DSLParser : public KParser::Parser {
-public: 
-    DSLParser() {
-        _id_ = identifier();
-        _number_ = number_();
-        _regex_ = all(str("re`"), till(str("`")));
-        _term_ = any();
-        _all_ = many1(_term_);
-        _any_ = list(_all_, str("|"));
-        _term_->add(_regex_, str_(), _id_, _number_);
-        _group_ = all(str("("), _any_, str(")"));
-        _term_->appendChild(_group_);
-        _rule_ = all(_id_, str("="), _any_, str(";"));
-        _root_ = many1(_rule_);
-    }
-    Rule* _group_;
-    Rule* _root_;
-    
-    Rule* _id_;
-    Rule* id_() {
-        // <id> // = 
-        return identifier()->on([](auto& m, bool begin) {
-
-        });
-    }
-
-    Rule* _number_;
-    Rule* number_() {
-        return any(float_(), integer_());
-    }
-
-    Rule* _rule_;
-
-    Rule* _str_;
-    Rule* str_() {
-        // `...
-        return pred([this](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
-            const char* idx = b;
-            if (b == e) {
-                cb = nullptr;
-                ce = nullptr;
-                me = nullptr;
-                return;
-            }
-            if (*idx++ != '`') {
-                cb = nullptr;
-                ce = nullptr;
-                me = nullptr;
-                return;
-            }
-            cb = idx;
-            while (idx != e) {
-                if (*idx++ == '`') {
-                    ce = idx-1;
-                    me = idx;
-                    return;
-                }
-            }
-            cb = nullptr;
-            ce = nullptr;
-            me = nullptr;
-            });
-    }
-
-    Rule* _recommend_;
-    Rule* recommend_() {
-        /* ... */
-        return all(str("/*"), till(str("*/")));
-    }
-
-    Rule* _regex_;
-    Rule* regex_() {
-        /* ... */
-        return all(str("re`"), till(str("`")));
-    }
-
-    Rule* _term_;
-    
-    Rule* _exp_;
-    Rule* exp_() {
-        // term_* | term_? | and_exp | or_exp
-        return nullptr;
-    }
-
-    Rule* _many_;
-    Rule* many_() {
-        // term_* 
-        return nullptr;
-    }
-    
-    Rule* _optional_;
-    Rule* optional_() {
-        // term_? 
-        return nullptr;
-    }
-
-    Rule* _all_;
-    Rule* _any_;
-
-};
 

@@ -22,7 +22,7 @@ int main() {
                 auto f = [&](auto* m) {
                     i++;
                 };
-                auto m = p.list(p.str("abc")->on(f), p.str(","));
+                auto m = p.list("abc")->on(f), ","));
 
                 m->match(ss.str());
             }

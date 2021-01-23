@@ -1,13 +1,20 @@
 #pragma once
 #include "common.h"
 #include "impl.h"
-#include <optional>
 #include <vector>
+#include "any.h"
 
 namespace KParser {
 
     struct RuleNode;
     
+
+    struct MatchR;
+    struct StepInT {
+        bool res;
+        MatchR* mr;
+    };
+
     struct MatchR : public Match {
         int32_t m_startPos;
         int32_t m_matchstartPos;
@@ -40,30 +47,18 @@ namespace KParser {
         StrT prefix() override;
         StrT suffix() override;
 
-        DataStack& global_data() override;
-        const char* global_text() override;
+        libany::any* capture(size_t i) override;
         
-        template<typename T>
-        T* get() {
-            try {
-                std::any* r = &value();
-                return std::any_cast<T>(r);
-            }
-            catch (std::exception& _) {
-                return nullptr;
-            }
-        }
-
-        virtual std::variant<bool, MatchR*> stepIn() {
-            throw std::exception("unimplemented");
+        virtual StepInT stepIn() {
+            throw std::exception();//TODO
         };
 
         virtual void stepOut(MatchR* r) {
-            throw std::exception("unimplemented");
+            throw std::exception();//TODO
         };
 
         virtual bool alter();
-        void visit(std::function<void(Match& m, bool begin)> visitor) override;
+        virtual void visit(std::function<void(Match& m, bool capture)> visitor);
         virtual MatchR* visitStep();
 
         virtual void release();
@@ -82,13 +77,16 @@ namespace KParser {
         }
 
         virtual MatchR* match(size_t start) = 0;
-        std::function<void(Match& m, bool on)> m_eval;
+        std::function<void(Match& m, bool on)> m_visitHandle;
+        std::function<libany::any(Match& m, IT arg, IT noarg)> m_evalHandle;
 
         std::unique_ptr<Match> parse(const std::string& text) override;
 
-        RuleNode* on(std::function<void(Match&, bool)> act) override;
+        RuleNode* visit(std::function<void(Match&, bool)> act) override;
+        RuleNode* eval(std::function<libany::any(Match& m, IT arg, IT noarg)> eval) override;
         void appendChild(Rule* r) override;
         std::string toString() override;
+        Parser* host() override;
     };
 
     struct RuleEmpty : public RuleNode{
@@ -97,7 +95,7 @@ namespace KParser {
         ~RuleEmpty() override = default;
         static CLSINFO* CLS();
         CLSINFO* getCLS() final {
-            return std::decay_t<decltype(*this)>::CLS();
+            return RuleEmpty::CLS();
         }
 
         MatchR* match(size_t start) final;
@@ -114,14 +112,14 @@ namespace KParser {
                 return;
             }
             buff = new char[len];
-            memcpy(buff, ptext, len);
+            std::copy(ptext, ptext + len, buff);
         }
         ~RuleStr() {
             delete[] buff;
         }
         static CLSINFO* CLS();
         CLSINFO* getCLS() final {
-            return std::decay_t<decltype(*this)>::CLS();
+            return RuleStr::CLS();
         }
 
         MatchR* match(size_t start) final;
@@ -133,7 +131,7 @@ namespace KParser {
         }
         static CLSINFO* CLS();
         CLSINFO* getCLS() final {
-            return std::decay_t<decltype(*this)>::CLS();
+            return RulePred::CLS();
         }
 
         MatchR* match(size_t start) final;
@@ -147,7 +145,7 @@ namespace KParser {
         const static CLSINFO* CLS();
 
         const CLSINFO* getCLS() final {
-            return std::decay_t<decltype(*this)>::CLS();
+            return RuleAll::CLS();
         }
 
         RuleAll(ParserImpl* gen) :RuleNode(gen) {};
@@ -161,7 +159,7 @@ namespace KParser {
         }
         static CLSINFO* CLS();
         CLSINFO* getCLS() final {
-            return std::decay_t<decltype(*this)>::CLS();
+            return RuleAny::CLS();
         }
         RuleAny(ParserImpl* gen) :RuleNode(gen) {};
         MatchR* match(size_t start) final;

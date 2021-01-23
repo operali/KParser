@@ -11,15 +11,20 @@
 
 TEST(FEATURE, data_stack) {
     KParser::Parser p;
-    auto r = p.regex("\\d+", false)->on([](KParser::Match& m) {
-        auto& ds = m.global_data();
-        auto cs = m.str();
-        ds.push(std::atoi(cs.c_str()));
+    auto r = p.regex("\\d+", false)->visit([](KParser::Match& m, bool capture) {
+            if (!capture) {
+                auto& ds = m.global_data();
+                auto cs = m.str();
+                ds.push<int>(std::atoi(cs.c_str()));
+            }
+        
         });
     auto m = p.many(r)->parse("aasdfsdf 123 456");
     auto& ds = m->global_data();
-    EXPECT_EQ(ds.pop<int>().value(), 456);
-    EXPECT_EQ(ds.pop<int>().value(), 123);
+    int r1 = *ds.pop<int>();
+    EXPECT_EQ(r1, 456);
+    int r2 = *ds.pop<int>();
+    EXPECT_EQ(r2, 123);
 }
 
 #else
@@ -28,8 +33,8 @@ TEST(BASIC, remove_space) {
     {
         KParser::Parser p;
         std::vector<std::string> v;
-        auto k = p.many1(p.identifier()->on([&](auto& m, bool begin) {
-            if (!begin) {
+        auto k = p.many1(p.identifier()->visit([&](KParser::Match& m, bool capture) {
+            if (!capture) {
                 v.push_back(m.occupied_str());
             }
             }));
@@ -54,8 +59,7 @@ TEST(BASIC, class_) {
     };
     {
         MyParser parser;
-        // parser & dataimpl
-        EXPECT_EQ(KParser::KObject::count, 2);
+        EXPECT_EQ(KParser::KObject::count, 1);
     }
     EXPECT_EQ(KParser::KObject::count, 0);
 }
@@ -65,8 +69,8 @@ TEST(BASIC, class1_) {
         std::string val;
         KParser::Rule* ruleOf() {
             return any(
-                str("abc"),
-                str("123")->on([this](auto& m, bool begin) {
+                "abc",
+                str("123")->visit([this](KParser::Match& m, bool capture) {
                     std::cout << "hello" << std::endl;
                     this->val = m.occupied_str();
                     })
@@ -135,8 +139,8 @@ TEST(BASIC, branch_all) {
         KParser::Parser p;
         {
             auto r = p.all(
-                p.str("1234"),
-                p.str("5678")
+                "1234",
+                "5678"
             );
             auto m = r->parse("12345678");
             ASSERT_EQ(m != nullptr, true);
@@ -155,7 +159,6 @@ TEST(BASIC, branch_all) {
             EXPECT_EQ(v, "12345678");
         }
     }
-    auto left = KParser::KObject::all;
     EXPECT_EQ(KParser::KObject::count, 0);
 }
 
@@ -175,8 +178,8 @@ TEST(BASIC, branch_any1) {
         }
         {
             auto r = (KParser::RuleNode*)p.any(
-                p.str("1234"),
-                p.str("5678")
+                "1234",
+                "5678"
             );
 
             auto um = r->parse("5678    ");
@@ -195,7 +198,7 @@ TEST(BASIC, branch_all_any) {
     {
         KParser::Parser p;
         auto k = (KParser::RuleNode*)p.any(
-            p.str("1234"),
+            "1234",
             p.str("5678")
         );
         auto r = (KParser::RuleNode*)p.all(
@@ -266,8 +269,8 @@ TEST(FEATURE, many_1) {
         KParser::Parser p;
 
         auto k = p.any(
-            p.str("abc"),
-            p.str("123")
+            "abc",
+            "123"
         );
         auto ks = p.many(k);
         {
@@ -294,8 +297,8 @@ TEST(FEATURE, many1) {
         KParser::Parser p;
 
         auto k = p.any(
-            p.str("abc"),
-            p.str("123")
+            "abc",
+            "123"
         );
         auto ks = p.many1(k);
         {
@@ -328,7 +331,7 @@ TEST(FEATURE, pred) {
     EXPECT_EQ(KParser::KObject::count, 0);
     {
         KParser::Parser p;
-        auto r = p.pred([](auto b, auto e, const char*& cb, const char*& ce, const char*& me)->void {
+        auto r = p.pred([](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
             const char* c = b;
             int count = 0;
             while (c != e) {
@@ -380,7 +383,7 @@ TEST(FEATURE, until) {
     {
         KParser::Parser p;
         auto r = p.until(
-            p.str("abc")
+            "abc"
         );
         {
             auto m = r->parse("12341234abc");
@@ -397,9 +400,9 @@ TEST(FEATURE, until) {
 
 TEST(FEATURE, until_2) {
     KParser::Parser p;
-    auto to_dem = p.until(p.str(","));
+    auto to_dem = p.until(",");
     auto count = 0;
-    auto dem = p.str(",")->on([&](auto& m, bool begin) {
+    auto dem = p.str(",")->visit([&](KParser::Match& m, bool capture) {
         count++;
         });
     auto r = p.many(p.all(to_dem, dem));
@@ -411,10 +414,10 @@ TEST(FEATURE, until_2) {
 
 TEST(FEATURE, until_1) {
     KParser::Parser p;
-    auto to_dem = p.until(p.str(","));
+    auto to_dem = p.until(",");
     auto count = 0;
-    auto dem = p.str(",")->on([&](auto& m, bool begin) {
-        if (!begin) {
+    auto dem = p.str(",")->visit([&](KParser::Match& m, bool capture) {
+        if (!capture) {
             count++;
         }
         });
@@ -428,8 +431,8 @@ TEST(FEATURE, until_1) {
 TEST(FEATURE, till) {
     KParser::Parser p;
     int count = 0;
-    auto dem = p.str(",")->on([&](auto& m, bool begin) {
-        if (!begin) {
+    auto dem = p.str(",")->visit([&](KParser::Match& m, bool capture) {
+        if (!capture) {
             count++;
         }
         });
@@ -444,7 +447,7 @@ TEST(FEATURE, till_1) {
     KParser::Parser p;
     int count = 0;
     {
-        auto r = p.till(p.str("*/"));
+        auto r = p.till("*/");
         auto m = r->parse("   */   */");
         ASSERT_EQ(m->occupied_str(), "   */   ");
         EXPECT_EQ(m->str(), "*/");
@@ -455,14 +458,14 @@ TEST(FEATURE, regex) {
     KParser::Parser p;
     {
         auto r = p.regex("[0-9]+", false);
-        auto m = r->parse(" a12345bc");
+        auto m = r->parse("12345bc");
         ASSERT_EQ(m != nullptr, true);
-        EXPECT_EQ(m->occupied_str(), " a12345");
+        EXPECT_EQ(m->occupied_str(), "12345");
         EXPECT_EQ(m->str(), "12345");
     }
 
     {
-        auto r = p.regex("^[0-9]+");
+        auto r = p.regex("[0-9]+");
         auto m = r->parse("12345bc");
         ASSERT_EQ(m != nullptr, true);
         EXPECT_EQ(m->occupied_str(), "12345");
@@ -471,7 +474,7 @@ TEST(FEATURE, regex) {
 TEST(FEATURE, regex_1) {
     KParser::Parser p;
     {
-        auto r = p.all(p.none(), p.regex("^[a-zA-Z_][a-zA-Z0-9_]*$"));
+        auto r = p.all(p.none(), p.regex("[a-zA-Z_][a-zA-Z0-9_]*$"));
         auto m = r->parse("0asdfasfd");
         ASSERT_EQ(m, nullptr);
     }
@@ -479,7 +482,7 @@ TEST(FEATURE, regex_1) {
         
         auto r = p.all(
             p.none(),
-            p.regex("^[a-zA-Z_][a-zA-Z0-9_]*")->on([&](auto& m, bool begin) {
+            p.regex("[a-zA-Z_][a-zA-Z0-9_]*")->visit([&](KParser::Match& m, bool capture) {
                 })
         );
         auto m = r->parse("  _1234_");
@@ -500,13 +503,13 @@ TEST(example, c_function) {
         bool is_inline = false;
         std::string retType;
         auto mod = p.any(
-            p.str("const")->on([&](auto& m, bool begin) {
+            p.str("const")->visit([&](KParser::Match& m, bool capture) {
                 is_cons = true;
                 }),
-            p.str("static")->on([&](auto& m, bool begin) {
+            p.str("static")->visit([&](KParser::Match& m, bool capture) {
                     is_static = true;
                 }),
-                    p.str("inline")->on([&](auto& m, bool begin) {
+                    p.str("inline")->visit([&](KParser::Match& m, bool capture) {
                     is_inline = true;
                         })
                     );
@@ -526,23 +529,23 @@ TEST(example, c_function) {
         std::vector<argType> args;
 
         argType tmpType;
-        auto startArg = [&](auto& m, bool begin) {
+        auto startArg = [&](KParser::Match& m, bool capture) {
             tmpType.type = m.occupied_str();
         };
 
-        auto stopArg = [&](auto& m, bool begin) {
+        auto stopArg = [&](KParser::Match& m, bool capture) {
             tmpType.name = m.occupied_str();
             args.push_back(tmpType);
         };
 
         auto arg = p.all(
-            type()->on(startArg),
-            p.identifier()->on(stopArg)
+            type()->visit(startArg),
+            p.identifier()->visit(stopArg)
         );
 
         auto func = p.all(
             p.many(mod),
-            type()->on([&](auto& m, bool begin) {retType = m.occupied_str(); }),
+            type()->visit([&](KParser::Match& m, bool capture) {retType = m.occupied_str(); }),
             p.identifier(),
             p.str("("),
             p.list(arg, p.str(",")),
@@ -567,8 +570,8 @@ TEST(example, s_exp) {
             auto term = p.any(id, group);
 
             std::vector<std::string> ids;
-            id->on([&](auto& m, bool begin) {
-                if (!begin) {
+            id->visit([&](KParser::Match& m, bool capture) {
+                if (!capture) {
                     ids.push_back(m.occupied_str());
                 }
                 
@@ -579,8 +582,8 @@ TEST(example, s_exp) {
                 p.list(term, p.str(",")),
                 p.str(")"));
 
-            group->on([&](auto& m, bool begin) {
-                if (!begin) {
+            group->visit([&](KParser::Match& m, bool capture) {
+                if (!capture) {
                     count++;
                 }
                 });
@@ -616,15 +619,15 @@ TEST(PRESSURE, length___) {
         {
             KParser::Parser p;
             int i = 0;
-            auto f = [&](auto& m, bool begin) {
+            auto f = [&](KParser::Match& m, bool capture) {
                 i++;
             };
-            auto m = p.list(p.str("abc")->on(f), p.str(","));
+            auto m = p.list(p.str("abc")->visit(f), p.str(","));
             try
             {
                 m->parse(ss.str());
             }
-            catch (std::exception& ex)
+            catch (std::exception& _)
             {
                 printf("Executing SEH __except block\r\n");
             }
@@ -681,8 +684,7 @@ TEST(DEBUG, tostring) {
 )");
     }
     {
-        auto r = p.str("abc");
-        auto ks = p.many(r);
+        auto ks = p.many("abc");
         auto s = ks->toString();
         EXPECT_EQ(s,
            R"(Any:0
@@ -699,10 +701,10 @@ TEST(DEBUG, trace_back) {
     {
         KParser::Parser p;
         int count = 0;
-        auto counter = [&](KParser::Match& m, bool begin) {
+        auto counter = [&](KParser::Match& m, bool capture) {
             count++;
         };
-        auto r1 = p.many(p.str("Abc")->on(counter));
+        auto r1 = p.many(p.str("Abc")->visit(counter));
         auto r2 = p.str("AbcAbcAbc123");
         auto r = p.all(r1, r2);
         r->parse("AbcAbcAbcAbcAbcAbcAbcAbcAbcAbc123");
@@ -717,7 +719,7 @@ TEST(DEBUG, trace_back2) {
     {
         KParser::Parser p(30);
         int count = 0;
-        auto counter = [&](auto& m, bool begin) {
+        auto counter = [&](KParser::Match& m, bool capture) {
             count++;
         };
         int depth = 9;
@@ -730,7 +732,7 @@ TEST(DEBUG, trace_back2) {
         ssToMatch << "AbcAb1234";
         ssSubstr << "Ab1234";
 
-        auto r1 = p.many(p.str("Abc")->on(counter));
+        auto r1 = p.many(p.str("Abc")->visit(counter));
         auto r2 = p.str(ssSubstr.str());
         auto r = p.all(r1, r2);
         EXPECT_EQ(r->parse(ssToMatch.str()) != nullptr, true);
@@ -740,7 +742,7 @@ TEST(DEBUG, trace_back2) {
     {
         KParser::Parser p(30);
         int count = 0;
-        auto counter = [&](auto& m, bool begin) {
+        auto counter = [&](KParser::Match& m, bool capture) {
             count++;
         };
         int depth = 11;
@@ -753,12 +755,48 @@ TEST(DEBUG, trace_back2) {
         ssToMatch << "AbcAb1234";
         ssSubstr << "Ab1234";
 
-        auto r1 = p.many(p.str("Abc")->on(counter));
+        auto r1 = p.many(p.str("Abc")->visit(counter));
         auto r2 = p.str(ssSubstr.str());
         auto r = p.all(r1, r2);
         EXPECT_EQ(r->parse(ssToMatch.str()) == nullptr, true);
         EXPECT_EQ(count, 0);
 
+    }
+    EXPECT_EQ(KParser::KObject::count, 0);
+}
+
+
+TEST(CAPTURE, cap1) {
+    {
+        KParser::Parser p;
+        
+        auto* r = p.str("abc");
+        r->eval([&](KParser::Match&  m, KParser::IT b, KParser::IT e) {
+            return m.str();
+            });
+        auto m = r->parse("abcabc");
+        auto v = libany::any_cast<std::string>(m->capture(0));
+        auto v1 = libany::any_cast<std::string>(m->capture(0));
+        EXPECT_EQ(*v, "abc");
+        EXPECT_EQ(*v1, "abc");
+    
+        {
+
+            auto* r = p.str("abc");
+            r->eval([&](KParser::Match& m, KParser::IT b, KParser::IT e) {
+                return m.str();
+                });
+            auto* r1 = p.many1(r);
+            auto m = r1->parse("abcabc");
+            auto v = *libany::any_cast<std::string>(m->capture(0));
+            EXPECT_EQ(v, "abc");
+
+            auto v1 = *libany::any_cast<std::string>(m->capture(0));
+            EXPECT_EQ(v1, "abc");
+
+            auto v2 = *libany::any_cast<std::string>(m->capture(1));
+            EXPECT_EQ(v2, "abc");
+        }
     }
     EXPECT_EQ(KParser::KObject::count, 0);
 }

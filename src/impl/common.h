@@ -3,15 +3,14 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <any>
+#include "any.h"
 #include <tuple>
-#include <variant>
 #include <functional>
 
 namespace KParser {
     using StrT = std::string;
     
-    using AnyT = std::any;
+    using AnyT = libany::any;
 
     template<typename T>
     using VecT = std::vector<T>;

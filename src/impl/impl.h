@@ -4,29 +4,13 @@
 #include "common.h"
 #include "rule.h"
 
-
-
-
+// for memcpy
+#include <algorithm>
 
 namespace KParser {
     
-    struct DataStackImpl : public DataStack {
-        std::vector<std::any> m_datas;
-
-        void push_any(std::any&& t) override;
-
-        std::any pop_any() override;
-
-        std::any& get_any(size_t i) override;
-
-        void set_any(std::any&& t, size_t i) override;
-
-        void clear() override;
-
-        size_t size() override;
-    };
     struct RuleNode;
-    struct Parser;
+    class Parser;
     struct ParserImpl {
         Parser* m_interface;
         bool m_skipBlank;
@@ -36,7 +20,8 @@ namespace KParser {
         char* m_cache;
         size_t length;
         VecT<RuleNode*> rules;
-        DataStackImpl dataStk;
+        
+        std::vector<libany::any> m_expStk;
 
         void setText(const std::string& text) {
             length = text.length();
@@ -45,7 +30,7 @@ namespace KParser {
             }
             else {
                 m_cache = new char[length];
-                memcpy(m_cache, &(*text.begin()), length);
+                std::copy(text.begin(), text.begin() + length, m_cache);
             }
         }
 
@@ -53,9 +38,4 @@ namespace KParser {
         ~ParserImpl();
         void reset();
     };
-
-
-
-
-
 }

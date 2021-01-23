@@ -23,7 +23,7 @@ public:
     Rule* _id_;
     Rule* id_() {
         // <id> // = 
-        return identifier()->on([](auto& m, bool begin) {
+        return identifier()->visit([](KParser::Match& m, bool capture) {
 
         });
     }
