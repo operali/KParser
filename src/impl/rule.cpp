@@ -305,7 +305,7 @@ namespace KParser {
         std::vector<MatchR*> matchers;
         MatchR* curM = this;
         for (; true;) {
-            auto m = curM->visitStep();
+            MatchR* m = curM->visitStep();
             if (m) {
                 matchers.push_back(curM);
                 curM = m;

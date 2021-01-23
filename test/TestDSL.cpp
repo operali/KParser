@@ -10,7 +10,7 @@ TEST(DSL_BASIC, str) {
         ctx.parse(R"(
 a = b;
 b = c d;
-d = e | a;
+d = e | a b;
 
 
 )");

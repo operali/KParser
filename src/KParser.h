@@ -43,14 +43,14 @@ namespace KParser {
             set_any(std::any(t));
         }
         template<typename T>
-        std::optional<T*> get(size_t i) {
+        T* get(size_t i) {
             try {
                 return std::any_cast<T>(&get_any(i));
             }
             catch (const std::exception& ex) {
                 printf("fail to cast %s", ex.what());
             }
-            return {};
+            return nullptr;
         }
 
         virtual void push_any(std::any&& t) = 0;

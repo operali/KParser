@@ -1,9 +1,12 @@
 #include "../KParser.h"
 #include <vector>
+#include <unordered_map>
 
 struct DSLNode;
+struct DSLRuleList;
 struct DSLContext : public KParser::Parser {
     std::unordered_map <std::string, DSLNode*> nodeMap;
+    std::unordered_map<KParser::Match*, size_t> matchMap;
 
     KParser::Rule* rid;
     KParser::Rule* rany;
@@ -12,6 +15,7 @@ struct DSLContext : public KParser::Parser {
     KParser::Rule* rruleList;
     KParser::Rule* ritem;
 
+    DSLRuleList* root;
     DSLContext();
     bool parse(std::string str);
 };
@@ -45,6 +49,33 @@ struct DSLStr : public DSLNode {
     }
 };
 
+struct DSLRule : public DSLNode {
+    constexpr const char* CLSNAME() {
+        return "rule";
+    }
+    virtual std::string cls() {
+        return DSLRule::CLSNAME();
+    }
+    std::string ruleName;
+    DSLNode* ruleNode = nullptr;
+    DSLRule(DSLContext* ctx) :DSLNode(ctx) {
+
+    }
+};
+
+struct DSLRuleList : public DSLNode {
+    constexpr const char* CLSNAME() {
+        return "rule";
+    }
+    virtual std::string cls() {
+        return DSLRuleList::CLSNAME();
+    }
+    std::vector<DSLRule*> rules;
+    DSLRuleList(DSLContext* ctx) :DSLNode(ctx) {
+
+    }
+};
+
 struct DSLAll : public DSLNode {
     constexpr const char* CLSNAME() {
         return "str";
@@ -67,13 +98,15 @@ struct DSLAny : public DSLNode {
     virtual std::string cls() {
         return DSLAny::CLSNAME();
     }
-
+    std::vector<DSLNode*> nodes;
     DSLAny(DSLContext* ctx) :DSLNode(ctx) {
 
     }
 };
 
 DSLContext::DSLContext() {
+    this->root = new DSLRuleList(this);
+
     rid = identifier();
     rrule = all();
     rruleList = all();
@@ -83,26 +116,89 @@ DSLContext::DSLContext() {
     ritem->add(rid);// TODO more
     rrule = all(rid, str("="), any(ritem, rall, rany), str(";"));
     rruleList = many1(rrule);
-
-    rid->on([=](auto& m, bool begin) {
-        auto& d = m.global_data();
-        auto node = new DSLStr(this);
-        node->str = m.str();
-        d.push<DSLNode*>((DSLNode*)node);
+    
+    rruleList->on([this](auto& m, bool begin) {
+            if (!begin) {
+                auto& ds = m.global_data();
+                for (int i = 0; i < ds.size(); ++i) {
+                    DSLNode* r = *ds.get<DSLNode*>(i);
+                    DSLRule* rule = (DSLRule*)r;
+                    this->root->rules.push_back(rule);
+                }
+            }
         });
 
-    rall->on([=](auto& m, bool begin) {
+    rid->on([this](auto& m, bool begin) {
+        if(!begin){
+            auto& d = m.global_data();
+            DSLStr* node = new DSLStr(this);
+            node->str = m.str();
+            d.push<DSLNode*>(node);
+        }
+    });
+    
+    rall->on([this](KParser::Match& m, bool begin) {
         auto& d = m.global_data();
         auto sz = d.size();
-        auto node = new DSLAll(this);
-        for (int i = 0; i < sz; ++i) {
-            std::optional<DSLNode**> n = d.get<DSLNode*>(i);
-            node->nodes.push_back(*n.value());
+        if(begin){
+            auto node = new DSLAll(this);
+            this->matchMap[&m] = sz;
+            d.push<DSLNode*>(node);
+        } else {
+            size_t from = this->matchMap[&m];
+            DSLAll* allNode = (DSLAll*)(*d.get<DSLNode*>(from));
+            for (int i = from+1; i < sz; ++i) {
+                DSLNode* n = *d.get<DSLNode*>(i);
+                allNode->nodes.push_back(n);
+            }
+            for (int i = sz - 1; i > from; --i) {
+                d.pop_any();
+            }
         }
-        d.push<DSLNode*>((DSLNode*)node);
     });
 
-    //rrule->on([=](auto& m) {
+    rany->on([this](KParser::Match& m, bool begin) {
+        auto& d = m.global_data();
+        auto sz = d.size();
+        if (begin) {
+            auto node = new DSLAny(this);
+            this->matchMap[&m] = sz;
+            d.push<DSLNode*>(node);
+        }
+        else {
+            size_t from = this->matchMap[&m];
+            DSLAny* allNode = (DSLAny*)(*d.get<DSLNode*>(from));
+            for (int i = from + 1; i < sz; ++i) {
+                DSLNode* n = *d.get<DSLNode*>(i);
+                allNode->nodes.push_back(n);
+            }
+            for (int i = sz - 1; i > from; --i) {
+                d.pop_any();
+            }
+        }
+        });
+
+    rrule->on([this](KParser::Match& m, bool begin) {
+        auto& d = m.global_data();
+        auto sz = d.size();
+        if (begin) {
+            auto node = new DSLRule(this);
+            this->matchMap[&m] = sz;
+            d.push<DSLNode*>(node);
+        }
+        else {
+            size_t from = this->matchMap[&m];
+            DSLRule* ruleNode = (DSLRule*)(*d.get<DSLNode*>(from));
+            DSLStr* n = (DSLStr*)*d.get<DSLNode*>(from+1);
+            ruleNode->ruleName = n->str;
+            DSLNode* n1 = *d.get<DSLNode*>(from + 2);
+            ruleNode->ruleNode = n1;
+            d.pop_any();
+            d.pop_any();
+        }
+    });
+
+    //rrule->on([this](auto& m) {
     //    auto& d = m.global_data();
     //    auto sz = d.size();
     //    auto node = new DSLRule(this);
@@ -116,7 +212,8 @@ bool DSLContext::parse(std::string strRuleList) {
     auto m = rruleList->parse(strRuleList);
     if (m == nullptr) {
         return false;
-    } 
+    }
+    auto& data = m->global_data();
     return true;
 }
 
