@@ -232,17 +232,6 @@ namespace KParser {
 
     //////////////////////////////////////////////////////////////////////////
     //EMPTY
-    class RuleEmptyCLS : public CLSINFO {
-        StrT getName() override {
-            return "Empty";
-        }
-    };
-
-    CLSINFO* RuleEmpty::CLS() {
-        // note, not delete!
-        static RuleEmptyCLS cls;
-        return &cls;
-    }
 
     bool MatchR::alter() {
         VecT<MatchR*> vec;
@@ -296,10 +285,9 @@ namespace KParser {
                         curM->stepOut(lastM);
                     }
                     else {
-                        const CLSINFO* lastClass = lastM->m_ruleNode->getCLS();
                         if ((int)headMax - (int)lastM->m_startPos> (int)lookback) {
-                            if (lastClass != RuleAll::CLS()
-                                || lastClass != RuleAny::CLS()) {
+                            auto* node = dynamic_cast<RuleCompound*>(lastM->m_ruleNode);
+                            if (node) {
                                 // clear all temporary matcher
                                 for (int i = vec.size() - 1; i > -1; --i) {
                                     vec[i]->release();
@@ -373,10 +361,8 @@ namespace KParser {
             return "";
         }
         if (m_ruleNode->m_gen->m_skipBlank) {
-            auto cls = this->m_ruleNode->getCLS();
-            
-            if (cls == RuleAll::CLS() 
-                || cls == RuleAny::CLS()) {
+            auto* node = dynamic_cast<RuleCompound*>(this->m_ruleNode);
+            if (node) {
                 return trim(StrT(start, stop));
             }
         }
@@ -496,24 +482,8 @@ namespace KParser {
         return new MatchRStr(start, this);
     }
 
-    CLSINFO* RuleStr::CLS() {
-        static RuleStrCLS cls;
-        return &cls;
-    }
-
     //////////////////////////////////////////////////////////////////////////
     // pred
-
-    class RuleCustomCLS : public CLSINFO {
-        StrT getName() override {
-            return "Pred";
-        }
-    };
-
-    CLSINFO* RuleCustom::CLS() {
-        static RuleCustomCLS cls;
-        return &cls;
-    }
 
     struct MatchRPred : public MatchR {
         MatchRPred(size_t start, RuleNode* rule) 
@@ -560,12 +530,6 @@ namespace KParser {
             return "Any";
         }
     };
-
-    CLSINFO* RuleAny::CLS() {
-        static RuleAnyCLS cls;
-        return &cls;
-    }
-
 
     struct MatchRAny : public MatchR {
         int m_curIdx;
@@ -655,16 +619,6 @@ namespace KParser {
 
     //////////////////////////////////////////////////////////////////////////
     //ALL
-    class RuleAllCLS : public CLSINFO {
-        StrT getName() override {
-            return "All";
-        }
-    };
-
-    const CLSINFO* RuleAll::CLS() {
-        static RuleAllCLS cls;
-        return &cls;
-    };
 
     struct MatchRAll : public MatchR {
         MatchRAll(size_t start, RuleNode* rule) 

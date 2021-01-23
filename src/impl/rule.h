@@ -70,13 +70,9 @@ namespace KParser {
         ParserImpl* m_gen;
         RuleNode(ParserImpl* gen);
         virtual ~RuleNode() = default;
-        virtual const CLSINFO* getCLS() = 0;
         template <typename T>
         inline T* as() {
-            if (T::CLS() == getCLS()) {
-                return reinterpret_cast<T*>(this);
-            }
-            return nullptr;
+            return dynamic_cast<T*>(this);
         }
 
         virtual MatchR* match(size_t start) = 0;
@@ -96,11 +92,6 @@ namespace KParser {
         RuleEmpty(ParserImpl* gen):RuleNode(gen){
         }
         ~RuleEmpty() override = default;
-        static CLSINFO* CLS();
-        CLSINFO* getCLS() final {
-            return RuleEmpty::CLS();
-        }
-
         MatchR* match(size_t start) final;
     };
 
@@ -120,11 +111,6 @@ namespace KParser {
         ~RuleStr() {
             delete[] buff;
         }
-        static CLSINFO* CLS();
-        CLSINFO* getCLS() final {
-            return RuleStr::CLS();
-        }
-
         MatchR* match(size_t start) final;
     };
 
@@ -132,39 +118,24 @@ namespace KParser {
         PredT pred;
         RuleCustom(ParserImpl* gen, PredT pred) :RuleNode(gen), pred(pred) {
         }
-        static CLSINFO* CLS();
-        CLSINFO* getCLS() final {
-            return RuleCustom::CLS();
-        }
-
         MatchR* match(size_t start) final;
     };
 
-    struct RuleAll : public RuleNode  {
+    struct RuleCompound : public RuleNode {
         VecT<RuleNode*> children;
         void appendChild(Rule* r) override {
             children.push_back((RuleNode*)r);
         }
-        const static CLSINFO* CLS();
+        RuleCompound(ParserImpl* gen) :RuleNode(gen) {}
+    };
 
-        const CLSINFO* getCLS() final {
-            return RuleAll::CLS();
-        }
-
-        RuleAll(ParserImpl* gen) :RuleNode(gen) {};
+    struct RuleAll : public RuleCompound {
+        RuleAll(ParserImpl* gen) :RuleCompound(gen) {};
         MatchR* match(size_t start) final;
     };
 
-    struct RuleAny : public RuleNode  {
-        VecT<RuleNode*> children;
-        void appendChild(Rule* r) override {
-            children.push_back((RuleNode*)r);
-        }
-        static CLSINFO* CLS();
-        CLSINFO* getCLS() final {
-            return RuleAny::CLS();
-        }
-        RuleAny(ParserImpl* gen) :RuleNode(gen) {};
+    struct RuleAny : public RuleCompound {
+        RuleAny(ParserImpl* gen) :RuleCompound(gen) {};
         MatchR* match(size_t start) final;
     };
 }

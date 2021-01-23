@@ -48,12 +48,14 @@ namespace KParser {
     public:
         Parser(size_t lookback = 42, bool skipBlanks = true);
         std::string errInfo();
-        // match Pattern1 + Pattern2... + PatternN
-        Rule* all();
         // epsilon
         Rule* none();
         // match to string excatly
         Rule* str(std::string&& str);
+        // match Pattern1 + Pattern2... + PatternN
+        Rule* all();
+        // match Pattern1 | Pattern2... | PatternN
+        Rule* any();
         // pattern*
         Rule* many(Rule* node);
         Rule* many(const char* strNode);
@@ -86,21 +88,16 @@ namespace KParser {
         Rule* float_();
         // user rule
         Rule* custom(PredT p);
-
         // match Pattern1 or Pattern2... or PatternN
         template<typename ...TS>
         Rule* any(TS ...nodes);
-
-        // match Pattern1 | Pattern2... | PatternN
-        Rule* any();
-
+        
         // match Pattern1 + Pattern2... + PatternN
         template<typename ...TS>
         Rule* all(TS ...nodes);
 
         ~Parser() override;
     };
-
 
 
     struct Rule : private KObject {
