@@ -247,21 +247,48 @@ namespace KParser {
     bool MatchR::alter() {
         VecT<MatchR*> vec;
         MatchR* curM = this;
-        auto lookback = m_ruleNode->m_gen->m_lookback;
-        auto& headMax = m_ruleNode->m_gen->m_headMax;
-        
+        auto* gen = m_ruleNode->m_gen;
+        auto lookback = gen->m_lookback;
+        auto& headMax = gen->m_headMax;
+        auto* text = gen->m_cache;
+                
         while (true) {
             auto st = curM->stepIn();
             if (st.mr == nullptr) {
-                auto stBool = st.res;
+                auto succ = st.res;
                 if (curM == this) {
-                    return stBool;
+                    if (succ) {
+                        return true;
+                    }
+                    else {
+                        auto& err = gen->err;
+                        err.leftCh = text;
+                        for (int i = 0; i < gen->length; ++text, ++i) {
+                            if (i == headMax) {
+                                err.breakCh = text;
+                            }
+                            if (*text == '\n') {
+                                if (err.breakCh != nullptr) {
+                                    err.rightCh = text;
+                                    break;
+                                }
+                                else {
+                                    err.lineNo++;
+                                }
+                                err.leftCh = text+1;
+                            }
+                        }
+                        if (err.rightCh == nullptr) {
+                            err.rightCh = text;
+                        }
+                        return false;
+                    }
                 }
                 else {
                     MatchR* lastM = curM;
                     curM = vec.back();
                     vec.pop_back();
-                    if (stBool) {
+                    if (succ) {
                         auto headLength = lastM->m_startPos + lastM->length();
                         if (headLength > headMax) {
                             headMax = headLength;
@@ -300,6 +327,10 @@ namespace KParser {
         return &m_ruleNode->m_gen->m_expStk.at(i);
     }
 
+    std::string MatchR::errInfo() {
+        return m_ruleNode->m_gen->m_interface->errInfo();
+    }
+
     StrT MatchR::prefix() {
         const char* globalText = m_ruleNode->m_gen->m_cache;
         return StrT(globalText, globalText + m_startPos);
@@ -307,7 +338,7 @@ namespace KParser {
 
     StrT MatchR::suffix() {
         const char* globalText = m_ruleNode->m_gen->m_cache;
-        return StrT(globalText, globalText + m_startPos+ m_length);
+        return StrT(globalText + m_startPos+ m_length, globalText+ m_ruleNode->m_gen->length);
     }
 
     StrT MatchR::occupied_str() {

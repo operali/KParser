@@ -17,8 +17,13 @@ namespace KParser {
             delete[] m_cache;
         }
         m_headMax = 0;
-        libany::any obj;
+        
         m_expStk.resize(20);
         m_expStk.clear();
+
+        err.lineNo = 0;
+        err.breakCh = nullptr;
+        err.leftCh = nullptr;
+        err.rightCh = nullptr;
     }
 }

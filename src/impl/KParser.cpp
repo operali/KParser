@@ -1,11 +1,12 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <regex>
+// for memcpy
+#include <algorithm>
+
 #include <cstdarg>
 #include "impl.h"
-
-
+#include <regex>
 namespace KParser {
     size_t KObject::count = 0;
     // std::vector<KObject*> KObject::all;
@@ -14,7 +15,20 @@ namespace KParser {
         delete impl;
     }
 
-    Parser::Parser(size_t lookback, bool skipBlanks):impl(new ParserImpl(this, lookback, skipBlanks)) {
+    std::string Parser::errInfo() {
+        auto& err = impl->err;
+        if (err.breakCh == nullptr) {
+            return "no error";
+        }
+        std::stringstream ss;
+        ss << "fail to parse at line " << err.lineNo << std::endl;
+        ss << std::string(err.leftCh, err.breakCh)
+            << "^^^"
+            << std::string(err.breakCh, err.rightCh) << std::endl;
+        return ss.str();
+    }
+
+    Parser::Parser(size_t lookback, bool skipBlanks) :impl(new ParserImpl(this, lookback, skipBlanks)) {
     }
 
     Rule* Parser::pred(PredT p) {
@@ -78,7 +92,7 @@ namespace KParser {
             auto n = ((RuleNode*)node);
             auto psrc = n->m_gen->m_cache;
             while (c != e) {
-                auto m = n->match(c-psrc);
+                auto m = n->match(c - psrc);
                 std::unique_ptr<MatchR> um;
                 um.reset(m);
                 if (um->alter()) {
@@ -120,39 +134,48 @@ namespace KParser {
         return list(node, this->str(strDem));
     }
 
+    Rule* Parser::eof() {
+        return pred([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+            if (b == e) {
+                cb = ce = me = b;
+            }
+            else {
+                cb = ce = me = nullptr;
+            }
+            });
+    }
+
     Rule* Parser::regex(const StrT& strRe, bool startWith) {
         try {
-            std::regex re(strRe.c_str(), std::regex_constants::extended);
+            std::regex re(strRe.c_str());
             return pred([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
                 std::match_results<const char*> results;
-                
-                    if (std::regex_search<const char*>(b, e, results, re)) {
-                        auto pos = results.position();
-                        if (startWith) {
-                            if (pos != 0) {
-                                cb = nullptr;
-                                ce = nullptr;
-                                me = nullptr;
-                                return;
-                            }
-                        }
-                        if (results.size() > 1) {
-                            auto c = results[1];
-                            cb = c.first;
-                            ce = c.second;
-                            me = b + results.position() + results.length();
-                        }
-                        else {
-                            cb = b + results.position();
-                            ce = cb + results.length();
-                            me = ce;
-                        }
+                // std::cout << strRe << std::endl;
+                if (std::regex_search<const char*>(b, e, results, re, std::regex_constants::match_default)) {
+                    auto pos = results.position();
+                    if (startWith && pos != 0) {
+                        cb = nullptr;
+                        ce = nullptr;
+                        me = nullptr;
                         return;
                     }
-                    cb = nullptr;
-                    ce = nullptr;
-                    me = nullptr;
+                    /*if (results.size() > 1) {
+                        auto c = results[1];
+                        cb = c.first;
+                        ce = c.second;
+                        me = b + results.position() + results.length();
+                    }
+                    else {*/
+                        cb = b + results.position();
+                        ce = cb + results.length();
+                        me = ce;
+                    //}
                     return;
+                }
+                cb = nullptr;
+                ce = nullptr;
+                me = nullptr;
+                return;
                 });
         }
         catch (const std::regex_error& ex) {
@@ -177,52 +200,14 @@ namespace KParser {
     }
 
     Rule* Parser::identifier() {
-        return regex("[a-zA-Z_][a-zA-Z0-9_]*");
-            pred([this](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
-            if (b == e) {
-                cb = nullptr;
-                ce = nullptr;
-                me = nullptr;
-            }
-            auto i = b;
-            auto c = *i++;
-            auto isChar = [](char c) {return (c <= 'Z' && c >= 'A') || (c <= 'z' && c >= 'a'); };
-            auto isNum = [](char c) {return c <= '9' && c >= '0'; };
-
-            if (isChar(c) || c == '_') {
-                if (i == e) {
-                    cb = b;
-                    ce = i;
-                    me = i;
-                    return;
-                }
-                while(c = *i++) {
-                    if (!isChar(c) && !isNum(c)) {
-                        break;
-                    }
-                    if (i == e) {
-                        break;
-                    }
-                }
-                cb = b;
-                ce = i;
-                me = i;
-                return;
-            }
-            else {
-                cb = nullptr;
-                ce = nullptr;
-                me = nullptr;
-                return;
-            }
-            });
+        return regex("^[a-zA-Z_][a-zA-Z0-9_]*");
     }
 
     Rule* Parser::integer_() {
-        return regex(R"([-+]?\d+)");
+        return regex("^[-+]?\\d+");
     }
 
     Rule* Parser::float_() {
-        return regex(R"([-+]?\d*\.?\d+)");
+        return regex("^[-+]?\\d*\.?\\d+");
     }
 };

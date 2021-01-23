@@ -7,25 +7,12 @@
 
 #define X
 
+
+
 #ifndef X
 
-TEST(FEATURE, data_stack) {
-    KParser::Parser p;
-    auto r = p.regex("\\d+", false)->visit([](KParser::Match& m, bool capture) {
-            if (!capture) {
-                auto& ds = m.global_data();
-                auto cs = m.str();
-                ds.push<int>(std::atoi(cs.c_str()));
-            }
-        
-        });
-    auto m = p.many(r)->parse("aasdfsdf 123 456");
-    auto& ds = m->global_data();
-    int r1 = *ds.pop<int>();
-    EXPECT_EQ(r1, 456);
-    int r2 = *ds.pop<int>();
-    EXPECT_EQ(r2, 123);
-}
+
+
 
 #else
 
@@ -457,7 +444,7 @@ TEST(FEATURE, till_1) {
 TEST(FEATURE, regex) {
     KParser::Parser p;
     {
-        auto r = p.regex("[0-9]+", false);
+        auto r = p.regex("^[0-9]+");
         auto m = r->parse("12345bc");
         ASSERT_EQ(m != nullptr, true);
         EXPECT_EQ(m->occupied_str(), "12345");
@@ -474,9 +461,10 @@ TEST(FEATURE, regex) {
 TEST(FEATURE, regex_1) {
     KParser::Parser p;
     {
-        auto r = p.all(p.none(), p.regex("[a-zA-Z_][a-zA-Z0-9_]*$"));
-        auto m = r->parse("0asdfasfd");
-        ASSERT_EQ(m, nullptr);
+        auto r = p.all(p.none(), p.regex("^[a-zA-Z_][a-zA-Z0-9_]*$"));
+        auto m = r->parse("asdfasfd");
+        ASSERT_EQ(m != nullptr, true);
+        ASSERT_EQ(m->str(), "asdfasfd");
     }
     {
         
@@ -489,6 +477,65 @@ TEST(FEATURE, regex_1) {
         ASSERT_EQ(m != nullptr, true);
         ASSERT_EQ(m->occupied_str(), "  _1234_");
         ASSERT_EQ(m->str(), "_1234_");
+    }
+}
+
+TEST(FEATURE, identify) {
+    {
+        KParser::Parser p;
+        {
+            auto r = p.identifier();
+            auto m = r->parse("42");
+            ASSERT_EQ(m != nullptr, false);
+        }
+        {
+            auto r = p.integer_();
+            auto m = r->parse("42x");
+            ASSERT_EQ(m != nullptr, true);
+            EXPECT_EQ(m->str(), "42");
+        }
+        {
+            auto r = p.float_();
+            auto m = r->parse("42.3x");
+            ASSERT_EQ(m != nullptr, true);
+            EXPECT_EQ(m->str(), "42.3");
+        }
+        {
+            auto r = p.float_();
+            auto m = r->parse("12 ");
+            ASSERT_EQ(m != nullptr, true);
+            EXPECT_EQ(m->str(), "12");
+        }
+    }
+    EXPECT_EQ(KParser::KObject::count, 0);
+}
+
+TEST(FEATURE, eof) {
+    {
+        KParser::Parser p;
+        {
+            auto r = p.all(p.identifier(), p.eof());
+            auto m = r->parse("ddd x");
+            ASSERT_EQ(m != nullptr, false);
+        }
+        {
+            auto r = p.all(p.identifier(), p.eof());
+            auto m = r->parse("ddd ");
+            ASSERT_EQ(m != nullptr, true);
+            EXPECT_EQ(m->occupied_str(), "ddd ");
+        }
+        {
+            auto r = p.all(p.identifier(), p.integer_(), p.eof());
+            auto m = r->parse("ddd 123 x");
+            ASSERT_EQ(m != nullptr, false);
+        }
+
+        {
+            auto r = p.all(p.identifier(), p.integer_(), p.eof());
+            auto m = r->parse("ddd 123 ");
+            ASSERT_EQ(m != nullptr, true);
+            EXPECT_EQ(m->occupied_str(), "ddd 123 ");
+        }
     }
 }
 
@@ -800,4 +847,6 @@ TEST(CAPTURE, cap1) {
     }
     EXPECT_EQ(KParser::KObject::count, 0);
 }
+
+
 #endif

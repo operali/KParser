@@ -20,6 +20,15 @@ namespace KParser {
         char* m_cache;
         size_t length;
         VecT<RuleNode*> rules;
+
+        struct ErrInfo {
+            size_t lineNo = 0;
+            char* breakCh = nullptr;
+            char* leftCh = nullptr;
+            char* rightCh = nullptr;
+        };
+
+        ErrInfo err;
         
         std::vector<libany::any> m_expStk;
 
@@ -29,8 +38,9 @@ namespace KParser {
                 m_cache = nullptr;
             }
             else {
-                m_cache = new char[length];
+                m_cache = new char[length+1];
                 std::copy(text.begin(), text.begin() + length, m_cache);
+                m_cache[length] = '\0';
             }
         }
 

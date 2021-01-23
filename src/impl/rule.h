@@ -20,7 +20,8 @@ namespace KParser {
         int32_t m_matchstartPos;
         int32_t m_matchstopPos;
         int32_t m_length;
-        enum LEN : int16_t {
+
+        enum LEN : int32_t {
             FAIL = -2,
             INIT = -1,
             SUCC = 0
@@ -49,6 +50,8 @@ namespace KParser {
 
         libany::any* capture(size_t i) override;
         
+        std::string errInfo() final;
+
         virtual StepInT stepIn() {
             throw std::exception();//TODO
         };

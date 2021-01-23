@@ -28,6 +28,16 @@ namespace KParser {
         virtual std::string prefix() = 0;
         virtual std::string suffix() = 0;
         virtual libany::any* capture(size_t i) = 0;
+        virtual std::string errInfo() = 0;
+        template<typename T>
+        inline T* capture_s(size_t i) {
+            try {
+                return libany::any_cast<T>(capture(i));
+            }
+            catch (libany::bad_any_cast& _) {
+                return nullptr;
+            }
+        }
     };
 
     struct Rule;
@@ -37,7 +47,7 @@ namespace KParser {
         ParserImpl* impl;
     public:
         Parser(size_t lookback = 42, bool skipBlanks = true);
-
+        std::string errInfo();
         // match Pattern1 + Pattern2... + PatternN
         Rule* all();
         // epsilon
@@ -64,6 +74,10 @@ namespace KParser {
         Rule* list(Rule*, const char* dem);
         // match regex forward
         Rule* regex(const std::string& strRe, bool startWith = true);
+
+        // match to end of file/text
+        Rule* eof();
+
         // match c identifier/variable 
         Rule* identifier();
         // match c integer
