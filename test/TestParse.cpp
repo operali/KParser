@@ -318,7 +318,7 @@ TEST(FEATURE, pred) {
     EXPECT_EQ(KParser::KObject::count, 0);
     {
         KParser::Parser p;
-        auto r = p.pred([](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+        auto r = p.custom([](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
             const char* c = b;
             int count = 0;
             while (c != e) {

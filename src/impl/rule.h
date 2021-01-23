@@ -128,13 +128,13 @@ namespace KParser {
         MatchR* match(size_t start) final;
     };
 
-    struct RulePred : public RuleNode {
+    struct RuleCustom : public RuleNode {
         PredT pred;
-        RulePred(ParserImpl* gen, PredT pred) :RuleNode(gen), pred(pred) {
+        RuleCustom(ParserImpl* gen, PredT pred) :RuleNode(gen), pred(pred) {
         }
         static CLSINFO* CLS();
         CLSINFO* getCLS() final {
-            return RulePred::CLS();
+            return RuleCustom::CLS();
         }
 
         MatchR* match(size_t start) final;

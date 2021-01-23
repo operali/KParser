@@ -31,8 +31,8 @@ namespace KParser {
     Parser::Parser(size_t lookback, bool skipBlanks) :impl(new ParserImpl(this, lookback, skipBlanks)) {
     }
 
-    Rule* Parser::pred(PredT p) {
-        return new RulePred(impl, p);
+    Rule* Parser::custom(PredT p) {
+        return new RuleCustom(impl, p);
     }
 
     Rule* Parser::none() {
@@ -87,7 +87,7 @@ namespace KParser {
     }
 
     Rule* Parser::until(Rule* node) {
-        return pred([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+        return custom([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
             const char* c = b;
             auto n = ((RuleNode*)node);
             auto psrc = n->m_gen->m_cache;
@@ -135,7 +135,7 @@ namespace KParser {
     }
 
     Rule* Parser::eof() {
-        return pred([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+        return custom([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
             if (b == e) {
                 cb = ce = me = b;
             }
@@ -148,7 +148,7 @@ namespace KParser {
     Rule* Parser::regex(const StrT& strRe, bool startWith) {
         try {
             std::regex re(strRe.c_str());
-            return pred([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+            return custom([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
                 std::match_results<const char*> results;
                 // std::cout << strRe << std::endl;
                 if (std::regex_search<const char*>(b, e, results, re, std::regex_constants::match_default)) {

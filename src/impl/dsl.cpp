@@ -38,7 +38,7 @@ public:
     Rule* _str_;
     Rule* str_() {
         // `...
-        return pred([this](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+        return custom([this](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
             const char* idx = b;
             if (b == e) {
                 cb = nullptr;

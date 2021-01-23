@@ -91,7 +91,7 @@ namespace KParser {
             }
         }
         {
-            auto n1 = n->as<RulePred>();
+            auto n1 = n->as<RuleCustom>();
             if (n1) {
                 return "Pred";
             }
@@ -504,14 +504,14 @@ namespace KParser {
     //////////////////////////////////////////////////////////////////////////
     // pred
 
-    class RulePredCLS : public CLSINFO {
+    class RuleCustomCLS : public CLSINFO {
         StrT getName() override {
             return "Pred";
         }
     };
 
-    CLSINFO* RulePred::CLS() {
-        static RulePredCLS cls;
+    CLSINFO* RuleCustom::CLS() {
+        static RuleCustomCLS cls;
         return &cls;
     }
 
@@ -527,7 +527,7 @@ namespace KParser {
             auto parser = m_ruleNode->m_gen;
             auto ptext = parser->m_cache;
             auto len = parser->length;
-            auto predNode = (RulePred*)m_ruleNode;
+            auto predNode = (RuleCustom*)m_ruleNode;
             auto pred = predNode->pred;
             auto start = ptext + m_startPos;
             auto last = ptext + len;
@@ -548,7 +548,7 @@ namespace KParser {
         }
     };
 
-    MatchR* RulePred::match(size_t start) {
+    MatchR* RuleCustom::match(size_t start) {
         return new MatchRPred(start, this);
     }
 

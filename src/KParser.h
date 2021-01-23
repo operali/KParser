@@ -85,7 +85,7 @@ namespace KParser {
         // match c float
         Rule* float_();
         // user rule
-        Rule* pred(PredT p);
+        Rule* custom(PredT p);
 
         // match Pattern1 or Pattern2... or PatternN
         template<typename ...TS>
