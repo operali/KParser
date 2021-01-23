@@ -28,7 +28,7 @@ namespace KParser {
     };
 
     MatchR::MatchR(size_t start, RuleNode* rule) 
-        :m_startPos(start), m_matchstartPos(start), m_matchstopPos(start), m_ruleNode(rule), m_length(LEN::INIT) {
+        :m_startPos(start), m_ruleNode(rule), m_length(LEN::INIT) {
     }
 
     using LINES = VecT<LINE>;
@@ -93,7 +93,7 @@ namespace KParser {
         {
             auto n1 = n->as<RuleCustom>();
             if (n1) {
-                return "Pred";
+                return "Custom";
             }
             return "Unknown";
         }
@@ -355,9 +355,9 @@ namespace KParser {
 
     StrT MatchR::str() {
         const char* globalText = m_ruleNode->m_gen->m_cache;
-        auto start = globalText + m_matchstartPos;
-        auto stop = globalText + m_matchstopPos;
-        if (m_matchstartPos == m_matchstopPos) {
+        auto start = globalText + m_startPos;
+        auto stop = start + m_length;
+        if (start == stop) {
             return "";
         }
         if (m_ruleNode->m_gen->m_skipBlank) {
@@ -432,12 +432,7 @@ namespace KParser {
 
     //////////////////////////////////////////////////////////////////////////
     //STR
-    class RuleStrCLS : public CLSINFO {
-        StrT getName() override {
-            return "Str";
-        }
-    };
-
+    
     struct MatchRStr : public MatchR {
         MatchRStr(size_t start, RuleNode* rule) 
             :MatchR(start, rule) {
@@ -449,8 +444,8 @@ namespace KParser {
             }
             auto parser = m_ruleNode->m_gen;
             const char* bptr = parser->m_cache + m_startPos;
-            const char* cptr = bptr;
             const char* eptr = parser->m_cache + parser->length;
+            const char* cptr = bptr;
             const RuleStr* rule = static_cast<const RuleStr*>(this->m_ruleNode);
             const char* toMatch = rule->buff;
             auto toMatchEnd = toMatch + rule->len;
@@ -461,7 +456,6 @@ namespace KParser {
             }
             while (true) {
                 if (toMatch == toMatchEnd) {
-                    m_matchstopPos = cptr - parser->m_cache;
                     m_length = rule->len;
                     return StepInT{ true, nullptr };
                 }
@@ -501,13 +495,8 @@ namespace KParser {
             auto pred = predNode->pred;
             auto start = ptext + m_startPos;
             auto last = ptext + len;
-            const char* end;
-            const char* matchStart;
-            const char* matchStop;
-            pred(start, last, matchStart, matchStop, end);
+            const char* end = pred(start, last);
             if (end != nullptr) {
-                m_matchstartPos = matchStart - start + m_startPos;
-                m_matchstopPos = matchStop - start + m_startPos;
                 m_length = end - start;
                 return StepInT{ true, nullptr };
             }
@@ -524,12 +513,6 @@ namespace KParser {
 
     //////////////////////////////////////////////////////////////////////////
     //ANY
-
-    class RuleAnyCLS : public CLSINFO {
-        StrT getName() override {
-            return "Any";
-        }
-    };
 
     struct MatchRAny : public MatchR {
         int m_curIdx;
@@ -587,7 +570,6 @@ namespace KParser {
         StepInT stepIn() override {
             if (m_length >= LEN::SUCC && fromStepOut) {
                 fromStepOut = false;
-                m_matchstopPos = m_startPos + m_length;
                 return StepInT{ true, nullptr };
             }
             if (!m_curMatcher) {
@@ -691,7 +673,6 @@ namespace KParser {
         StepInT stepIn() override {
             if ( m_length >= LEN::SUCC && fromStepOut) {
                 fromStepOut = false;
-                m_matchstopPos = m_startPos + m_length;
                 return StepInT{ true, nullptr };
             }
             else if (m_length == LEN::FAIL) {

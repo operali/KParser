@@ -318,24 +318,18 @@ TEST(FEATURE, pred) {
     EXPECT_EQ(KParser::KObject::count, 0);
     {
         KParser::Parser p;
-        auto r = p.custom([](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+        auto r = p.custom([](const char* b, const char* e)->const char* {
             const char* c = b;
             int count = 0;
             while (c != e) {
                 if (*c++ == 'd') {
-                    if (count == 0) {
-                        cb = c;
-                    }
                     count++;
                     if (count == 3) {
-                        ce = c;
-                        me = c;
-                        return;
+                        return c;
                     }
                 }
             }
-            me = cb = ce = nullptr;
-            return;
+            return nullptr;
             });
         {
             auto m = r->parse("abdddd");

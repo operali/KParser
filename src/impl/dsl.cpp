@@ -38,31 +38,20 @@ public:
     Rule* _str_;
     Rule* str_() {
         // `...
-        return custom([this](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+        return custom([this](const char* b, const char* e)->const char* {
             const char* idx = b;
             if (b == e) {
-                cb = nullptr;
-                ce = nullptr;
-                me = nullptr;
-                return;
+                return nullptr;
             }
             if (*idx++ != '`') {
-                cb = nullptr;
-                ce = nullptr;
-                me = nullptr;
-                return;
+                return nullptr;
             }
-            cb = idx;
             while (idx != e) {
                 if (*idx++ == '`') {
-                    ce = idx-1;
-                    me = idx;
-                    return;
+                    return idx;
                 }
             }
-            cb = nullptr;
-            ce = nullptr;
-            me = nullptr;
+            return nullptr;
             });
     }
 

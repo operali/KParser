@@ -206,36 +206,29 @@ DSLContext::DSLContext() {
     idMap.emplace(std::make_pair("EOF", new DSLID{ "EOF" }));
 
     r_id = identifier();
-    r_text = custom([&](const char* begin, const char* end, const char*& cb, const char*& ce, const char*& me) {
+    r_text = custom([&](const char* begin, const char* end)->const char* {
         auto* idx = begin;
         if (idx == end) {
-            cb = ce = me = nullptr;
-            return;
+            return nullptr;
         }
         if (*idx++ != '`') {
-            cb = ce = me = nullptr;
-            return;
+            return nullptr;
         }
         if (idx == end) {
-            cb = ce = me = nullptr;
-            return;
+            return nullptr;
         }
         while (*idx++ != '`') {
             if (idx == end) {
-                cb = ce = me = nullptr;
-                return;
+                return nullptr;
             }
         }
-        me = idx;
-        cb = begin + 1;
-        ce = idx - 1;
+        return idx;
         });
 
-    r_regex = custom([&](const char* begin, const char* end, const char*& cb, const char*& ce, const char*& me) {
+    r_regex = custom([&](const char* begin, const char* end)->const char* {
         auto* idx = begin;
         if (idx == end) {
-            cb = ce = me = nullptr;
-            return;
+            return nullptr;
         }
         enum class ST {
             read_r = 0,
@@ -278,12 +271,9 @@ DSLContext::DSLContext() {
             }
         }
     fail:
-        cb = ce = me = nullptr;
-        return;
+        return nullptr;
     succ:
-        me = idx;
-        cb = begin + 3;
-        ce = idx - 1;
+        return idx;
         });
     r_item = any();
 

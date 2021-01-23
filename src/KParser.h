@@ -42,7 +42,7 @@ namespace KParser {
 
     struct Rule;
     struct ParserImpl;
-    using PredT = std::function<void(const char* begin, const char* textEnd, const char*& matchBegin, const char*& matchEnd, const char*& end)>;
+    using PredT = std::function<const char* (const char* begin, const char* end)>;
     class Parser : private KObject {
         ParserImpl* impl;
     public:

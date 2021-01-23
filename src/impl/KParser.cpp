@@ -87,7 +87,7 @@ namespace KParser {
     }
 
     Rule* Parser::until(Rule* node) {
-        return custom([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+        return custom([=](const char* b, const char* e)->const char* {
             const char* c = b;
             auto n = ((RuleNode*)node);
             auto psrc = n->m_gen->m_cache;
@@ -96,17 +96,11 @@ namespace KParser {
                 std::unique_ptr<MatchR> um;
                 um.reset(m);
                 if (um->alter()) {
-                    cb = b;
-                    ce = c;
-                    me = c;
-                    return;
+                    return c;
                 }
                 c++;
             }
-            cb = nullptr;
-            ce = nullptr;
-            me = nullptr;
-            return;
+            return nullptr;
             });
     }
 
@@ -135,12 +129,12 @@ namespace KParser {
     }
 
     Rule* Parser::eof() {
-        return custom([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+        return custom([=](const char* b, const char* e)->const char* {
             if (b == e) {
-                cb = ce = me = b;
+                return b;
             }
             else {
-                cb = ce = me = nullptr;
+                return nullptr;
             }
             });
     }
@@ -148,16 +142,13 @@ namespace KParser {
     Rule* Parser::regex(const StrT& strRe, bool startWith) {
         try {
             std::regex re(strRe.c_str());
-            return custom([=](const char* b, const char* e, const char*& cb, const char*& ce, const char*& me)->void {
+            return custom([=](const char* b, const char* e)->const char* {
                 std::match_results<const char*> results;
                 // std::cout << strRe << std::endl;
                 if (std::regex_search<const char*>(b, e, results, re, std::regex_constants::match_default)) {
                     auto pos = results.position();
                     if (startWith && pos != 0) {
-                        cb = nullptr;
-                        ce = nullptr;
-                        me = nullptr;
-                        return;
+                        return nullptr;
                     }
                     /*if (results.size() > 1) {
                         auto c = results[1];
@@ -166,16 +157,11 @@ namespace KParser {
                         me = b + results.position() + results.length();
                     }
                     else {*/
-                        cb = b + results.position();
-                        ce = cb + results.length();
-                        me = ce;
+                        
                     //}
-                    return;
+                    return b + results.position() + results.length();
                 }
-                cb = nullptr;
-                ce = nullptr;
-                me = nullptr;
-                return;
+                return nullptr;
                 });
         }
         catch (const std::regex_error& ex) {

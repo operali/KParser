@@ -15,11 +15,5 @@ namespace KParser {
     template<typename T>
     using VecT = std::vector<T>;
 
-    using PredT = std::function<void(const char* begin, const char* textEnd, const char*& matchBegin, const char*& matchEnd, const char*& end)>;
-
-    // predeclare
-    struct CLSINFO {
-        virtual StrT getName() = 0;
-    };
 }
     

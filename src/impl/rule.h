@@ -17,8 +17,6 @@ namespace KParser {
 
     struct MatchR : public Match {
         int32_t m_startPos;
-        int32_t m_matchstartPos;
-        int32_t m_matchstopPos;
         int32_t m_length;
 
         enum LEN : int32_t {
