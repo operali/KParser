@@ -3,7 +3,6 @@
 #include "impl.h"
 #include <optional>
 #include <vector>
-#include <any>
 
 namespace KParser {
 
@@ -43,8 +42,6 @@ namespace KParser {
 
         DataStack& global_data() override;
         const char* global_text() override;
-
-        std::any& global_value() override;
         
         template<typename T>
         T* get() {
@@ -66,7 +63,7 @@ namespace KParser {
         };
 
         virtual bool alter();
-        virtual void visit(std::function<void(Match& m, bool capture)> visitor);
+        void visit(std::function<void(Match& m, bool begin)> visitor) override;
         virtual MatchR* visitStep();
 
         virtual void release();
@@ -85,13 +82,11 @@ namespace KParser {
         }
 
         virtual MatchR* match(size_t start) = 0;
-        std::function<void(Match& m, bool on)> m_visitHandle;
-        std::function<std::any(Match& m, IT arg, IT noarg)> m_evalHandle;
+        std::function<void(Match& m, bool on)> m_eval;
 
         std::unique_ptr<Match> parse(const std::string& text) override;
 
-        RuleNode* visit(std::function<void(Match&, bool)> act) override;
-        RuleNode* eval(std::function<std::any(Match& m, IT arg, IT noarg)> eval) override;
+        RuleNode* on(std::function<void(Match&, bool)> act) override;
         void appendChild(Rule* r) override;
         std::string toString() override;
     };

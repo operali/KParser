@@ -23,7 +23,7 @@ public:
     Rule* _id_;
     Rule* id_() {
         // <id> // = 
-        return identifier()->visit([](auto& m, bool capture) {
+        return identifier()->on([](auto& m, bool begin) {
 
         });
     }

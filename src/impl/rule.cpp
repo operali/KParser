@@ -97,15 +97,10 @@ namespace KParser {
         gen->rules.push_back(this);
     }
 
-    RuleNode* RuleNode::visit(std::function<void(Match&, bool)> act) {
-        m_visitHandle = act;
+    RuleNode* RuleNode::on(std::function<void(Match&, bool)> act) {
+        m_eval = act;
         return this;
     };
-
-    RuleNode* RuleNode::eval(std::function<std::any(Match& m, IT arg, IT noarg)> eval){
-        m_evalHandle = eval;
-        return this;
-    }
 
     void RuleNode::appendChild(Rule* r) {
         throw std::exception("unimplemented");
@@ -138,17 +133,12 @@ namespace KParser {
         auto m = this->match(0);
         std::unique_ptr<Match> um;
         um.reset(m);
-
-        std::vector<std::any> expStk;
-        using IT = std::vector<std::any>::iterator;
-        std::vector<size_t> opStk;
-
         auto r = m->alter();
         if (!r) {
             return nullptr;
         }
-        // m_gen->dataStk.clear();
-        auto f = m->m_ruleNode->m_visitHandle;
+        m_gen->dataStk.clear();
+        auto f = m->m_ruleNode->m_eval;
         if (f) {
             try {
                 f(*m, true);
@@ -157,11 +147,10 @@ namespace KParser {
                 std::cerr << e.what() << std::endl;
             }
         }
-        
-        m->visit([&](auto& m, bool is_begin) {
+
+        um->visit([&](auto& m, bool is_begin) {
             auto mr = (MatchR*)&m;
-            auto rule = mr->m_ruleNode;
-            auto f = rule->m_visitHandle;
+            auto f = mr->m_ruleNode->m_eval;
             if (f) {
                 try {
                     f(*mr, is_begin);
@@ -170,41 +159,14 @@ namespace KParser {
                     std::cerr << e.what() << std::endl;
                 }
             }
-            if (is_begin) {
-                opStk.push_back(expStk.size());
-            } else {
-                auto eval = ((MatchR*)&m)->m_ruleNode->m_evalHandle;
-                if (eval) {
-                    std::any res;
-                    auto from = opStk.back();
-                    IT b = expStk.begin() + from;
-                    try {
-                        auto v = eval(*mr, b, expStk.end());
-                        std::swap(v, res);
-                    }
-                    catch (std::exception& e) {
-                        std::cerr << e.what() << std::endl;
-                    }
-                    expStk.erase(b, expStk.end());
-                    expStk.emplace_back(std::move(res));
-                }
-                opStk.pop_back();
+            if (!is_begin) {
                 delete mr;
             }
         });
+        
         if (f) {
             try {
                 f(*m, false);
-            }
-            catch (std::exception& e) {
-                std::cerr << e.what() << std::endl;
-            }
-        }
-        auto eval = m->m_ruleNode->m_evalHandle;
-        if (eval) {
-            try {
-                auto v = eval(*m, expStk.begin(), expStk.end());
-                std::swap(v, m_gen->m_value);
             }
             catch (std::exception& e) {
                 std::cerr << e.what() << std::endl;
@@ -283,10 +245,6 @@ namespace KParser {
         return m_ruleNode->m_gen->m_cache;
     }
 
-    std::any& MatchR::global_value() {
-        return m_ruleNode->m_gen->m_value;
-    }
-
     StrT MatchR::prefix() {
         return StrT(global_text(), global_text() + m_startPos);
     }
@@ -336,18 +294,18 @@ namespace KParser {
     }
 
     void MatchR::release() {
-        visit([](auto& m, bool capture) {
-            if (!capture) {
+        visit([](auto& m, bool begin) {
+            if (!begin) {
                 delete& m;
             }
             });
     }
 
-    void MatchR::visit(std::function<void(Match& m, bool capture)> visitor) {
+    void MatchR::visit(std::function<void(Match& m, bool begin)> visitor) {
         std::vector<MatchR*> matchers;
         MatchR* curM = this;
         for (; true;) {
-            MatchR* m = curM->visitStep();
+            auto m = curM->visitStep();
             if (m) {
                 matchers.push_back(curM);
                 curM = m;
@@ -676,8 +634,8 @@ namespace KParser {
                 return false;
             }
             auto m = childMatch.back();
-            m->visit([](auto& child, bool capture) {
-                if (!capture) {
+            m->visit([](auto& child, bool begin) {
+                if (!begin) {
                     delete& child;
                 }
                 });

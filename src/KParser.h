@@ -16,7 +16,6 @@ namespace KParser {
             KObject::count--;
         }
     };
-    using IT = std::vector<std::any>::iterator;
 
     struct DataStack : private KObject {
         template<typename T>
@@ -44,14 +43,14 @@ namespace KParser {
             set_any(std::any(t));
         }
         template<typename T>
-        T* get(size_t i) {
+        std::optional<T*> get(size_t i) {
             try {
                 return std::any_cast<T>(&get_any(i));
             }
             catch (const std::exception& ex) {
                 printf("fail to cast %s", ex.what());
             }
-            return nullptr;
+            return {};
         }
 
         virtual void push_any(std::any&& t) = 0;
@@ -71,15 +70,13 @@ namespace KParser {
         virtual std::string suffix() = 0;
         virtual DataStack& global_data() = 0;
         virtual const char* global_text() = 0;
-        virtual std::any& global_value() = 0;
+        
+        virtual void visit(std::function<void(Match&, bool)> visitor) = 0;
     };
 
     struct Rule : private KObject {
         virtual std::unique_ptr<Match> parse(const std::string& text) = 0;
-        // handle(Match& m, bool is_begin)
-        virtual Rule* visit(std::function<void(Match&, bool)> handle) = 0;
-        // eval(std::vector<std::any>& argments)->std::any
-        virtual Rule* eval(std::function<std::any(Match& m, IT arg, IT noarg)> eval) = 0;
+        virtual Rule* on(std::function<void(Match&, bool)> handle) = 0;
         virtual std::string toString() = 0;
         virtual void appendChild(Rule* r) = 0;
 

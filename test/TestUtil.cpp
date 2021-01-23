@@ -1,5 +1,5 @@
 
-// #define X
+#define X
 #ifdef X
 #include "gtest/gtest.h"
 #include <any>

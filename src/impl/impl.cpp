@@ -18,8 +18,6 @@ namespace KParser {
         }
         m_headMax = 0;
         dataStk.clear();
-        std::any obj;
-        obj.swap(m_value);
     }
 
 

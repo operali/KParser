@@ -26,7 +26,7 @@ namespace KParser {
         size_t size() override;
     };
     struct RuleNode;
-    class Parser;
+    struct Parser;
     struct ParserImpl {
         Parser* m_interface;
         bool m_skipBlank;
@@ -37,7 +37,6 @@ namespace KParser {
         size_t length;
         VecT<RuleNode*> rules;
         DataStackImpl dataStk;
-        std::any m_value;
 
         void setText(const std::string& text) {
             length = text.length();
