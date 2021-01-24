@@ -52,8 +52,8 @@ struct DSLID : public DSLNode {
             rule = p.eof();
         }
         else {
-            rule = p.none();
-            std::cerr << "unrecognized ID: " << name << std::endl;
+            // rule = p.none();
+            // lastError = std::string("unrecognized id of ") + name;
         }
     }
 };
@@ -219,6 +219,7 @@ struct DSLRuleList : public DSLChildren {
 
 struct DSLContext : public KParser::Parser {
     DSLFactory builder;
+    std::string lastError;
     std::unordered_map <std::string, DSLNode*> idMap;
     std::unordered_map <std::string, std::function<libany::any(KParser::Match & m, KParser::IT arg, KParser::IT noarg)>> handleMap;
 
@@ -430,6 +431,7 @@ DSLContext::DSLContext() {
 bool DSLContext::ruleOf(std::string strRuleList) {
     auto m = r_ruleList->parse(strRuleList);
     if (m == nullptr) {
+        lastError = this->errInfo();
         return false;
     }
     DSLNode** d = m->capture_s<DSLNode*>(0);
@@ -496,12 +498,11 @@ bool DSLContext::ruleOf(std::string strRuleList) {
                 auto it = idMap.find(child->name);
                 if (it != idMap.end()) {
                     // replace
-                    std::cout << "replace id " << child->name << std::endl;
                     wrap->node = it->second;
                 }
                 else {
                     succ = false;
-                    std::cout << "invalid id of " << child->name << std::endl;
+                    lastError = std::string("invalid id of ") + child->name;
                 }
             } 
             else {
@@ -512,12 +513,11 @@ bool DSLContext::ruleOf(std::string strRuleList) {
                         auto it = idMap.find(id->name);
                         if (it != idMap.end()) {
                             // replace
-                            std::cout << "replace id " << id->name << std::endl;
                             list->node = it->second;
                         }
                         else {
                             succ = false;
-                            std::cout << "invalid id of " << id->name << std::endl;
+                            lastError = std::string("invalid id of ") + id->name;
                         }
                     }
                     id = dynamic_cast<DSLID*>(list->dem);
@@ -525,12 +525,11 @@ bool DSLContext::ruleOf(std::string strRuleList) {
                         auto it = idMap.find(id->name);
                         if (it != idMap.end()) {
                             // replace
-                            std::cout << "replace id " << id->name << std::endl;
                             list->dem = it->second;
                         }
                         else {
                             succ = false;
-                            std::cout << "invalid id of " << id->name << std::endl;
+                            lastError = std::string("invalid id of ") + id->name;
                         }
                     }
                 }
@@ -549,12 +548,11 @@ bool DSLContext::ruleOf(std::string strRuleList) {
                             auto it = idMap.find(id->name);
                             if (it != idMap.end()) {
                                 // replace
-                                std::cout << "replace id " << id->name << std::endl;
                                 children[i] = it->second;
                             }
                             else {
                                 succ = false;
-                                std::cout << "invalid id of " << id->name << std::endl;
+                                lastError = std::string("invalid id of ") + id->name;
                             }
                         }
                     }

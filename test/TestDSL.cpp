@@ -249,7 +249,7 @@ b@on_b = a+ EOF;
             });
 
         if (!r) {
-            std::cerr << ctx.errInfo() << std::endl;
+            std::cerr << ctx.lastError << std::endl;
         }
         else {
             ctx.parse("b", "11 22 aa bb");
@@ -267,7 +267,7 @@ c = re | re`re`;
 )");
         ASSERT_EQ(r, false);
         if (!r) {
-            std::cerr << ctx.errInfo() << std::endl;
+            std::cerr << ctx.lastError << std::endl;
         }
     }
 }
@@ -302,7 +302,7 @@ b@on_b = [a `,`] EOF;
                         return nullptr;
                     });
         if (!r) {
-            std::cerr << ctx.errInfo() << std::endl;
+            std::cerr << ctx.lastError << std::endl;
             ASSERT_EQ(false, true);
         }
         else {
