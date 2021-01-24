@@ -15,7 +15,7 @@ namespace KParser {
     };
 
     struct MatchR : public Match {
-        int32_t m_startPos;
+        uint32_t m_startPos;
         int32_t m_length;
 
         enum LEN : int32_t {
@@ -25,18 +25,18 @@ namespace KParser {
         };
         
         RuleNode* m_ruleNode;
-        MatchR(size_t start, RuleNode* rule);
+        MatchR(uint32_t start, RuleNode* rule);
         virtual ~MatchR() = default;
 
         inline bool succ(){
             return m_length >= LEN::SUCC;
         }
         
-        inline size_t length() override {
-            return (size_t)m_length;
+        inline uint32_t length() override {
+            return (uint32_t)m_length;
         }
 
-        inline void accept(size_t sz) {
+        inline void accept(uint32_t sz) {
             m_length = sz;
         }
 
@@ -45,7 +45,7 @@ namespace KParser {
         StrT prefix() override;
         StrT suffix() override;
 
-        libany::any* capture(size_t i) override;
+        libany::any* capture(uint32_t i) override;
         
         std::string errInfo() final;
 
@@ -72,7 +72,7 @@ namespace KParser {
             return dynamic_cast<T*>(this);
         }
 
-        virtual MatchR* match(size_t start) = 0;
+        virtual MatchR* match(uint32_t start) = 0;
         std::function<void(Match& m, bool on)> m_visitHandle;
         std::function<libany::any(Match& m, IT arg, IT noarg)> m_evalHandle;
 
@@ -89,12 +89,12 @@ namespace KParser {
         RuleEmpty(ParserImpl* gen):RuleNode(gen){
         }
         ~RuleEmpty() override = default;
-        MatchR* match(size_t start) final;
+        MatchR* match(uint32_t start) final;
     };
 
     struct RuleStr : public RuleNode{
         char* buff;
-        size_t len;
+        uint32_t len;
         RuleStr(ParserImpl* gen, StrT text):RuleNode(gen){
             auto ptext = text.c_str();
             len = text.length();
@@ -108,14 +108,14 @@ namespace KParser {
         ~RuleStr() {
             delete[] buff;
         }
-        MatchR* match(size_t start) final;
+        MatchR* match(uint32_t start) final;
     };
 
     struct RuleCustom : public RuleNode {
         PredT pred;
         RuleCustom(ParserImpl* gen, PredT pred) :RuleNode(gen), pred(pred) {
         }
-        MatchR* match(size_t start) final;
+        MatchR* match(uint32_t start) final;
     };
 
     struct RuleCompound : public RuleNode {
@@ -128,11 +128,11 @@ namespace KParser {
 
     struct RuleAll : public RuleCompound {
         RuleAll(ParserImpl* gen) :RuleCompound(gen) {};
-        MatchR* match(size_t start) final;
+        MatchR* match(uint32_t start) final;
     };
 
     struct RuleAny : public RuleCompound {
         RuleAny(ParserImpl* gen) :RuleCompound(gen) {};
-        MatchR* match(size_t start) final;
+        MatchR* match(uint32_t start) final;
     };
 }

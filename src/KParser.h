@@ -7,7 +7,7 @@
 
 namespace KParser {
     struct KObject {
-        static size_t count;
+        static uint32_t count;
         //static std::vector<KObject*> all;
         KObject() {
             //all.push_back(this);
@@ -23,14 +23,14 @@ namespace KParser {
 
     struct Match : private KObject {
         virtual std::string occupied_str() = 0;
-        virtual size_t length() = 0;
+        virtual uint32_t length() = 0;
         virtual std::string str() = 0;
         virtual std::string prefix() = 0;
         virtual std::string suffix() = 0;
-        virtual libany::any* capture(size_t i) = 0;
+        virtual libany::any* capture(uint32_t i) = 0;
         virtual std::string errInfo() = 0;
         template<typename T>
-        inline T* capture_s(size_t i) {
+        inline T* capture_s(uint32_t i) {
             try {
                 return libany::any_cast<T>(capture(i));
             }
@@ -46,7 +46,7 @@ namespace KParser {
     class Parser : private KObject {
         ParserImpl* impl;
     public:
-        Parser(size_t lookback = 42, bool skipBlanks = true);
+        Parser(uint32_t lookback = 42, bool skipBlanks = true);
         std::string errInfo();
         // epsilon
         Rule* none();

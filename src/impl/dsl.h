@@ -3,11 +3,20 @@
 #include <vector>
 #include <unordered_map>
 
+struct DSLNode;
+struct DSLFactory {
+    std::vector<DSLNode*> nodes;
+    ~DSLFactory();
+};
 
 struct DSLNode {
+    DSLNode(DSLFactory* builder) {
+        builder->nodes.push_back(this);
+    };
+
     virtual ~DSLNode() {}
     bool visiting = false;
-    virtual void visit(std::function<void(bool capture, DSLNode* node)> handle) {
+    virtual void visit(std::function<void(bool capture, DSLNode * node)> handle) {
         handle(false, this);
         handle(true, this);
     }
@@ -19,7 +28,7 @@ struct DSLNode {
 
 struct DSLID : public DSLNode {
     std::string name;
-    DSLID(std::string name) :name(name) {};
+    DSLID(DSLFactory* builder, std::string name) :DSLNode(builder), name(name) {};
 
     void prepare(KParser::Parser& p) override {
         if (rule) return;
@@ -52,7 +61,7 @@ struct DSLID : public DSLNode {
 
 struct DSLText : public DSLNode {
     std::string name;
-    DSLText(std::string name) :name(name) {};
+    DSLText(DSLFactory* builder, std::string name) :DSLNode(builder), name(name) {};
     void prepare(KParser::Parser& p) override {
         if (rule) return;
         rule = p.str(std::string(name));
@@ -62,7 +71,7 @@ struct DSLText : public DSLNode {
 
 struct DSLRegex : public DSLNode {
     std::string name;
-    DSLRegex(std::string name) :name(name) {};
+    DSLRegex(DSLFactory* builder, std::string name) :DSLNode(builder), name(name) {};
     void prepare(KParser::Parser& p) override {
         if (rule) return;
         rule = p.regex(name);
@@ -71,8 +80,8 @@ struct DSLRegex : public DSLNode {
 
 struct DSLWrap : public DSLNode {
     DSLNode* node;
-    DSLWrap(DSLNode* node) :node(node) {};
-    void visit(std::function<void(bool capture, DSLNode* node)> handle) override {
+    DSLWrap(DSLFactory* builder, DSLNode* node) :DSLNode(builder), node(node) {};
+    void visit(std::function<void(bool capture, DSLNode * node)> handle) override {
         if (visiting) {
             return;
         }
@@ -85,7 +94,7 @@ struct DSLWrap : public DSLNode {
 };
 
 struct DSLMany : public DSLWrap {
-    DSLMany(DSLNode* node) :DSLWrap(node) {};
+    DSLMany(DSLFactory* builder, DSLNode* node) :DSLWrap(builder, node) {};
 
     bool build(KParser::Parser& p) override {
         if (!node->rule) {
@@ -98,7 +107,7 @@ struct DSLMany : public DSLWrap {
 
 
 struct DSLOption : public DSLWrap {
-    DSLOption(DSLNode* node) :DSLWrap(node) {};
+    DSLOption(DSLFactory* builder, DSLNode* node) :DSLWrap(builder, node) {};
     bool build(KParser::Parser& p) override {
         if (!node->rule) {
             return false;
@@ -110,8 +119,8 @@ struct DSLOption : public DSLWrap {
 
 struct DSLChildren : public DSLNode {
     std::vector<DSLNode*> nodes;
-    DSLChildren() {};
-    void visit(std::function<void(bool capture, DSLNode* node)> handle) override {
+    DSLChildren(DSLFactory* builder) :DSLNode(builder) {};
+    void visit(std::function<void(bool capture, DSLNode * node)> handle) override {
         if (visiting) {
             return;
         }
@@ -126,6 +135,7 @@ struct DSLChildren : public DSLNode {
 };
 
 struct DSLAny : public DSLChildren {
+    DSLAny(DSLFactory* builder) :DSLChildren(builder) {};
     bool build(KParser::Parser& p) override {
         rule = p.any();
         for (auto& c : nodes) {
@@ -140,6 +150,7 @@ struct DSLAny : public DSLChildren {
 };
 
 struct DSLAll : public DSLChildren {
+    DSLAll(DSLFactory* builder) :DSLChildren(builder) {};
     bool build(KParser::Parser& p) override {
         rule = p.all();
         for (auto& c : nodes) {
@@ -156,18 +167,20 @@ struct DSLAll : public DSLChildren {
 struct DSLRule : public DSLWrap {
     std::string name;
     std::string evtName;
-    DSLRule(DSLNode* node) :DSLWrap(node) {}
+    DSLRule(DSLFactory* builder, DSLNode* node) :DSLWrap(builder, node) {}
     bool build(KParser::Parser& p) override;
 };
 
 struct DSLRuleList : public DSLChildren {
+    DSLRuleList(DSLFactory* builder) :DSLChildren(builder) {};
 };
 
 
 
 struct DSLContext : public KParser::Parser {
+    DSLFactory builder;
     std::unordered_map <std::string, DSLNode*> idMap;
-    std::unordered_map <std::string, std::function<libany::any(KParser::Match& m, KParser::IT arg, KParser::IT noarg)>> handleMap;
+    std::unordered_map <std::string, std::function<libany::any(KParser::Match & m, KParser::IT arg, KParser::IT noarg)>> handleMap;
 
     KParser::Rule* r_id;
     KParser::Rule* r_text; // `id`
@@ -183,10 +196,10 @@ struct DSLContext : public KParser::Parser {
 
     DSLContext();
     bool ruleOf(std::string str);
-    void bind(std::string evtName, std::function<libany::any(KParser::Match& m, KParser::IT arg, KParser::IT noarg)> handle) {
+    void bind(std::string evtName, std::function<libany::any(KParser::Match & m, KParser::IT arg, KParser::IT noarg)> handle) {
         handleMap[evtName] = handle;
     }
-    
+
     bool parse(std::string ruleName, std::string str) {
         auto it = idMap.find(ruleName);
         if (it != idMap.end()) {
@@ -196,14 +209,15 @@ struct DSLContext : public KParser::Parser {
             }
             return true;
         }
+        return false;
     }
 };
 
 DSLContext::DSLContext() {
-    idMap.emplace(std::make_pair("ID", new DSLID{ "ID" }));
-    idMap.emplace(std::make_pair("NUM", new DSLID{ "NUM" }));
-    idMap.emplace(std::make_pair("NONE", new DSLID{ "NONE" }));
-    idMap.emplace(std::make_pair("EOF", new DSLID{ "EOF" }));
+    idMap.emplace(std::make_pair("ID", new DSLID{ &builder, "ID" }));
+    idMap.emplace(std::make_pair("NUM", new DSLID{ &builder, "NUM" }));
+    idMap.emplace(std::make_pair("NONE", new DSLID{ &builder, "NONE" }));
+    idMap.emplace(std::make_pair("EOF", new DSLID{ &builder,"EOF" }));
 
     r_id = identifier();
     r_text = custom([&](const char* begin, const char* end)->const char* {
@@ -290,41 +304,39 @@ DSLContext::DSLContext() {
     r_rule = all(strRule, optional(all("@", strRule)), "=", r_any, ";");
     r_ruleList = all(many1(r_rule), eof());
 
-    r_id->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLID{ m.str() }; });
-    r_regex->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLRegex{ m.str() }; });
-    r_text->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLText{ m.str() }; });
+    r_id->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLID{ &builder, m.str() }; });
+    r_regex->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLRegex{ &builder, m.str() }; });
+    r_text->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLText{ &builder, m.str() }; });
     r_any->eval([&](auto& m, auto b, auto e) {
-        auto* node = new DSLAny();
+        auto* node = new DSLAny(&builder);
         while (b != e) {
             node->nodes.push_back(libany::any_cast<DSLNode*>(*b++));
         }
         if (node->nodes.size() == 1) {
             DSLNode* n = node->nodes[0];
-            delete node;
             return n;
         }
         return (DSLNode*)node;
 
         });
     r_all->eval([&](auto& m, auto b, auto e) {
-        auto* node = new DSLAll();
+        auto* node = new DSLAll(&builder);
         while (b != e) {
             node->nodes.push_back(libany::any_cast<DSLNode*>(*b++));
         }
         if (node->nodes.size() == 1) {
             DSLNode* n = node->nodes[0];
-            delete node;
             return n;
         }
         return (DSLNode*)node;
 
         });
     r_many->eval([&](auto& m, auto b, auto e) {
-        auto* node = new DSLMany(libany::any_cast<DSLNode*>(*b));
+        auto* node = new DSLMany(&builder, libany::any_cast<DSLNode*>(*b));
         return (DSLNode*)node;
         });
     r_option->eval([&](auto& m, auto b, auto e) {
-        auto* node = new DSLOption(libany::any_cast<DSLNode*>(*b));
+        auto* node = new DSLOption(&builder, libany::any_cast<DSLNode*>(*b));
         return (DSLNode*)node;
         });
     r_rule->eval([&](auto& m, auto b, auto e) {
@@ -333,17 +345,17 @@ DSLContext::DSLContext() {
         try {
             evtName = libany::any_cast<std::string>(*b++);
         }
-        catch (libany::bad_any_cast& ex) {
+        catch (libany::bad_any_cast & ex) {
             b--;
         }
 
-        DSLRule* r = new DSLRule(libany::any_cast<DSLNode*>(*b++));
+        DSLRule* r = new DSLRule(&builder, libany::any_cast<DSLNode*>(*b++));
         r->name = name;
         r->evtName = evtName;
         return (DSLNode*)r;
         });
     r_ruleList->eval([&](auto& m, auto b, auto e) {
-        auto* node = new DSLRuleList();
+        auto* node = new DSLRuleList(&builder);
         while (b != e) {
             node->nodes.push_back((DSLRule*)libany::any_cast<DSLNode*>(*b++));
         }
@@ -446,7 +458,7 @@ bool DSLContext::ruleOf(std::string strRuleList) {
                     // wrap with any if this rule has evt
                     if (rule->evtName != "") {
                         auto* n = rule->node;
-                        auto* r = new DSLAny{};
+                        auto* r = new DSLAny{ &builder };
                         r->nodes.push_back(n);
                         rule->node = r;
                     }
@@ -473,7 +485,7 @@ bool DSLContext::ruleOf(std::string strRuleList) {
                 succ = false;
             }
             return;
-        }  
+        }
     };
     rlist->visit(hBuild);
     if (!succ) {
@@ -495,4 +507,12 @@ bool DSLRule::build(KParser::Parser& p) {
             });
     }
     return true;
+}
+
+
+DSLFactory::~DSLFactory() {
+    for (auto* node : nodes) {
+        delete node;
+    }
+    nodes.clear();
 }

@@ -664,14 +664,8 @@ TEST(PRESSURE, length___) {
                 i++;
             };
             auto m = p.list(p.str("abc")->visit(f), p.str(","));
-            try
-            {
-                m->parse(ss.str());
-            }
-            catch (std::exception& _)
-            {
-                printf("Executing SEH __except block\r\n");
-            }
+            
+            m->parse(ss.str());
 
             EXPECT_EQ(i, 2*(k + 1));
         }

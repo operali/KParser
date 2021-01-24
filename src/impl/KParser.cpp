@@ -8,7 +8,7 @@
 #include "impl.h"
 #include <regex>
 namespace KParser {
-    size_t KObject::count = 0;
+    uint32_t KObject::count = 0;
     // std::vector<KObject*> KObject::all;
 
     Parser::~Parser() {
@@ -28,7 +28,7 @@ namespace KParser {
         return ss.str();
     }
 
-    Parser::Parser(size_t lookback, bool skipBlanks) :impl(new ParserImpl(this, lookback, skipBlanks)) {
+    Parser::Parser(uint32_t lookback, bool skipBlanks) :impl(new ParserImpl(this, lookback, skipBlanks)) {
     }
 
     Rule* Parser::custom(PredT p) {
@@ -194,6 +194,6 @@ namespace KParser {
     }
 
     Rule* Parser::float_() {
-        return regex("^[-+]?\\d*\.?\\d+");
+        return regex("^[-+]?\\d*\\.?\\d+");
     }
 };

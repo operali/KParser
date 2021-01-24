@@ -23,11 +23,11 @@ std::string trim(const std::string& s)
 namespace KParser {
     struct LINE {
         RuleNode* node;
-        int iden;
-        int id;
+        int32_t iden;
+        int32_t id;
     };
 
-    MatchR::MatchR(size_t start, RuleNode* rule) 
+    MatchR::MatchR(uint32_t start, RuleNode* rule) 
         :m_startPos(start), m_ruleNode(rule), m_length(LEN::INIT) {
     }
 
@@ -151,7 +151,7 @@ namespace KParser {
 
         std::vector<libany::any>& expStk = m_gen->m_expStk;
         using IT = std::vector<libany::any>::iterator;
-        std::vector<size_t> opStk;
+        std::vector<uint32_t> opStk;
 
         auto r = m->alter();
         if (!r) {
@@ -289,7 +289,7 @@ namespace KParser {
         }
     }
 
-    libany::any* MatchR::capture(size_t i) {
+    libany::any* MatchR::capture(uint32_t i) {
         if (i >= m_ruleNode->m_gen->m_expStk.size()) {
             return nullptr;
         }
@@ -379,7 +379,7 @@ namespace KParser {
     }
 
     struct MatchREmpty : public MatchR {
-        MatchREmpty(size_t start, RuleNode* rule) 
+        MatchREmpty(uint32_t start, RuleNode* rule) 
             :MatchR(start, rule) {
         }
         StepInT stepIn() override {
@@ -391,7 +391,7 @@ namespace KParser {
         };
     };
 
-    MatchR* RuleEmpty::match(size_t start) {
+    MatchR* RuleEmpty::match(uint32_t start) {
         return new MatchREmpty(start, this);
     }
 
@@ -399,7 +399,7 @@ namespace KParser {
     //STR
     
     struct MatchRStr : public MatchR {
-        MatchRStr(size_t start, RuleNode* rule) 
+        MatchRStr(uint32_t start, RuleNode* rule) 
             :MatchR(start, rule) {
         }
         
@@ -437,7 +437,7 @@ namespace KParser {
         };
     };
 
-    MatchR* RuleStr::match(size_t start) {
+    MatchR* RuleStr::match(uint32_t start) {
         return new MatchRStr(start, this);
     }
 
@@ -445,7 +445,7 @@ namespace KParser {
     // pred
 
     struct MatchRPred : public MatchR {
-        MatchRPred(size_t start, RuleNode* rule) 
+        MatchRPred(uint32_t start, RuleNode* rule) 
             :MatchR(start, rule) {
         }
         
@@ -472,7 +472,7 @@ namespace KParser {
         }
     };
 
-    MatchR* RuleCustom::match(size_t start) {
+    MatchR* RuleCustom::match(uint32_t start) {
         return new MatchRPred(start, this);
     }
 
@@ -482,7 +482,7 @@ namespace KParser {
         int m_curIdx;
         MatchR* m_curMatcher = nullptr;
 
-        MatchRAny(size_t start, RuleNode* rule) 
+        MatchRAny(uint32_t start, RuleNode* rule) 
             :MatchR(start, rule), m_curIdx(-1) {
             nextNode();
         }
@@ -559,7 +559,7 @@ namespace KParser {
         };
     };
 
-    MatchR* RuleAny::match(size_t start) {
+    MatchR* RuleAny::match(uint32_t start) {
         return new MatchRAny(start, this);
     }
 
@@ -567,13 +567,13 @@ namespace KParser {
     //ALL
 
     struct MatchRAll : public MatchR {
-        MatchRAll(size_t start, RuleNode* rule) 
+        MatchRAll(uint32_t start, RuleNode* rule) 
             :MatchR(start, rule) {
             m_curStart = start;
             nextNode();
         }
         std::vector<MatchR*> childMatch;
-        size_t m_curStart;
+        uint32_t m_curStart;
         ~MatchRAll() {
             /*for (auto m : childMatch) {
                 delete m;
@@ -681,7 +681,7 @@ namespace KParser {
         }
     };
 
-    MatchR* RuleAll::match(size_t start) {
+    MatchR* RuleAll::match(uint32_t start) {
         return new MatchRAll(start, this);
     }
 }
