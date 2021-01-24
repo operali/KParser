@@ -16,12 +16,12 @@ struct DSLNode {
 
     virtual ~DSLNode() {}
     bool visiting = false;
-    virtual void visit(std::function<void(bool capture, DSLNode * node)> handle) {
+    virtual void visit(std::function<void(bool sink, DSLNode * node)> handle) {
         handle(false, this);
         handle(true, this);
     }
     KParser::Rule* rule = nullptr;
-
+    bool haveBuild = false;
     virtual void prepare(KParser::Parser& p) {}
     virtual bool build(KParser::Parser& p) { return true; }
 };
@@ -31,7 +31,6 @@ struct DSLID : public DSLNode {
     DSLID(DSLFactory* builder, std::string name) :DSLNode(builder), name(name) {};
 
     void prepare(KParser::Parser& p) override {
-        if (rule) return;
         if (name == "ID") {
             rule = p.identifier();
             rule->eval([&](auto& m, auto b, auto e) {
@@ -63,7 +62,6 @@ struct DSLText : public DSLNode {
     std::string name;
     DSLText(DSLFactory* builder, std::string name) :DSLNode(builder), name(name) {};
     void prepare(KParser::Parser& p) override {
-        if (rule) return;
         rule = p.str(std::string(name));
     }
 };
@@ -73,7 +71,6 @@ struct DSLRegex : public DSLNode {
     std::string name;
     DSLRegex(DSLFactory* builder, std::string name) :DSLNode(builder), name(name) {};
     void prepare(KParser::Parser& p) override {
-        if (rule) return;
         rule = p.regex(name);
     }
 };
@@ -81,7 +78,7 @@ struct DSLRegex : public DSLNode {
 struct DSLWrap : public DSLNode {
     DSLNode* node;
     DSLWrap(DSLFactory* builder, DSLNode* node) :DSLNode(builder), node(node) {};
-    void visit(std::function<void(bool capture, DSLNode * node)> handle) override {
+    void visit(std::function<void(bool sink, DSLNode * node)> handle) override {
         if (visiting) {
             return;
         }
@@ -105,6 +102,42 @@ struct DSLMany : public DSLWrap {
     }
 };
 
+struct DSLMany1 : public DSLWrap {
+    DSLMany1(DSLFactory* builder, DSLNode* node) :DSLWrap(builder, node) {};
+
+    bool build(KParser::Parser& p) override {
+        if (!node->rule) {
+            return false;
+        }
+        rule = p.many1(node->rule);
+        return true;
+    }
+};
+
+struct DSLList : public DSLNode {
+    DSLNode* node;
+    DSLNode* dem;
+    DSLList(DSLFactory* builder, DSLNode* node, DSLNode* dem) :DSLNode(builder), node(node), dem(dem){};
+
+    void visit(std::function<void(bool sink, DSLNode * node)> handle) override {
+        if (visiting) {
+            return;
+        }
+        visiting = true;
+        handle(false, this);
+        node->visit(handle);
+        dem->visit(handle);
+        handle(true, this);
+        visiting = false;
+    }
+    bool build(KParser::Parser& p) override {
+        if (!node->rule || !dem->rule) {
+            return false;
+        }
+        rule = p.list(node->rule, dem->rule);
+        return true;
+    }
+};
 
 struct DSLOption : public DSLWrap {
     DSLOption(DSLFactory* builder, DSLNode* node) :DSLWrap(builder, node) {};
@@ -120,7 +153,8 @@ struct DSLOption : public DSLWrap {
 struct DSLChildren : public DSLNode {
     std::vector<DSLNode*> nodes;
     DSLChildren(DSLFactory* builder) :DSLNode(builder) {};
-    void visit(std::function<void(bool capture, DSLNode * node)> handle) override {
+    
+    void visit(std::function<void(bool sink, DSLNode * node)> handle) override {
         if (visiting) {
             return;
         }
@@ -135,9 +169,12 @@ struct DSLChildren : public DSLNode {
 };
 
 struct DSLAny : public DSLChildren {
-    DSLAny(DSLFactory* builder) :DSLChildren(builder) {};
-    bool build(KParser::Parser& p) override {
+    DSLAny(DSLFactory* builder) :DSLChildren(builder) {
+    };
+    void prepare(KParser::Parser& p) override {
         rule = p.any();
+    }
+    bool build(KParser::Parser& p) override {
         for (auto& c : nodes) {
             if (!c->rule) {
                 std::cerr << "invalid rule of " << rule->toString() << std::endl;
@@ -151,8 +188,10 @@ struct DSLAny : public DSLChildren {
 
 struct DSLAll : public DSLChildren {
     DSLAll(DSLFactory* builder) :DSLChildren(builder) {};
-    bool build(KParser::Parser& p) override {
+    void prepare(KParser::Parser& p) override {
         rule = p.all();
+    }
+    bool build(KParser::Parser& p) override {
         for (auto& c : nodes) {
             if (!c->rule) {
                 std::cerr << "invalid rule of " << rule->toString() << std::endl;
@@ -167,6 +206,7 @@ struct DSLAll : public DSLChildren {
 struct DSLRule : public DSLWrap {
     std::string name;
     std::string evtName;
+    std::string ruleLine;
     DSLRule(DSLFactory* builder, DSLNode* node) :DSLWrap(builder, node) {}
     bool build(KParser::Parser& p) override;
 };
@@ -189,7 +229,9 @@ struct DSLContext : public KParser::Parser {
     KParser::Rule* r_group; //  `(` r_any `)`;
     KParser::Rule* r_option; // item?
     KParser::Rule* r_many; // item*
-    KParser::Rule* r_rule; // `id@evt` `=` any `;`
+    KParser::Rule* r_many1; // item+
+    KParser::Rule* r_list; // [k, x]
+    KParser::Rule* r_rule; // `id` `=` any `;`
     KParser::Rule* r_any; // seq(all , "|");
     KParser::Rule* r_all; // many1(item);
     KParser::Rule* r_ruleList; // 
@@ -298,15 +340,26 @@ DSLContext::DSLContext() {
     r_item->add(r_regex, r_text, r_id, r_group);
     r_option = all(r_item, "?");
     r_many = all(r_item, "*");
-    r_expr->add(r_many, r_option, r_item);
+    r_many1 = all(r_item, "+");
+    r_list = all("[", r_item, r_item, "]");
+    r_expr->add(r_many, r_many1, r_option, r_list, r_item);
     auto* strRule = identifier();
     strRule->eval([&](auto& m, auto b, auto e) {return m.str(); });
     r_rule = all(strRule, optional(all("@", strRule)), "=", r_any, ";");
     r_ruleList = all(many1(r_rule), eof());
 
     r_id->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLID{ &builder, m.str() }; });
-    r_regex->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLRegex{ &builder, m.str() }; });
-    r_text->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLText{ &builder, m.str() }; });
+    r_regex->eval([&](auto& m, auto b, auto e) {
+        std::string s = m.str();
+        s = s.substr(3, s.length() - 4);
+        return (DSLNode*)new DSLRegex{ &builder, s }; 
+    });
+    r_text->eval([&](auto& m, auto b, auto e) {
+        std::string s = m.str();
+        s = s.substr(1, s.length() - 2);
+        return (DSLNode*)new DSLText{ &builder, s }; 
+    });
+
     r_any->eval([&](auto& m, auto b, auto e) {
         auto* node = new DSLAny(&builder);
         while (b != e) {
@@ -335,6 +388,16 @@ DSLContext::DSLContext() {
         auto* node = new DSLMany(&builder, libany::any_cast<DSLNode*>(*b));
         return (DSLNode*)node;
         });
+    r_many1->eval([&](auto& m, auto b, auto e) {
+        auto* node = new DSLMany1(&builder, libany::any_cast<DSLNode*>(*b));
+        return (DSLNode*)node;
+        });
+    r_list->eval([&](auto& m, auto b, auto e) {
+        auto* item = libany::any_cast<DSLNode*>(*b++);
+        auto* dem = libany::any_cast<DSLNode*>(*b++);
+        auto* node = new DSLList(&builder, item, dem);
+        return (DSLNode*)node;
+        });
     r_option->eval([&](auto& m, auto b, auto e) {
         auto* node = new DSLOption(&builder, libany::any_cast<DSLNode*>(*b));
         return (DSLNode*)node;
@@ -352,6 +415,7 @@ DSLContext::DSLContext() {
         DSLRule* r = new DSLRule(&builder, libany::any_cast<DSLNode*>(*b++));
         r->name = name;
         r->evtName = evtName;
+        r->ruleLine = m.str();
         return (DSLNode*)r;
         });
     r_ruleList->eval([&](auto& m, auto b, auto e) {
@@ -374,8 +438,8 @@ bool DSLContext::ruleOf(std::string strRuleList) {
     bool succ = true;
     // pass 0, collect all ID
 
-    auto hCheckID = [&](bool capture, DSLNode* n) {
-        if (capture) {
+    auto hCheckID = [&](bool sink, DSLNode* n) {
+        if (sink) {
             if (&typeid(*n) == &typeid(DSLRule)) {
                 DSLRule* rule = (DSLRule*)n;
                 auto it = idMap.find(rule->name);
@@ -393,9 +457,33 @@ bool DSLContext::ruleOf(std::string strRuleList) {
         return false;
     }
 
+    // pass , rule with evtName to replace by any
+    auto hReplaceEvtRule = [&](bool sink, DSLNode* n) {
+        if (sink) {
+            DSLRule* rule = dynamic_cast<DSLRule*>(n);
+            if (rule) {
+                // wrap with any if this rule has evt & equal id
+                if (rule->evtName != "") {
+                    auto* rn = rule->node;
+                    auto* id = dynamic_cast<DSLID*>(rn);
+                    if (id) {
+                        auto* r = new DSLAny{ &builder };
+                        r->nodes.push_back(rn);
+                        rule->node = r;
+                        idMap[rule->name] = r;
+                    }
+                }
+            }
+        }
+    };
+    rlist->visit(hReplaceEvtRule);
+    if (!succ) {
+        return false;
+    }
+
     // pass 1, check if ID is exist & replace
-    auto hReplaceId = [&](bool capture, DSLNode* n) {
-        if (capture) {
+    auto hReplaceId = [&](bool sink, DSLNode* n) {
+        if (sink) {
             DSLWrap* wrap = dynamic_cast<DSLWrap*>(n);
             if (wrap) {
                 DSLRule* rule = dynamic_cast<DSLRule*>(n);
@@ -415,24 +503,30 @@ bool DSLContext::ruleOf(std::string strRuleList) {
                     succ = false;
                     std::cout << "invalid id of " << child->name << std::endl;
                 }
-            }
+            } 
             else {
-                DSLChildren* hasChildren = dynamic_cast<DSLChildren*>(n);
-                if (hasChildren) {
-                    DSLRuleList* rules = dynamic_cast<DSLRuleList*>(n);
-                    if (rules) {
-                        return;
-                    }
-                    auto& children = hasChildren->nodes;
-                    for (size_t i = 0; i < children.size(); ++i) {
-                        auto& c = children.at(i);
-                        auto* id = dynamic_cast<DSLID*>(c);
-                        if (!id) continue;
+                DSLList* list = dynamic_cast<DSLList*>(n);
+                if (list) {
+                    auto* id = dynamic_cast<DSLID*>(list->node);
+                    if (id) {
                         auto it = idMap.find(id->name);
                         if (it != idMap.end()) {
                             // replace
                             std::cout << "replace id " << id->name << std::endl;
-                            children[i] = it->second;
+                            list->node = it->second;
+                        }
+                        else {
+                            succ = false;
+                            std::cout << "invalid id of " << id->name << std::endl;
+                        }
+                    }
+                    id = dynamic_cast<DSLID*>(list->dem);
+                    if (id) {
+                        auto it = idMap.find(id->name);
+                        if (it != idMap.end()) {
+                            // replace
+                            std::cout << "replace id " << id->name << std::endl;
+                            list->dem = it->second;
                         }
                         else {
                             succ = false;
@@ -440,6 +534,32 @@ bool DSLContext::ruleOf(std::string strRuleList) {
                         }
                     }
                 }
+                else {
+                    DSLChildren* hasChildren = dynamic_cast<DSLChildren*>(n);
+                    if (hasChildren) {
+                        DSLRuleList* rules = dynamic_cast<DSLRuleList*>(n);
+                        if (rules) {
+                            return;
+                        }
+                        auto& children = hasChildren->nodes;
+                        for (size_t i = 0; i < children.size(); ++i) {
+                            auto& c = children.at(i);
+                            auto* id = dynamic_cast<DSLID*>(c);
+                            if (!id) continue;
+                            auto it = idMap.find(id->name);
+                            if (it != idMap.end()) {
+                                // replace
+                                std::cout << "replace id " << id->name << std::endl;
+                                children[i] = it->second;
+                            }
+                            else {
+                                succ = false;
+                                std::cout << "invalid id of " << id->name << std::endl;
+                            }
+                        }
+                    }
+                }
+                
             }
         }
     };
@@ -448,39 +568,21 @@ bool DSLContext::ruleOf(std::string strRuleList) {
     if (!succ) {
         return false;
     }
-    // pass , rule with evtName to replace by any
-    auto hReplaceEvtRule = [&](bool capture, DSLNode* n) {
-        if (capture) {
-            DSLWrap* wrap = dynamic_cast<DSLWrap*>(n);
-            if (wrap) {
-                DSLRule* rule = dynamic_cast<DSLRule*>(n);
-                if (rule) {
-                    // wrap with any if this rule has evt
-                    if (rule->evtName != "") {
-                        auto* n = rule->node;
-                        auto* r = new DSLAny{ &builder };
-                        r->nodes.push_back(n);
-                        rule->node = r;
-                    }
-                    idMap[rule->name] = rule;
-                }
-            }
-        }
-    };
-    rlist->visit(hReplaceEvtRule);
-    if (!succ) {
-        return false;
-    }
+
     // pass , check left recursive
 
     // pass , build RULES
-    auto hBuild = [&](bool capture, DSLNode* n) {
-        if (!capture) {
+    auto hBuild = [&](bool sink, DSLNode* n) {
+        if (n->haveBuild) {
+            return;
+        }
+        if (!sink) {
             n->prepare(*this);
             return;
         }
         else {
             auto r = n->build(*this);
+            n->haveBuild = true;
             if (!r) {
                 succ = false;
             }
@@ -514,5 +616,4 @@ DSLFactory::~DSLFactory() {
     for (auto* node : nodes) {
         delete node;
     }
-    nodes.clear();
 }

@@ -22,7 +22,7 @@ TEST(DSL_BASIC, text) {
         EXPECT_EQ(m->str(), "``");
         DSLNode** id = m->capture_s<DSLNode*>(0);
         ASSERT_EQ(id != nullptr, true);
-        ASSERT_EQ(((DSLID*)(*id))->name, "``");
+        ASSERT_EQ(((DSLID*)(*id))->name, "");
     }
     
     {
@@ -31,7 +31,7 @@ TEST(DSL_BASIC, text) {
         EXPECT_EQ(m->str(), "`abc`");
         DSLNode** id = m->capture_s<DSLNode*>(0);
         ASSERT_EQ(id != nullptr, true);
-        ASSERT_EQ(((DSLID*)(*id))->name, "`abc`");
+        ASSERT_EQ(((DSLID*)(*id))->name, "abc");
     }
 }
 
@@ -53,7 +53,7 @@ TEST(DSL_BASIC, regex) {
         EXPECT_EQ(m->str(), "re``");
         DSLNode** id = m->capture_s<DSLNode*>(0);
         ASSERT_EQ(id != nullptr, true);
-        ASSERT_EQ(((DSLRegex*)(*id))->name, "re``");
+        ASSERT_EQ(((DSLRegex*)(*id))->name, "");
     }
 
     {
@@ -64,7 +64,7 @@ TEST(DSL_BASIC, regex) {
         EXPECT_EQ(m->suffix(), "`");
         DSLNode** id = m->capture_s<DSLNode*>(0);
         ASSERT_EQ(id != nullptr, true);
-        ASSERT_EQ(((DSLRegex*)(*id))->name, "re`abcd`");
+        ASSERT_EQ(((DSLRegex*)(*id))->name, "abcd");
     }
 }
 
@@ -87,7 +87,7 @@ TEST(DSL_BASIC, item) {
         DSLNode** id = m->capture_s<DSLNode*>(0);
         ASSERT_EQ(id != nullptr, true);
         EXPECT_EQ(&typeid(**id), &typeid(DSLText));
-        ASSERT_EQ(((DSLText*)(*id))->name, "`abc`");
+        ASSERT_EQ(((DSLText*)(*id))->name, "abc");
     }
 
     {
@@ -97,7 +97,7 @@ TEST(DSL_BASIC, item) {
         DSLNode** id = m->capture_s<DSLNode*>(0);
         ASSERT_EQ(id != nullptr, true);
         EXPECT_EQ(&typeid(**id), &typeid(DSLRegex));
-        ASSERT_EQ(((DSLRegex*)(*id))->name, "re`abc`");
+        ASSERT_EQ(((DSLRegex*)(*id))->name, "abc");
     }
 }
 
@@ -120,7 +120,7 @@ TEST(DSL_BASIC, group) {
         DSLNode** id = m->capture_s<DSLNode*>(0);
         ASSERT_EQ(id != nullptr, true);
         EXPECT_EQ(&typeid(**id), &typeid(DSLText));
-        ASSERT_EQ(((DSLText*)(*id))->name, "`abc`");
+        ASSERT_EQ(((DSLText*)(*id))->name, "abc");
     }
 
     {
@@ -130,7 +130,7 @@ TEST(DSL_BASIC, group) {
         DSLNode** id = m->capture_s<DSLNode*>(0);
         ASSERT_EQ(id != nullptr, true);
         EXPECT_EQ(&typeid(**id), &typeid(DSLRegex));
-        ASSERT_EQ(((DSLRegex*)(*id))->name, "re`abc`");
+        ASSERT_EQ(((DSLRegex*)(*id))->name, "abc");
     }
 }
 
@@ -215,30 +215,36 @@ TEST(DSL_BASIC, ruleList_parse) {
     DSLContext ctx;
     {
         auto r = ctx.ruleOf(R"(
-a = ID | NUM;
-b@evt = a*;
+a@on_a = ID | NUM;
+b@on_b = a+ EOF;
 )");
-        ctx.bind("evt", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
-            while (arg != noarg) {
-                try {
-                    int num = libany::any_cast<int>(*arg++);
-                    std::cout << "number of" << num << std::endl;
-                    continue;
-                }
-                catch (libany::bad_any_cast& ex) {
-                    arg--;
-                    try {
-                        auto id = libany::any_cast<std::string>(*arg++);
-                        std::cout << "string of" << id << std::endl;
-                        continue;
-                    }
-                    catch (libany::bad_any_cast& ex) {
-
-                    }
-                }
-                
+        int numVal = 0;
+        std::string strVal= "";
+        int count = 0;
+        ctx.bind("on_a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
+            try {
+                int num = libany::any_cast<int>(*arg);
+                std::cout << "number of" << num << std::endl;
+                numVal += num;
+                return nullptr;
             }
-            
+            catch (libany::bad_any_cast & ex) {
+                try {
+                    auto id = libany::any_cast<std::string>(*arg);
+                    strVal += id;
+                    std::cout << "string of" << id << std::endl;
+                    return nullptr;
+                }
+                catch (libany::bad_any_cast & ex) {
+
+                }
+            }
+            return nullptr;
+        });
+        ctx.bind("on_b", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
+            for (; arg != noarg; ++arg) {
+                count++;
+            }
             return nullptr;
             });
 
@@ -246,9 +252,11 @@ b@evt = a*;
             std::cerr << ctx.errInfo() << std::endl;
         }
         else {
-            ctx.parse("b", "333 444 abc, efef");
+            ctx.parse("b", "11 22 aa bb");
+            EXPECT_EQ(numVal, 33);
+            EXPECT_EQ(strVal, "aabb");
+            EXPECT_EQ(count, 4);
         }
-        
     }
     {
         
@@ -261,11 +269,48 @@ c = re | re`re`;
         if (!r) {
             std::cerr << ctx.errInfo() << std::endl;
         }
+    }
+}
+
+TEST(DSL_BASIC, list) {
+    DSLContext ctx;
+    {
+        int numval = 0;
+        std::string strval = "";
+        auto r = ctx.ruleOf(R"(
+a@on_a = ID | NUM;
+b@on_b = [a `,`] EOF;
+)");
+        ctx.bind("on_a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
+                        try {
+                            int num = libany::any_cast<int>(*arg);
+                            std::cout << "number of" << num << std::endl;
+                            numval += num;
+                            return nullptr;
+                        }
+                        catch (libany::bad_any_cast & ex) {
+                            try {
+                                auto id = libany::any_cast<std::string>(*arg);
+                                strval += id;
+                                std::cout << "string of" << id << std::endl;
+                                return nullptr;
+                            }
+                            catch (libany::bad_any_cast & ex) {
+            
+                            }
+                        }
+                        return nullptr;
+                    });
+        if (!r) {
+            std::cerr << ctx.errInfo() << std::endl;
+            ASSERT_EQ(false, true);
+        }
         else {
-            ctx.parse("b", "333 444 abc, efef");
+            ctx.parse("b", "11, 22 ,aa, bb");
+            EXPECT_EQ(numval, 33);
+            EXPECT_EQ(strval, "aabb");
         }
     }
-        
 }
 
 #endif
