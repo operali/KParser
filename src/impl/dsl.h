@@ -288,7 +288,7 @@ DSLContext::DSLContext() {
     auto* strRule = identifier();
     strRule->eval([&](auto& m, auto b, auto e) {return m.str(); });
     r_rule = all(strRule, optional(all("@", strRule)), "=", r_any, ";");
-    r_ruleList = many1(r_rule);
+    r_ruleList = all(many1(r_rule), eof());
 
     r_id->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLID{ m.str() }; });
     r_regex->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLRegex{ m.str() }; });

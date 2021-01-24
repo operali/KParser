@@ -8,7 +8,6 @@ namespace KParser {
 
     struct RuleNode;
     
-
     struct MatchR;
     struct StepInT {
         bool res;

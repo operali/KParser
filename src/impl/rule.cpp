@@ -250,26 +250,7 @@ namespace KParser {
                         return true;
                     }
                     else {
-                        auto& err = gen->err;
-                        err.leftCh = text;
-                        for (int i = 0; i < gen->length; ++text, ++i) {
-                            if (i == headMax) {
-                                err.breakCh = text;
-                            }
-                            if (*text == '\n') {
-                                if (err.breakCh != nullptr) {
-                                    err.rightCh = text;
-                                    break;
-                                }
-                                else {
-                                    err.lineNo++;
-                                }
-                                err.leftCh = text+1;
-                            }
-                        }
-                        if (err.rightCh == nullptr) {
-                            err.rightCh = text;
-                        }
+                        gen->genParseError();
                         return false;
                     }
                 }
@@ -333,23 +314,7 @@ namespace KParser {
         const char* globalText = m_ruleNode->m_gen->m_cache;
         auto start = globalText + m_startPos;
         auto stop = start + length();
-        /*const char* left = start;
-        const char* right = stop-1;
-        if (m_ruleNode->m_gen->m_skipBlank) {
-            while (left < stop) {
-                if (!isspace(*left)) {
-                    break;
-                }
-                ++left;
-            }
-            while (left < right) {
-                if (!isspace(*right)) {
-                    break;
-                }
-                --right;
-            }
-        }*/
-        //return StrT(left, right+1);
+
         return StrT(start, stop);
     }
 
@@ -513,7 +478,6 @@ namespace KParser {
 
     //////////////////////////////////////////////////////////////////////////
     //ANY
-
     struct MatchRAny : public MatchR {
         int m_curIdx;
         MatchR* m_curMatcher = nullptr;

@@ -16,15 +16,15 @@ namespace KParser {
     }
 
     std::string Parser::errInfo() {
-        auto& err = impl->err;
-        if (err.breakCh == nullptr) {
+        auto& err = impl->parseErrInfo;
+        if (err.lineMid == nullptr) {
             return "no error";
         }
         std::stringstream ss;
-        ss << "fail to parse at line " << err.lineNo << std::endl;
-        ss << std::string(err.leftCh, err.breakCh)
+        ss << "parse fail at (line:column)" << err.row << ":" << err.col << std::endl;
+        ss << std::string(err.lineLeft, err.lineMid)
             << "^^^"
-            << std::string(err.breakCh, err.rightCh) << std::endl;
+            << std::string(err.lineMid, err.lineRight) << std::endl;
         return ss.str();
     }
 

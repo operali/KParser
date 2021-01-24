@@ -214,8 +214,7 @@ c = re | re`re`;)");
 TEST(DSL_BASIC, ruleList_parse) {
     DSLContext ctx;
     {
-        auto r = ctx.ruleOf(R"(  
-
+        auto r = ctx.ruleOf(R"(
 a = ID | NUM;
 b@evt = a*;
 )");
@@ -251,12 +250,21 @@ b@evt = a*;
         }
         
     }
-    /*{
-        auto m = ctx.parse(R"(  a = a `re` re`[1-9]*` | b;
+    {
+        
+        auto r = ctx.ruleOf(R"(  a = a | b;
 b = a | b;
+dd
 c = re | re`re`;
 )");
-    }*/
+        ASSERT_EQ(r, false);
+        if (!r) {
+            std::cerr << ctx.errInfo() << std::endl;
+        }
+        else {
+            ctx.parse("b", "333 444 abc, efef");
+        }
+    }
         
 }
 
