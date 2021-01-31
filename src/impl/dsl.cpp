@@ -32,6 +32,31 @@ void DSLID::prepare(KParser::Parser& p) {
     else if (name == "NONE") {
         rule = p.none();
     }
+    else if (name == "COMMENT") {
+        rule = p.custom([=](const char* b, const char* e)->const char* {
+            if(*b++ != '/' || b == e){
+                return nullptr;
+            }
+            if(*b++ != '*' || b == e){
+                return nullptr;
+            }
+            bool tryEnd = false;
+            for (; b != e; ++b) {
+                if(tryEnd) {
+                    if(*b == '/') {
+                        return b+1;
+                    } else {
+                        tryEnd = false;
+                    }
+                } else {
+                    if(*b == '*') {
+                        tryEnd = true;
+                    }
+                }
+            }
+            return b;
+            });
+    }
     else if (name == "EOF") {
         rule = p.eof();
     }
@@ -193,6 +218,8 @@ DSLContext::DSLContext() {
     idMap.emplace(std::make_pair("ID", new DSLID{ this, "ID" , true}));
     idMap.emplace(std::make_pair("NUM", new DSLID{ this, "NUM", true }));
     idMap.emplace(std::make_pair("NONE", new DSLID{ this, "NONE", true }));
+    idMap.emplace(std::make_pair("VALUE", new DSLID{ this, "VALUE", true }));
+    idMap.emplace(std::make_pair("COMMENT", new DSLID{ this, "COMMENT", true }));
     idMap.emplace(std::make_pair("EOF", new DSLID{ this,"EOF", true }));
 
     r_id = p.identifier();

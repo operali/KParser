@@ -199,6 +199,24 @@ namespace KParser {
         return regex("^[-+]?\\d*\\.?\\d+");
     }
 
+    Rule* Parser::blank() {
+        return custom([=](const char* b, const char* e)->const char* {
+            for (; std::isspace(*b) && b != e; ++b) {
+
+            }
+            return b;
+            });
+    }
+
+    Rule* Parser::noblank() {
+        return custom([=](const char* b, const char* e)->const char* {
+            for (; (!std::isspace(*b)) && b != e; ++b) {
+
+            }
+            return b;
+            });
+    }
+
     struct EasyParserImpl : public DSLContext {
         
         EasyParserImpl():DSLContext() {

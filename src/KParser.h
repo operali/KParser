@@ -87,6 +87,8 @@ namespace KParser {
         Rule* integer_();
         // match c float
         Rule* float_();
+        Rule* blank();
+        Rule* noblank();
         // user rule
         Rule* custom(PredT p);
         // match Pattern1 or Pattern2... or PatternN
