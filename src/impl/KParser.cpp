@@ -221,10 +221,11 @@ namespace KParser {
         impl->bind(ruleName, eval);
     }
 
-    bool EasyParser::parse(const char* ruleName, const std::string& toParse) {
+    std::unique_ptr<Match> EasyParser::parse(const char* ruleName, const std::string& toParse) {
         return impl->parse(ruleName, toParse);
     }
     std::string EasyParser::getLastError() {
         return impl->lastError;
     };
+
 };

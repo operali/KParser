@@ -24,7 +24,8 @@ struct DSLNode {
 
 struct DSLID : public DSLNode {
     std::string name;
-    DSLID(DSLFactory* builder, std::string name) :DSLNode(builder), name(name) {};
+    bool is_prdefine;
+    DSLID(DSLFactory* builder, std::string name, bool is_prdefine = false) :DSLNode(builder), name(name), is_prdefine(is_prdefine) {};
 
     void prepare(KParser::Parser& p) override;
 };
@@ -132,6 +133,6 @@ struct DSLContext : DSLFactory {
     bool ruleOf(std::string str);
     void bind(const std::string& evtName, std::function<libany::any(KParser::Match& m, KParser::IT arg, KParser::IT noarg)> handle);
 
-    bool parse(const std::string& ruleName, const std::string& str);
+    std::unique_ptr<KParser::Match> parse(const std::string& ruleName, const std::string& str);
 };
 

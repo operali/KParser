@@ -2,7 +2,8 @@
 #include "../src/KParser.h"
 #include "../src/impl/dsl.h"
 
-//#define X
+// #define X
+
 #ifndef X
 TEST(DSL_BASIC, text) {
     DSLContext ctx;
@@ -36,6 +37,7 @@ TEST(DSL_BASIC, text) {
 }
 
 TEST(DSL_BASIC, regex) {
+    KParser::Parser p;
     DSLContext ctx;
     {
         auto m = ctx.r_regex->parse("");
@@ -69,6 +71,7 @@ TEST(DSL_BASIC, regex) {
 }
 
 TEST(DSL_BASIC, item) {
+    KParser::Parser p;
     DSLContext ctx;
     {
         auto m = ctx.r_item->parse("abc");
@@ -102,6 +105,7 @@ TEST(DSL_BASIC, item) {
 }
 
 TEST(DSL_BASIC, group) {
+    KParser::Parser p;
     DSLContext ctx;
     {
         auto m = ctx.r_item->parse("(abc)abc");
@@ -135,6 +139,7 @@ TEST(DSL_BASIC, group) {
 }
 
 TEST(DSL_BASIC, all) {
+    KParser::Parser p;
     DSLContext ctx;
     {
         auto m = ctx.r_all->parse("abc");
@@ -273,15 +278,16 @@ c = re | re`re`;
 }
 
 TEST(DSL_BASIC, list) {
-    DSLContext ctx;
+    KParser::EasyParser p;
+    
     {
         int numval = 0;
         std::string strval = "";
-        auto r = ctx.ruleOf(R"(
+        auto r = p.buildRules(R"(
 a@on_a = ID | NUM;
 b@on_b = [a `,`] EOF;
 )");
-        ctx.bind("on_a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
+        p.bind("on_a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
                         try {
                             int num = libany::any_cast<int>(*arg);
                             std::cout << "number of" << num << std::endl;
@@ -302,11 +308,11 @@ b@on_b = [a `,`] EOF;
                         return nullptr;
                     });
         if (!r) {
-            std::cerr << ctx.lastError << std::endl;
+            std::cerr << p.getLastError()<< std::endl;
             ASSERT_EQ(false, true);
         }
         else {
-            ctx.parse("b", "11, 22 ,aa, bb");
+            p.parse("b", "11, 22 ,aa, bb");
             EXPECT_EQ(numval, 33);
             EXPECT_EQ(strval, "aabb");
         }

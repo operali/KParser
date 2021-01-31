@@ -11,9 +11,6 @@
 
 #ifndef X
 
-
-
-
 #else
 
 TEST(BASIC, remove_space) {

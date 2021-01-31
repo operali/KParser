@@ -175,26 +175,25 @@ void DSLContext::bind(const std::string& evtName, std::function<libany::any(KPar
     handleMap[evtName] = handle;
 }
 
-bool DSLContext::parse(const std::string& ruleName, const std::string& str) {
+std::unique_ptr<KParser::Match> DSLContext::parse(const std::string& ruleName, const std::string& str) {
     auto it = idMap.find(ruleName);
     if (it != idMap.end()) {
         auto m = it->second->rule->parse(str);
         if (m == nullptr) {
-            lastError = m->errInfo();
-            return false;
+            lastError = m_parser.errInfo();
         }
-        return true;
+        return m;
     }
-    return false;
+    return nullptr;
 }
 
 
 DSLContext::DSLContext() {
     KParser::Parser& p = m_parser;
-    idMap.emplace(std::make_pair("ID", new DSLID{ this, "ID" }));
-    idMap.emplace(std::make_pair("NUM", new DSLID{ this, "NUM" }));
-    idMap.emplace(std::make_pair("NONE", new DSLID{ this, "NONE" }));
-    idMap.emplace(std::make_pair("EOF", new DSLID{ this,"EOF" }));
+    idMap.emplace(std::make_pair("ID", new DSLID{ this, "ID" , true}));
+    idMap.emplace(std::make_pair("NUM", new DSLID{ this, "NUM", true }));
+    idMap.emplace(std::make_pair("NONE", new DSLID{ this, "NONE", true }));
+    idMap.emplace(std::make_pair("EOF", new DSLID{ this,"EOF", true }));
 
     r_id = p.identifier();
     r_text = p.custom([&](const char* begin, const char* end)->const char* {
@@ -366,6 +365,7 @@ bool DSLContext::ruleOf(std::string strRuleList) {
     auto m = r_ruleList->parse(strRuleList);
     if (m == nullptr) {
         lastError = m_parser.errInfo();
+        std::cerr << lastError << std::endl;
         return false;
     }
     DSLNode** d = m->capture_s<DSLNode*>(0);
@@ -392,6 +392,49 @@ bool DSLContext::ruleOf(std::string strRuleList) {
     if (!succ) {
         return false;
     }
+
+    // pass, check all id
+    std::vector<std::pair<std::string, DSLNode*>> changes;
+    for (auto& kv : idMap) {
+        auto& name = kv.first;
+        auto* node = kv.second;
+
+        while (true) {
+            auto* id = dynamic_cast<DSLID*>(node);
+            if (id == nullptr) {
+                break;
+            }
+            if (id->is_prdefine) {
+                break;
+            }
+            auto it = idMap.find(id->name);
+            if (it == idMap.end()) {
+                std::cerr << id->name << " is not defined " << std::endl;
+                lastError = id->name + " is not defined\n";
+                succ = false;
+                break;
+            }
+            node = it->second;
+            if (node == kv.second) {
+                lastError = id->name + " is defined recursively\n";
+                succ = false;
+                break;
+            }
+        }
+        if (!succ) {
+            return false;
+        }
+        if (node != kv.second) {
+            changes.push_back(std::make_pair(kv.first, node));
+        }
+    }
+    if (!succ) {
+        return false;
+    }
+    for (auto& kv : changes) {
+        idMap[kv.first] = kv.second;
+    }
+
 
     // pass , rule with evtName to replace by any
     auto hReplaceEvtRule = [&](bool sink, DSLNode* n) {
@@ -425,6 +468,19 @@ bool DSLContext::ruleOf(std::string strRuleList) {
                 DSLRule* rule = dynamic_cast<DSLRule*>(n);
                 // rule
                 if (rule) {
+                    {
+                        DSLID* id = dynamic_cast<DSLID*>(rule->node);
+                        if (!id) return;
+                        auto it = idMap.find(id->name);
+                        if (it != idMap.end()) {
+                            // replace
+                            rule->node = it->second;
+                        }
+                        else {
+                            succ = false;
+                            lastError = std::string("invalid id of ") + id->name;
+                        }
+                    }
                     return;
                 }
                 auto* child = dynamic_cast<DSLID*>(wrap->node);

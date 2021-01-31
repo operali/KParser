@@ -104,8 +104,9 @@ namespace KParser {
     struct  EasyParser  {
         bool buildRules(const char* strRule);
         void bind(const char* ruleName, std::function<libany::any(Match& m, IT arg, IT noarg)> eval);
-        bool parse(const char* ruleName, const std::string& toParse);
+        std::unique_ptr<Match> parse(const char* ruleName, const std::string& toParse);
         std::string getLastError();
+        
         EasyParser();
         ~EasyParser();
     private:

@@ -274,6 +274,7 @@ namespace KParser {
                                     vec[i]->release();
                                 }
                                 std::cerr << "lookback more than max length of " << headMax << " chars, abandon\n";
+                                gen->genParseError();
                                 return false;
                             }
                         }
