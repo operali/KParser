@@ -7,6 +7,8 @@
 #include <cstdarg>
 #include "impl.h"
 #include <regex>
+#include "dsl.h"
+
 namespace KParser {
     uint32_t KObject::count = 0;
     // std::vector<KObject*> KObject::all;
@@ -139,7 +141,7 @@ namespace KParser {
             });
     }
 
-    Rule* Parser::regex(const StrT& strRe, bool startWith) {
+    Rule* Parser::regex(const std::string& strRe, bool startWith) {
         try {
             std::regex re(strRe.c_str());
             return custom([=](const char* b, const char* e)->const char* {
@@ -157,7 +159,7 @@ namespace KParser {
                         me = b + results.position() + results.length();
                     }
                     else {*/
-                        
+
                     //}
                     return b + results.position() + results.length();
                 }
@@ -196,4 +198,33 @@ namespace KParser {
     Rule* Parser::float_() {
         return regex("^[-+]?\\d*\\.?\\d+");
     }
+
+    struct EasyParserImpl : public DSLContext {
+        
+        EasyParserImpl():DSLContext() {
+
+        }
+    };
+
+    EasyParser::EasyParser() {
+        impl = new EasyParserImpl();
+    }
+
+    EasyParser::~EasyParser() {
+        delete impl;
+    }
+    bool EasyParser::buildRules(const char* strRule) {
+        return impl->ruleOf(strRule);
+    }
+
+    void EasyParser::bind(const char* ruleName, std::function<libany::any(Match& m, IT arg, IT noarg)> eval) {
+        impl->bind(ruleName, eval);
+    }
+
+    bool EasyParser::parse(const char* ruleName, const std::string& toParse) {
+        return impl->parse(ruleName, toParse);
+    }
+    std::string EasyParser::getLastError() {
+        return impl->lastError;
+    };
 };

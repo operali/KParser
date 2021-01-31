@@ -48,6 +48,7 @@ namespace KParser {
     public:
         Parser(uint32_t lookback = 42, bool skipBlanks = true);
         std::string errInfo();
+
         // epsilon
         Rule* none();
         // match to string excatly
@@ -99,6 +100,17 @@ namespace KParser {
         ~Parser() override;
     };
 
+    struct EasyParserImpl;
+    struct  EasyParser  {
+        bool buildRules(const char* strRule);
+        void bind(const char* ruleName, std::function<libany::any(Match& m, IT arg, IT noarg)> eval);
+        bool parse(const char* ruleName, const std::string& toParse);
+        std::string getLastError();
+        EasyParser();
+        ~EasyParser();
+    private:
+        EasyParserImpl* impl;
+    };
 
     struct Rule : private KObject {
         virtual std::unique_ptr<Match> parse(const std::string& text) = 0;
