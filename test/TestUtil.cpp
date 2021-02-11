@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 
-// #define X
+#define X
 
-#ifndef X
+#ifdef X
 
 #include "../src/impl/util.h"
 

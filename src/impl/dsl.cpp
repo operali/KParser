@@ -213,7 +213,7 @@ namespace KParser {
         }
     }
 
-    void DSLContext::bind(const std::string& evtName, std::function<libany::any(KParser::Match& m, KParser::IT arg, KParser::IT noarg)> handle) {
+    void DSLContext::prepareEvaluation(const std::string& evtName, std::function<libany::any(KParser::Match& m, KParser::IT arg, KParser::IT noarg)> handle) {
         handleMap[evtName] = handle;
     }
 
@@ -349,11 +349,11 @@ namespace KParser {
             });
     }
 
-    void DSLContext::setRule(std::string strRuleList) {
+    void DSLContext::prepareRules(std::string strRuleList) {
         m_strRule = strRuleList;
     }
 
-    bool DSLContext::compile() {
+    bool DSLContext::build() {
         auto m = r_ruleList->parse(m_strRule);
         if (m == nullptr) {
             lastError = m_parser.errInfo();

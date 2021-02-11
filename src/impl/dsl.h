@@ -131,9 +131,9 @@ namespace KParser {
         Rule* r_ruleList; // 
 
         DSLContext();
-        void setRule(std::string str);
-        void bind(const std::string& evtName, std::function<libany::any(Match& m, IT arg, IT noarg)> handle);
-        bool compile();
+        void prepareRules(std::string str);
+        void prepareEvaluation(const std::string& evtName, std::function<libany::any(Match& m, IT arg, IT noarg)> handle);
+        bool build();
         std::unique_ptr<Match> parse(const std::string& ruleName, const std::string& str);
     };
 }

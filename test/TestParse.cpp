@@ -7,12 +7,7 @@
 
 #define X
 
-
-
-#ifndef X
-
-#else
-
+#ifdef X
 TEST(BASIC, remove_space) {
     {
         KParser::Parser p;

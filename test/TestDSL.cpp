@@ -2,9 +2,9 @@
 #include "../src/KParser.h"
 #include "../src/impl/dsl.h"
 
-// #define X
+#define X
 
-#ifndef X
+#ifdef X
 TEST(DSL_BASIC, text) {
     KParser::DSLContext ctx;
     {
@@ -25,6 +25,7 @@ TEST(DSL_BASIC, text) {
         ASSERT_EQ(id != nullptr, true);
         ASSERT_EQ(((KParser::DSLText*)(*id))->name, "asdf");
     }
+
     {
         auto m = ctx.r_text->parse(R"(\1411a )");
         ASSERT_EQ(m == nullptr, false);
@@ -349,14 +350,14 @@ $c = c | /d*/;)");
 TEST(DSL_BASIC, ruleList_parse) {
     KParser::DSLContext ctx;
     {
-        ctx.setRule(R"(
+        ctx.prepareRules(R"(
 $a = $ID | $NUM;
 $b = $a+ $EOF;
 )");
         int numVal = 0;
         std::string strVal= "";
         int count = 0;
-        ctx.bind("a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
+        ctx.prepareEvaluation("a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
             try {
                 int num = libany::any_cast<int>(*arg);
                 std::cout << "number: " << num << std::endl;
@@ -376,13 +377,13 @@ $b = $a+ $EOF;
             }
             return nullptr;
         });
-        ctx.bind("b", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
+        ctx.prepareEvaluation("b", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
             for (; arg != noarg; ++arg) {
                 count++;
             }
             return nullptr;
             });
-        auto r = ctx.compile();
+        auto r = ctx.build();
         if (!r) {
             std::cerr << ctx.lastError << std::endl;
         }
@@ -395,12 +396,12 @@ $b = $a+ $EOF;
     }
     {
         
-        ctx.setRule(R"(  $a = $a | $b;
+        ctx.prepareRules(R"(  $a = $a | $b;
 $b = $a | $b;
 dd
 $c = re | /\/\//;
 )");
-        auto r = ctx.compile();
+        auto r = ctx.build();
         ASSERT_EQ(r, false);
         if (!r) {
             std::cerr << ctx.lastError << std::endl;
@@ -414,7 +415,11 @@ TEST(DSL_BASIC, list) {
     {
         int numval = 0;
         std::string strval = "";
-        p.bind("a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
+        p.prepareRules(R"(
+$a = $ID | $NUM;
+$b = [$a ,] $EOF;
+)");
+        p.prepareEvaluation("a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
                         try {
                             int num = libany::any_cast<int>(*arg);
                             std::cout << "number of" << num << std::endl;
@@ -434,10 +439,7 @@ TEST(DSL_BASIC, list) {
                         }
                         return nullptr;
                     });
-        auto r = p.build(R"(
-$a = $ID | $NUM;
-$b = [$a ,] $EOF;
-)");
+        auto r = p.build();
         if (!r) {
             std::cerr << p.getLastError()<< std::endl;
             ASSERT_EQ(false, true);

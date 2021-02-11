@@ -222,13 +222,17 @@ namespace KParser {
     EasyParser::~EasyParser() {
         delete impl;
     }
-    bool EasyParser::build(const char* strRule) {
-        impl->setRule(strRule);
-        return impl->compile();
+
+    void EasyParser::prepareRules(const char* strRule) {
+        impl->prepareRules(strRule);
     }
 
-    void EasyParser::bind(const char* ruleName, std::function<libany::any(Match& m, IT arg, IT noarg)> eval) {
-        impl->bind(ruleName, eval);
+    bool EasyParser::build() {
+        return impl->build();
+    }
+
+    void EasyParser::prepareEvaluation(const char* ruleName, std::function<libany::any(Match& m, IT arg, IT noarg)> eval) {
+        impl->prepareEvaluation(ruleName, eval);
     }
 
     std::unique_ptr<Match> EasyParser::parse(const char* ruleName, const std::string& toParse) {
