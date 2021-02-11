@@ -195,15 +195,13 @@ namespace KParser {
 
     bool DSLRule::build(KParser::Parser& p) {
         this->rule = node->rule;
-        if (evtName != "") {
-            this->rule->eval([&](KParser::Match& m, KParser::IT arg, KParser::IT noarg)->libany::any {
-                DSLContext* ctx = static_cast<DSLContext*>(builder);
-                auto it = ctx->handleMap.find(evtName);
-                if (it == ctx->handleMap.end()) {
-                    return 0;
-                }
-                return it->second(m, arg, noarg);
-                });
+        DSLContext* ctx = static_cast<DSLContext*>(builder);
+        auto it = ctx->handleMap.find(this->name);
+        if (it != ctx->handleMap.end()) {
+            auto handle = it->second;
+            this->rule->eval([=](KParser::Match& m, KParser::IT arg, KParser::IT noarg)->libany::any {
+                return handle(m, arg, noarg);
+            });
         }
         return true;
     }
@@ -240,61 +238,24 @@ namespace KParser {
         idMap.emplace(std::make_pair("COMMENT", new DSLID{ this, "COMMENT", true }));
         idMap.emplace(std::make_pair("EOF", new DSLID{ this,"EOF", true }));
 
-        r_id = p.identifier();
+        r_id = p.regex(R"(^\$[a-zA-Z_][a-zA-Z0-9_]*)");
         r_text = p.custom([&](const char* begin, const char* end)->const char* {
             int rsize = 0;
-            auto r = parseCSTR(begin, end - begin, rsize);
+            std::string r;
+            auto res = parseCSTR(begin, end - begin, r, rsize);
             if (rsize == 0) {
                 return nullptr;
             }
             return begin + rsize;
-            });
+        });
 
         r_regex = p.custom([&](const char* begin, const char* end)->const char* {
-            enum class State : int8_t {
-                e_lp,
-                e_escape,
-                e_collect_rp,
-            };
-            auto st = State::e_lp;
-            auto* idx = begin;
-            auto ch = *idx;
-            while (true) {
-                if (idx == end) {
-                    return nullptr;
-                }
-                if (ch == ' ') {
-                    return nullptr;
-                }
-                if (st == State::e_lp) {
-                    if (ch != '/') {
-                        return nullptr;
-                    }
-                    st = State::e_collect_rp;
-                }
-                else if (st == State::e_escape) {
-                    bool isEscapeChar = (ch == '(' || ch == ')' || ch == 't' || ch == '.' || ch == '*' || ch == '?' || ch == '[' || ch == ']'
-                        || ch == 'n' || ch == 't' || ch == '\\' || ch == '/');
-                    if (!isEscapeChar) {
-                        std::cerr << "not an escape character of " << ch << std::endl;
-                    }
-                    st == State::e_collect_rp;
-                }
-                else if (st == State::e_collect_rp) {
-                    if (ch == '\\') {
-                        st == State::e_escape;
-                    }
-                    else if (ch == '/') {
-                        ch = *(++idx);
-                        return idx;
-                    }
-                }
-                else {
-                    std::cerr << "not an valid state " << (int8_t)st << std::endl;
-                    return nullptr;
-                }
-                ch = *(++idx);
+            int len = 0;
+            bool r = parseRegex(begin, end - begin, len);
+            if (r) {
+                return begin + len;
             }
+            return nullptr;
             });
 
         r_item = p.any();
@@ -309,22 +270,25 @@ namespace KParser {
         r_many1 = p.all(r_item, "+");
         r_list = p.all("[", r_item, r_item, "]");
         r_expr->add(r_many, r_many1, r_option, r_list, r_item);
-        auto* strRule = p.identifier();
-        strRule->eval([&](auto& m, auto b, auto e) {return m.str(); });
-        r_rule = p.all(strRule, p.optional(p.all("@", strRule)), "=", r_any, ";");
+        r_rule = p.all(r_id, "=", r_any, ";");
         r_ruleList = p.all(p.many1(r_rule), p.eof());
 
-        r_id->eval([&](auto& m, auto b, auto e) {return (DSLNode*)new DSLID{ this, m.str() }; });
+        r_id->eval([&](auto& m, auto b, auto e) { 
+                std::string s = m.str();
+                s = s.substr(1, s.length() - 1);
+                return (DSLNode*)new DSLID{ this, s };
+            });
         r_regex->eval([&](auto& m, auto b, auto e) {
             std::string s = m.str();
-            s = s.substr(3, s.length() - 4);
+            s = s.substr(1, s.length() - 2);
             return (DSLNode*)new DSLRegex{ this, s };
             });
         r_text->eval([&](auto& m, auto b, auto e) {
             auto s = m.str();
+            std::string r;
             int rsz = 0;
-            auto ret = parseCSTR(s.data(), s.length(), rsz);
-            return (DSLNode*)new DSLText{ this, ret };
+            auto ret = parseCSTR(s.data(), s.length(), r, rsz);
+            return (DSLNode*)new DSLText{ this, r };
             });
 
         r_any->eval([&](auto& m, auto b, auto e) {
@@ -370,18 +334,9 @@ namespace KParser {
             return (DSLNode*)node;
             });
         r_rule->eval([&](auto& m, auto b, auto e) {
-            std::string name = libany::any_cast<std::string>(*b++);
-            std::string evtName;
-            try {
-                evtName = libany::any_cast<std::string>(*b++);
-            }
-            catch (libany::bad_any_cast& ex) {
-                b--;
-            }
-
+            DSLID* id = (DSLID*)libany::any_cast<DSLNode*>(*b++);
             DSLRule* r = new DSLRule(this, libany::any_cast<DSLNode*>(*b++));
-            r->name = name;
-            r->evtName = evtName;
+            r->name = id->name;
             r->ruleLine = m.str();
             return (DSLNode*)r;
             });
@@ -394,8 +349,12 @@ namespace KParser {
             });
     }
 
-    bool DSLContext::ruleOf(std::string strRuleList) {
-        auto m = r_ruleList->parse(strRuleList);
+    void DSLContext::setRule(std::string strRuleList) {
+        m_strRule = strRuleList;
+    }
+
+    bool DSLContext::compile() {
+        auto m = r_ruleList->parse(m_strRule);
         if (m == nullptr) {
             lastError = m_parser.errInfo();
             std::cerr << lastError << std::endl;
@@ -405,8 +364,8 @@ namespace KParser {
         DSLRuleList* rlist = (DSLRuleList*)*d;
 
         bool succ = true;
-        // pass 0, collect p.all ID
-
+        
+        // pass, collect p.all ID
         auto hCheckID = [&](bool sink, DSLNode* n) {
             if (sink) {
                 if (&typeid(*n) == &typeid(DSLRule)) {
@@ -475,7 +434,8 @@ namespace KParser {
                 DSLRule* rule = dynamic_cast<DSLRule*>(n);
                 if (rule) {
                     // wrap with any if this rule has evt & equal id
-                    if (rule->evtName != "") {
+                    auto it = handleMap.find(rule->name);
+                    if (it != handleMap.end()) {
                         auto* rn = rule->node;
                         auto* id = dynamic_cast<DSLID*>(rn);
                         if (id) {
@@ -493,7 +453,7 @@ namespace KParser {
             return false;
         }
 
-        // pass 1, check if ID is exist & replace
+        // pass, check if ID is exist & replace
         auto hReplaceId = [&](bool sink, DSLNode* n) {
             if (sink) {
                 DSLWrap* wrap = dynamic_cast<DSLWrap*>(n);

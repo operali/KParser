@@ -98,7 +98,6 @@ namespace KParser {
 
     struct DSLRule : public DSLWrap {
         std::string name;
-        std::string evtName;
         std::string ruleLine;
         DSLRule(DSLFactory* builder, DSLNode* node) :DSLWrap(builder, node) {}
         bool build(Parser& p) override;
@@ -111,6 +110,7 @@ namespace KParser {
 
 
     struct DSLContext : DSLFactory {
+        std::string m_strRule;
         Parser m_parser;
         std::string lastError;
         std::unordered_map <std::string, DSLNode*> idMap;
@@ -131,9 +131,9 @@ namespace KParser {
         Rule* r_ruleList; // 
 
         DSLContext();
-        bool ruleOf(std::string str);
+        void setRule(std::string str);
         void bind(const std::string& evtName, std::function<libany::any(Match& m, IT arg, IT noarg)> handle);
-
+        bool compile();
         std::unique_ptr<Match> parse(const std::string& ruleName, const std::string& str);
     };
 }

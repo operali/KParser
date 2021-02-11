@@ -74,299 +74,380 @@ TEST(DSL_BASIC, text) {
         ASSERT_EQ(((KParser::DSLText*)(*id))->name, "\\f&&");
     }
 
+    {
+        auto m = ctx.r_text->parse("ab\\nc");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "ab\\nc");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        ASSERT_EQ(((KParser::DSLText*)(*id))->name, "ab\nc");
+    }
+    
+    {
+        auto m = ctx.r_text->parse("ab\dnc");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "ab\dnc");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        ASSERT_EQ(((KParser::DSLText*)(*id))->name, "abdnc");
+    }
 
-    //
-    //{
-    //    auto m = ctx.r_text->parse("`abc`");
-    //    ASSERT_EQ(m != nullptr, true);
-    //    EXPECT_EQ(m->str(), "`abc`");
-    //    DSLNode** id = m->capture_s<DSLNode*>(0);
-    //    ASSERT_EQ(id != nullptr, true);
-    //    ASSERT_EQ(((DSLID*)(*id))->name, "abc");
-    //}
 }
 
-//TEST(DSL_BASIC, regex) {
-//    KParser::Parser p;
-//    DSLContext ctx;
-//    {
-//        auto m = ctx.r_regex->parse("");
-//        ASSERT_EQ(m != nullptr, false);
-//    }
-//
-//    {
-//        auto m = ctx.r_regex->parse("re`");
-//        ASSERT_EQ(m != nullptr, false);
-//    }
-//
-//    {
-//        auto m = ctx.r_regex->parse("re``");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "re``");
-//        DSLNode** id = m->capture_s<DSLNode*>(0);
-//        ASSERT_EQ(id != nullptr, true);
-//        ASSERT_EQ(((DSLRegex*)(*id))->name, "");
-//    }
-//
-//    {
-//        auto m = ctx.r_regex->parse("re`abcd``");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "re`abcd`");
-//        EXPECT_EQ(m->prefix(), "");
-//        EXPECT_EQ(m->suffix(), "`");
-//        DSLNode** id = m->capture_s<DSLNode*>(0);
-//        ASSERT_EQ(id != nullptr, true);
-//        ASSERT_EQ(((DSLRegex*)(*id))->name, "abcd");
-//    }
-//}
-//
-//TEST(DSL_BASIC, item) {
-//    KParser::Parser p;
-//    DSLContext ctx;
-//    {
-//        auto m = ctx.r_item->parse("abc");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "abc");
-//        DSLNode** id = m->capture_s<DSLNode*>(0);
-//        ASSERT_EQ(id != nullptr, true);
-//        EXPECT_EQ(&typeid(**id), &typeid(DSLID));
-//        ASSERT_EQ(((DSLID*)(*id))->name, "abc");
-//    }
-//
-//    {
-//        auto m = ctx.r_item->parse("`abc`");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "`abc`");
-//        DSLNode** id = m->capture_s<DSLNode*>(0);
-//        ASSERT_EQ(id != nullptr, true);
-//        EXPECT_EQ(&typeid(**id), &typeid(DSLText));
-//        ASSERT_EQ(((DSLText*)(*id))->name, "abc");
-//    }
-//
-//    {
-//        auto m = ctx.r_item->parse("re`abc`");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "re`abc`");
-//        DSLNode** id = m->capture_s<DSLNode*>(0);
-//        ASSERT_EQ(id != nullptr, true);
-//        EXPECT_EQ(&typeid(**id), &typeid(DSLRegex));
-//        ASSERT_EQ(((DSLRegex*)(*id))->name, "abc");
-//    }
-//}
-//
-//TEST(DSL_BASIC, group) {
-//    KParser::Parser p;
-//    DSLContext ctx;
-//    {
-//        auto m = ctx.r_item->parse("(abc)abc");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "(abc)");
-//        DSLNode** id = m->capture_s<DSLNode*>(0);
-//        ASSERT_EQ(id != nullptr, true);
-//        EXPECT_EQ(&typeid(**id), &typeid(DSLID));
-//        ASSERT_EQ(((DSLID*)(*id))->name, "abc");
-//    }
-//
-//    {
-//        auto m = ctx.r_item->parse("(`abc`)`");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "(`abc`)");
-//        DSLNode** id = m->capture_s<DSLNode*>(0);
-//        ASSERT_EQ(id != nullptr, true);
-//        EXPECT_EQ(&typeid(**id), &typeid(DSLText));
-//        ASSERT_EQ(((DSLText*)(*id))->name, "abc");
-//    }
-//
-//    {
-//        auto m = ctx.r_item->parse("(re`abc`)");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "(re`abc`)");
-//        DSLNode** id = m->capture_s<DSLNode*>(0);
-//        ASSERT_EQ(id != nullptr, true);
-//        EXPECT_EQ(&typeid(**id), &typeid(DSLRegex));
-//        ASSERT_EQ(((DSLRegex*)(*id))->name, "abc");
-//    }
-//}
-//
-//TEST(DSL_BASIC, all) {
-//    KParser::Parser p;
-//    DSLContext ctx;
-//    {
-//        auto m = ctx.r_all->parse("abc");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "abc");
-//    }
-//
-//    {
-//        auto m = ctx.r_all->parse("abc `abc`");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "abc `abc`");
-//    }
-//
-//    {
-//        auto m = ctx.r_all->parse("rere`abc`abc");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "rere`abc`abc");
-//    }
-//}
-//
-//TEST(DSL_BASIC, any) {
-//    DSLContext ctx;
-//    {
-//        auto m = ctx.r_any->parse("abc");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "abc");
-//    }
-//
-//    {
-//        auto m = ctx.r_any->parse("abc `abc`");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "abc `abc`");
-//    }
-//
-//    {
-//        auto m = ctx.r_any->parse("abc | `abc`abc");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "abc | `abc`abc");
-//    }
-//}
-//
-//TEST(DSL_BASIC, rule) {
-//    DSLContext ctx;
-//    {
-//        auto m = ctx.r_rule->parse("a@evtA = a `re` re`[1-9]*` | b;  ");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), "a@evtA = a `re` re`[1-9]*` | b;");
-//        DSLNode** pN = m->capture_s<DSLNode*>(0);
-//        ASSERT_EQ(pN != nullptr, true);
-//        auto* n = (DSLRule*)*pN;
-//        EXPECT_EQ(n->name, "a");
-//        EXPECT_EQ(n->evtName, "evtA");
-//    }
-//}
-//
-//TEST(DSL_BASIC, ruleList) {
-//    DSLContext ctx;
-//    {
-//        auto m = ctx.r_ruleList->parse(R"(  a = a `re` re`[1-9]*` | b;
-//b = a | b;
-//c = re | re`re`;
-//)");
-//        ASSERT_EQ(m != nullptr, true);
-//        EXPECT_EQ(m->str(), R"(a = a `re` re`[1-9]*` | b;
-//b = a | b;
-//c = re | re`re`;)");
-//
-//        DSLNode** d = m->capture_s<DSLNode*>(0);
-//        ASSERT_EQ(d != nullptr, true);
-//        EXPECT_EQ(&typeid(**d), &typeid(DSLRuleList));
-//        DSLRuleList* rlist = (DSLRuleList*)*d;
-//        EXPECT_EQ(rlist->nodes.size(), 3);
-//
-//    }
-//}
-//
-//TEST(DSL_BASIC, ruleList_parse) {
-//    DSLContext ctx;
-//    {
-//        auto r = ctx.ruleOf(R"(
-//a@on_a = ID | NUM;
-//b@on_b = a+ EOF;
-//)");
-//        int numVal = 0;
-//        std::string strVal= "";
-//        int count = 0;
-//        ctx.bind("on_a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
-//            try {
-//                int num = libany::any_cast<int>(*arg);
-//                std::cout << "number of" << num << std::endl;
-//                numVal += num;
-//                return nullptr;
-//            }
-//            catch (libany::bad_any_cast & ex) {
-//                try {
-//                    auto id = libany::any_cast<std::string>(*arg);
-//                    strVal += id;
-//                    std::cout << "string of" << id << std::endl;
-//                    return nullptr;
-//                }
-//                catch (libany::bad_any_cast & ex) {
-//
-//                }
-//            }
-//            return nullptr;
-//        });
-//        ctx.bind("on_b", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
-//            for (; arg != noarg; ++arg) {
-//                count++;
-//            }
-//            return nullptr;
-//            });
-//
-//        if (!r) {
-//            std::cerr << ctx.lastError << std::endl;
-//        }
-//        else {
-//            ctx.parse("b", "11 22 aa bb");
-//            EXPECT_EQ(numVal, 33);
-//            EXPECT_EQ(strVal, "aabb");
-//            EXPECT_EQ(count, 4);
-//        }
-//    }
-//    {
-//        
-//        auto r = ctx.ruleOf(R"(  a = a | b;
-//b = a | b;
-//dd
-//c = re | re`re`;
-//)");
-//        ASSERT_EQ(r, false);
-//        if (!r) {
-//            std::cerr << ctx.lastError << std::endl;
-//        }
-//    }
-//}
-//
-//TEST(DSL_BASIC, list) {
-//    KParser::EasyParser p;
-//    
-//    {
-//        int numval = 0;
-//        std::string strval = "";
-//        auto r = p.buildRules(R"(
-//a@on_a = ID | NUM;
-//b@on_b = [a `,`] EOF;
-//)");
-//        p.bind("on_a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
-//                        try {
-//                            int num = libany::any_cast<int>(*arg);
-//                            std::cout << "number of" << num << std::endl;
-//                            numval += num;
-//                            return nullptr;
-//                        }
-//                        catch (libany::bad_any_cast & ex) {
-//                            try {
-//                                auto id = libany::any_cast<std::string>(*arg);
-//                                strval += id;
-//                                std::cout << "string of" << id << std::endl;
-//                                return nullptr;
-//                            }
-//                            catch (libany::bad_any_cast & ex) {
-//            
-//                            }
-//                        }
-//                        return nullptr;
-//                    });
-//        if (!r) {
-//            std::cerr << p.getLastError()<< std::endl;
-//            ASSERT_EQ(false, true);
-//        }
-//        else {
-//            p.parse("b", "11, 22 ,aa, bb");
-//            EXPECT_EQ(numval, 33);
-//            EXPECT_EQ(strval, "aabb");
-//        }
-//    }
-//}
+TEST(DSL_BASIC, regex) {
+    KParser::Parser p;
+    KParser::DSLContext ctx;
+    {
+        auto m = ctx.r_regex->parse("");
+        ASSERT_EQ(m == nullptr, true);
+    }
+
+    {
+        auto m = ctx.r_regex->parse("/");
+        ASSERT_EQ(m == nullptr, true);
+    }
+    {
+        auto m = ctx.r_regex->parse("//");
+        ASSERT_EQ(m == nullptr, true);
+    }
+    {
+        auto m = ctx.r_regex->parse("/abc/");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "/abc/");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        ASSERT_EQ(((KParser::DSLRegex*)(*id))->name, "abc");
+    }
+    {
+        auto m = ctx.r_regex->parse(R"(/\//abc/)");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), R"(/\//)");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        ASSERT_EQ(((KParser::DSLRegex*)(*id))->name, "\\/");
+    }
+
+    {
+        auto m = ctx.r_regex->parse("/abcd/`");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "/abcd/");
+        EXPECT_EQ(m->prefix(), "");
+        EXPECT_EQ(m->suffix(), "`");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        ASSERT_EQ(((KParser::DSLRegex*)(*id))->name, "abcd");
+    }
+}
+
+TEST(DSL_BASIC, item) {
+    KParser::Parser p;
+    KParser::DSLContext ctx;
+    {
+        auto m = ctx.r_item->parse("$abc");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "$abc");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        EXPECT_EQ(&typeid(**id), &typeid(KParser::DSLID));
+        ASSERT_EQ(((KParser::DSLID*)(*id))->name, "abc");
+    }
+
+    {
+        auto m = ctx.r_item->parse("abc");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "abc");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        EXPECT_EQ(&typeid(**id), &typeid(KParser::DSLText));
+        ASSERT_EQ(((KParser::DSLText*)(*id))->name, "abc");
+    }
+
+    {
+        auto m = ctx.r_item->parse("/abc/");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "/abc/");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        EXPECT_EQ(&typeid(**id), &typeid(KParser::DSLRegex));
+        ASSERT_EQ(((KParser::DSLRegex*)(*id))->name, "abc");
+    }
+}
+
+TEST(DSL_BASIC, group) {
+    KParser::Parser p;
+    KParser::DSLContext ctx;
+    {
+        auto m = ctx.r_item->parse("($abc)abc");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "($abc)");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        EXPECT_EQ(&typeid(**id), &typeid(KParser::DSLID));
+        ASSERT_EQ(((KParser::DSLID*)(*id))->name, "abc");
+    }
+
+    {
+        auto m = ctx.r_item->parse("(ab\\nc)`");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "(ab\\nc)");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        EXPECT_EQ(&typeid(**id), &typeid(KParser::DSLText));
+        ASSERT_EQ(((KParser::DSLText*)(*id))->name, "ab\nc");
+    }
+
+    {
+        auto m = ctx.r_item->parse("(/abc/)");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "(/abc/)");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        EXPECT_EQ(&typeid(**id), &typeid(KParser::DSLRegex));
+        ASSERT_EQ(((KParser::DSLRegex*)(*id))->name, "abc");
+    }
+}
+
+TEST(DSL_BASIC, all) {
+    KParser::Parser p;
+    KParser::DSLContext ctx;
+    {
+        auto m = ctx.r_all->parse("abc");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "abc");
+        KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        EXPECT_EQ(&typeid(**id), &typeid(KParser::DSLText));
+        ASSERT_EQ(((KParser::DSLText*)(*id))->name, "abc");
+    }
+
+    {
+        auto m = ctx.r_all->parse("abc/abc/");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "abc/abc/");
+        {
+            KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+            ASSERT_EQ(id != nullptr, true);
+            EXPECT_EQ(&typeid(**id), &typeid(KParser::DSLAll));
+            auto& children = ((KParser::DSLAll*)(*id))->nodes;
+            {
+                ASSERT_EQ(((KParser::DSLText*)(children[0]))->name, "abc");
+            }
+            {
+                ASSERT_EQ(((KParser::DSLRegex*)(children[1]))->name, "abc");
+            }
+        }
+    }
+
+    {
+        auto m = ctx.r_all->parse(R"(\/\//abc/abc)");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), R"(\/\//abc/abc)");
+        {
+            KParser::DSLNode** id = m->capture_s<KParser::DSLNode*>(0);
+            ASSERT_EQ(id != nullptr, true);
+            EXPECT_EQ(&typeid(**id), &typeid(KParser::DSLAll));
+            auto& children = ((KParser::DSLAll*)(*id))->nodes;
+            {
+                ASSERT_EQ(((KParser::DSLText*)(children[0]))->name, R"(//)");
+            }
+            {
+                ASSERT_EQ(((KParser::DSLRegex*)(children[1]))->name, "abc");
+            }
+            {
+                ASSERT_EQ(((KParser::DSLText*)(children[2]))->name, "abc");
+            }
+        }
+    }
+}
+
+TEST(DSL_BASIC, any) {
+    KParser::DSLContext ctx;
+    {
+        auto m = ctx.r_any->parse("abc");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "abc");
+        KParser::DSLNode** n = m->capture_s<KParser::DSLNode*>(0);
+        EXPECT_EQ(&typeid(**n), &typeid(KParser::DSLText));
+        
+        {
+            ASSERT_EQ(((KParser::DSLText*)(*n))->name, R"(abc)");
+        }
+    }
+
+    {
+        auto m = ctx.r_any->parse("abc|/abc/");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "abc|/abc/");
+        KParser::DSLNode** n = m->capture_s<KParser::DSLNode*>(0);
+        EXPECT_EQ(&typeid(**n), &typeid(KParser::DSLAny));
+        auto& children = ((KParser::DSLAny*)(*n))->nodes;
+        {
+            ASSERT_EQ(((KParser::DSLText*)(children[0]))->name, R"(abc)");
+        }
+        {
+            ASSERT_EQ(((KParser::DSLRegex*)(children[1]))->name, R"(abc)");
+        }
+    }
+
+    {
+            auto m = ctx.r_any->parse("abc |/abc/ abc");
+            ASSERT_EQ(m != nullptr, true);
+            EXPECT_EQ(m->str(), "abc |/abc/ abc");
+            KParser::DSLNode** n = m->capture_s<KParser::DSLNode*>(0);
+            EXPECT_EQ(&typeid(**n), &typeid(KParser::DSLAny));
+            auto& children = ((KParser::DSLAny*)(*n))->nodes;
+            {
+                ASSERT_EQ(((KParser::DSLText*)(children[0]))->name, R"(abc)");
+            }
+            
+            {
+                auto* all = (KParser::DSLAll*)(children[1]);
+                auto& children1 = all->nodes;
+                {
+                    ASSERT_EQ(((KParser::DSLRegex*)(children1[0]))->name, R"(abc)");
+                }
+                {
+                    ASSERT_EQ(((KParser::DSLText*)(children1[1]))->name, R"(abc)");
+                }
+            }
+        }
+}
+
+TEST(DSL_BASIC, rule) {
+    KParser::DSLContext ctx;
+    {
+        auto m = ctx.r_rule->parse(R"($a = $a \/\/ /[1-9]*/ | $b;  )");
+        auto err = ctx.m_parser.errInfo();
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), R"($a = $a \/\/ /[1-9]*/ | $b;)");
+        KParser::DSLNode** pN = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(pN != nullptr, true);
+        auto* n = (KParser::DSLRule*)*pN;
+        EXPECT_EQ(n->name, "a");}
+}
+
+TEST(DSL_BASIC, ruleList) {
+    KParser::DSLContext ctx;
+    {
+        auto m = ctx.r_ruleList->parse(R"(  $a = $a a | $b;
+$b = a | b;
+$c = c | /d*/;
+)");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), R"($a = $a a | $b;
+$b = a | b;
+$c = c | /d*/;)");
+
+        KParser::DSLNode** d = m->capture_s<KParser::DSLNode*>(0);
+        ASSERT_EQ(d != nullptr, true);
+        EXPECT_EQ(&typeid(**d), &typeid(KParser::DSLRuleList));
+        KParser::DSLRuleList* rlist = (KParser::DSLRuleList*)*d;
+        EXPECT_EQ(rlist->nodes.size(), 3);
+    }
+}
+
+TEST(DSL_BASIC, ruleList_parse) {
+    KParser::DSLContext ctx;
+    {
+        ctx.setRule(R"(
+$a = $ID | $NUM;
+$b = $a+ $EOF;
+)");
+        int numVal = 0;
+        std::string strVal= "";
+        int count = 0;
+        ctx.bind("a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
+            try {
+                int num = libany::any_cast<int>(*arg);
+                std::cout << "number: " << num << std::endl;
+                numVal += num;
+                return nullptr;
+            }
+            catch (libany::bad_any_cast & ex) {
+                try {
+                    auto id = libany::any_cast<std::string>(*arg);
+                    strVal += id;
+                    std::cout << "string: " << id << std::endl;
+                    return nullptr;
+                }
+                catch (libany::bad_any_cast & ex) {
+
+                }
+            }
+            return nullptr;
+        });
+        ctx.bind("b", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
+            for (; arg != noarg; ++arg) {
+                count++;
+            }
+            return nullptr;
+            });
+        auto r = ctx.compile();
+        if (!r) {
+            std::cerr << ctx.lastError << std::endl;
+        }
+        else {
+            ctx.parse("b", "11 22 aa bb");
+            EXPECT_EQ(numVal, 33);
+            EXPECT_EQ(strVal, "aabb");
+            EXPECT_EQ(count, 4);
+        }
+    }
+    {
+        
+        ctx.setRule(R"(  $a = $a | $b;
+$b = $a | $b;
+dd
+$c = re | /\/\//;
+)");
+        auto r = ctx.compile();
+        ASSERT_EQ(r, false);
+        if (!r) {
+            std::cerr << ctx.lastError << std::endl;
+        }
+    }
+}
+
+TEST(DSL_BASIC, list) {
+    KParser::EasyParser p;
+    
+    {
+        int numval = 0;
+        std::string strval = "";
+        p.bind("a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
+                        try {
+                            int num = libany::any_cast<int>(*arg);
+                            std::cout << "number of" << num << std::endl;
+                            numval += num;
+                            return nullptr;
+                        }
+                        catch (libany::bad_any_cast & ex) {
+                            try {
+                                auto id = libany::any_cast<std::string>(*arg);
+                                strval += id;
+                                std::cout << "string of" << id << std::endl;
+                                return nullptr;
+                            }
+                            catch (libany::bad_any_cast & ex) {
+            
+                            }
+                        }
+                        return nullptr;
+                    });
+        auto r = p.build(R"(
+$a = $ID | $NUM;
+$b = [$a ,] $EOF;
+)");
+        if (!r) {
+            std::cerr << p.getLastError()<< std::endl;
+            ASSERT_EQ(false, true);
+        }
+        else {
+            p.parse("b", "11, 22 ,aa, bb");
+            EXPECT_EQ(numval, 33);
+            EXPECT_EQ(strval, "aabb");
+        }
+    }
+}
 
 #endif

@@ -1,23 +1,11 @@
-#include "impl.h"
+
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include "util.h"
+#include "impl.h"
 
 // #define isspace(ch) ((ch) == ' ' || (ch) == '\t' || (ch) == '\r' || (ch) == '\n' || (ch) == '\v')
-#define isspace(ch) (std::isspace(ch) != 0)
-
-std::string trim(const std::string& s)
-{
-    std::string::const_iterator it = s.begin();
-    while (it != s.end() && isspace(*it))
-        it++;
-
-    std::string::const_reverse_iterator rit = s.rbegin();
-    while (rit.base() != it && isspace(*rit))
-        rit++;
-
-    return std::string(it, rit.base());
-}
 
 
 namespace KParser {

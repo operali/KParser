@@ -50,7 +50,7 @@ namespace KParser {
     }
 
 
-    Rule* Parser::str(StrT&& str) {
+    Rule* Parser::str(std::string&& str) {
         return new KParser::RuleStr(impl, std::string(str));
     }
 
@@ -152,15 +152,6 @@ namespace KParser {
                     if (startWith && pos != 0) {
                         return nullptr;
                     }
-                    /*if (results.size() > 1) {
-                        auto c = results[1];
-                        cb = c.first;
-                        ce = c.second;
-                        me = b + results.position() + results.length();
-                    }
-                    else {*/
-
-                    //}
                     return b + results.position() + results.length();
                 }
                 return nullptr;
@@ -231,8 +222,9 @@ namespace KParser {
     EasyParser::~EasyParser() {
         delete impl;
     }
-    bool EasyParser::buildRules(const char* strRule) {
-        return impl->ruleOf(strRule);
+    bool EasyParser::build(const char* strRule) {
+        impl->setRule(strRule);
+        return impl->compile();
     }
 
     void EasyParser::bind(const char* ruleName, std::function<libany::any(Match& m, IT arg, IT noarg)> eval) {
