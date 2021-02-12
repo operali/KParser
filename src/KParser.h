@@ -74,6 +74,10 @@ namespace KParser {
         Rule* all();
         // match Pattern1 | Pattern2... | PatternN
         Rule* any();
+        // ! pattern
+        Rule* not(Rule* node);
+        // one char
+        Rule* one();
         // pattern*
         Rule* many(Rule* node);
         Rule* many(const char* strNode);

@@ -51,6 +51,13 @@ namespace KParser {
         return new KParser::RuleAny(impl);
     }
 
+    Rule* Parser::not(Rule* node) {
+        return new KParser::RuleNot(impl, (RuleNode*)node);
+    }
+
+    Rule* Parser::one() {
+        return new KParser::RuleOne(impl);
+    }
 
     Rule* Parser::str(std::string&& str) {
         return new KParser::RuleStr(impl, std::string(str));

@@ -366,6 +366,71 @@ TEST(FEATURE, optional) {
     }
 }
 
+TEST(FEATURE, NOT) {
+    {
+        KParser::Parser p;
+        auto r = p.not(p.str("abc"));
+        {
+            auto m = r->parse("abc");
+            ASSERT_EQ(m == nullptr, true);
+        }
+
+        {
+            auto m = r->parse("ddd");
+            ASSERT_EQ(m != nullptr, true);
+            EXPECT_EQ(m->str(), "");
+        };
+    }
+}
+
+TEST(FEATURE, CHAR) {
+    {
+        KParser::Parser p;
+        {
+            auto r = p.one();
+            auto m = r->parse("ab");
+            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m->str(), "a");
+        }
+        {
+            auto r = p.all(p.one(), p.one());
+            auto m = r->parse("ab");
+            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m->str(), "ab");
+        }
+        {
+            auto r = p.all(p.one(), p.one(), p.one());
+            auto m = r->parse("ab");
+            ASSERT_EQ(m == nullptr, true);
+        }
+        {
+            auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
+            auto m = r->parse("abc");
+            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m->str(), "");
+        }
+        {
+            auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
+            auto m = r->parse("asdfasdfabc");
+            ASSERT_EQ(m != nullptr, true);
+            EXPECT_EQ(m->str(), "asdfasdf");
+        };
+
+        {
+            auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
+            auto m = r->parse("asdfasdfasdf");
+            ASSERT_EQ(m != nullptr, true);
+            EXPECT_EQ(m->str(), "asdfasdfasdf");
+        };
+        {
+            auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
+            auto m = r->parse("asdfasdfabcasdf");
+            ASSERT_EQ(m != nullptr, true);
+            EXPECT_EQ(m->str(), "asdfasdf");
+        };
+    }
+}
+
 TEST(FEATURE, until) {
     {
         KParser::Parser p;

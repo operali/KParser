@@ -374,10 +374,10 @@ namespace KParser {
 
         StepInT stepIn() override {
             if (m_length == LEN::SUCC) {
-                return StepInT{false, nullptr};
+                return StepInT(false);
             }
             m_length = LEN::SUCC;
-            return StepInT{ true, nullptr };
+            return StepInT(true);
         };
     };
 
@@ -393,7 +393,7 @@ namespace KParser {
         
         StepInT stepIn() override {
             if (m_length == LEN::FAIL || m_length >= LEN::SUCC) {
-                return StepInT{ false, nullptr };
+                return StepInT(false);
             }
             auto* parser = m_ruleNode->m_gen;
             auto* buff = parser->m_cache;
@@ -406,23 +406,23 @@ namespace KParser {
             auto toMatchEnd = toMatch + rule->len;
             if (toMatch == nullptr) {
                 m_length = rule->len;
-                return StepInT{ true, nullptr };
+                return StepInT(true);
             }
             while (true) {
                 if (toMatch == toMatchEnd) {
                     m_length = rule->len;
-                    return StepInT{ true, nullptr };
+                    return StepInT(true);
                 }
                 if (cptr == eptr) {
                     break;
                 }
                 if (*(cptr++) != *(toMatch++)) {
                     m_length = LEN::FAIL;
-                    return StepInT{ false, nullptr };
+                    return StepInT(false);
                 }
             }
             m_length = LEN::FAIL;
-            return StepInT{ false, nullptr };
+            return StepInT(false);
         };
     };
 
@@ -440,7 +440,7 @@ namespace KParser {
         
         StepInT stepIn() override {
             if (m_length != LEN::INIT) {
-                return StepInT{ false, nullptr };
+                return StepInT{false};
             }
             auto parser = m_ruleNode->m_gen;
             auto ptext = parser->m_cache;
@@ -452,11 +452,11 @@ namespace KParser {
             const char* end = pred(start, last);
             if (end != nullptr) {
                 m_length = end - start;
-                return StepInT{ true, nullptr };
+                return StepInT{true};
             }
             else {
                 m_length = LEN::FAIL;
-                return StepInT{ false, nullptr };
+                return StepInT(false);
             }
         }
     };
@@ -523,13 +523,13 @@ namespace KParser {
         StepInT stepIn() override {
             if (m_length >= LEN::SUCC && fromStepOut) {
                 fromStepOut = false;
-                return StepInT{ true, nullptr };
+                return StepInT(true);
             }
             if (!m_curMatcher) {
                 m_length = LEN::FAIL;
-                return StepInT{ false, nullptr };
+                return StepInT(false);
             }
-            return StepInT{ false, m_curMatcher };
+            return StepInT(m_curMatcher);
         };
 
         void stepOut(MatchR* r) override {
@@ -628,20 +628,20 @@ namespace KParser {
         StepInT stepIn() override {
             if ( m_length >= LEN::SUCC && fromStepOut) {
                 fromStepOut = false;
-                return StepInT{ true, nullptr };
+                return StepInT{ true};
             }
             else if (m_length == LEN::FAIL) {
-                return StepInT{ false, nullptr };
+                return StepInT{ false };
             }
             auto len = childMatch.size();
             if (len == 0) {
                 m_length = LEN::FAIL;
-                return StepInT{ false, nullptr };
+                return StepInT{ false };
             }
 
             MatchR* matcher = childMatch.back();
             m_curStart = matcher->m_startPos;
-            return StepInT{ true, matcher };
+            return StepInT{ matcher };
         };
 
         void stepOut(MatchR* r) override {
@@ -705,34 +705,27 @@ namespace KParser {
         }
 
         StepInT stepIn() override {
-            if (m_length == LEN::FAIL) {
-                return StepInT{ false, nullptr };
-            }
             if (m_accept) {
-                return StepInT{ false, nullptr };
+                return StepInT{ false };
             }
-            if (m_curMatcher != nullptr) {
+            else if (m_curMatcher != nullptr) {
                 m_accept = true;
                 // clear
                 m_curMatcher->release();
                 delete m_curMatcher;
                 m_curMatcher = nullptr;
-                // m_length += m_curMatcher->length();
-                return StepInT{ true, nullptr };
+                //m_length += m_curMatcher->length();
+                return StepInT(true);
             }
             m_length++;
-            if (m_length >= m_maxLen) {
-                if (m_curMatcher) {
-                    m_curMatcher->release();
-                    delete m_curMatcher;
-                    m_curMatcher = nullptr;
-                }
+            if (m_length == m_maxLen) {
+                m_accept = true;
                 m_length = LEN::FAIL;
-                return StepInT{ false, nullptr };
+                return StepInT(false);
             }
-            auto* cond = ((RuleTill*)m_ruleNode)->m_cond;
+            auto* cond = ((RuleUntil*)m_ruleNode)->m_cond;
             m_curMatcher = cond->match(m_startPos + m_length);
-            return StepInT{ false, m_curMatcher };
+            return StepInT(m_curMatcher);
         };
 
         void stepOut(MatchR* r) override {
@@ -780,30 +773,27 @@ namespace KParser {
         }
 
         StepInT stepIn() override {
-            if (m_length == LEN::FAIL) {
-                return StepInT{ false, nullptr };
-            }
             if (m_accept) {
-                return StepInT{ false, nullptr };
+                return StepInT{ false };
             }
-            if (m_curMatcher != nullptr) {
+            else if (m_curMatcher != nullptr) {
                 m_accept = true;
+                // clear
+                /*m_curMatcher->release();
+                delete m_curMatcher;
+                m_curMatcher = nullptr;*/
                 m_length += m_curMatcher->length();
-                return StepInT{ true, nullptr };
+                return StepInT(true);
             }
             m_length++;
-            if (m_length >= m_maxLen) {
-                if (m_curMatcher) {
-                    m_curMatcher->release();
-                    delete m_curMatcher;
-                    m_curMatcher = nullptr;
-                }
+            if (m_length == m_maxLen) {
+                m_accept = true;
                 m_length = LEN::FAIL;
-                return StepInT{ false, nullptr };
+                return StepInT(false);
             }
             auto* cond = ((RuleTill*)m_ruleNode)->m_cond;
-            m_curMatcher = cond->match(m_startPos+m_length);
-            return StepInT{ false, m_curMatcher };
+            m_curMatcher = cond->match(m_startPos + m_length);
+            return StepInT(m_curMatcher);
         };
 
         void stepOut(MatchR* r) override {
@@ -818,5 +808,100 @@ namespace KParser {
 
     MatchR* RuleTill::match(uint32_t start) {
         return new MatchRTill(start, this);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    // not
+     struct MatchRNot : public MatchR {
+        MatchR* m_curMatcher = nullptr;
+        bool m_accept = false;
+        MatchRNot(uint32_t start, RuleNode* rule)
+            :MatchR(start, rule) {
+        }
+
+        void release() override {
+            MatchR::release();
+            m_curMatcher = nullptr;
+        }
+        
+        bool visited = false;
+        MatchR* visitStep() override {
+            if (visited) {
+                visited = false;
+                return nullptr;
+            }
+            visited = true;
+            return m_curMatcher;
+        }
+        StepInT stepIn() override {
+            if (m_accept) {
+                return StepInT{ false };
+            }
+            else if (m_curMatcher != nullptr) {
+                m_accept = true;
+                // clear
+                m_curMatcher->release();
+                delete m_curMatcher;
+                m_curMatcher = nullptr;
+                m_length = LEN::FAIL;
+                return StepInT(false);
+            }
+            if (m_length == LEN::INIT) {
+                m_length = LEN::SUCC;
+                auto* cond = ((RuleTill*)m_ruleNode)->m_cond;
+                m_curMatcher = cond->match(m_startPos + m_length);
+                return StepInT(m_curMatcher);
+            }
+            else { //m_length = LEN::SUCC;
+                m_accept = true;
+                return StepInT(true);
+            }
+        };
+
+        void stepOut(MatchR* r) override {
+            if (r != nullptr) {
+                return;
+            }
+            m_curMatcher->release();
+            delete m_curMatcher;
+            m_curMatcher = nullptr;
+        };
+    };
+
+    MatchR* RuleNot::match(uint32_t start) {
+        return new MatchRNot(start, this);
+    }   
+
+    //////////////////////////////////////////////////////////////////////////
+    // char
+    struct MatchROne : public MatchR {
+        MatchROne(uint32_t start, RuleNode* rule)
+            :MatchR(start, rule) {
+        }
+
+        bool visited = false;
+        MatchR* visitStep() override {
+            if (visited) {
+                visited = false;
+                return nullptr;
+            }
+            visited = true;
+            return nullptr;
+        }
+
+        StepInT stepIn() override {
+            if (m_length == 1) {
+                return StepInT(false);
+            }
+            m_length = 1;
+            if (m_startPos == m_ruleNode->m_gen->length) {
+                return StepInT(false);
+            }
+            return StepInT(true);
+        };
+    };
+
+    MatchR* RuleOne::match(uint32_t start) {
+        return new MatchROne(start, this);
     }
 }

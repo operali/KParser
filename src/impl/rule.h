@@ -10,8 +10,10 @@ namespace KParser {
     
     struct MatchR;
     struct StepInT {
-        bool res;
         MatchR* mr;
+        bool res;
+        StepInT(bool res):mr(nullptr), res(res) {}
+        StepInT(MatchR* mr):mr(mr), res(false) {}
     };
 
     struct MatchR : public Match {
@@ -145,6 +147,17 @@ namespace KParser {
     struct RuleUntil : public RuleNode {
         RuleNode* m_cond;
         RuleUntil(ParserImpl* gen, RuleNode* cond) :RuleNode(gen), m_cond(cond) {};
+        MatchR* match(uint32_t start) final;
+    };
+
+    struct RuleNot : public RuleNode {
+        RuleNode* m_cond;
+        RuleNot(ParserImpl* gen, RuleNode* cond) :RuleNode(gen), m_cond(cond) {};
+        MatchR* match(uint32_t start) final;
+    };
+
+    struct RuleOne : public RuleNode {
+        RuleOne(ParserImpl* gen) :RuleNode(gen) {};
         MatchR* match(uint32_t start) final;
     };
 }
