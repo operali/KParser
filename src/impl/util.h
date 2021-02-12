@@ -3,9 +3,7 @@
 namespace KParser {
     std::string trim(const std::string& s);
 
-    bool test_keych(char ch);
-    
-    char tanslate_escapech(char ch);
+    char tanslateEscapedChar(char ch);
 
     bool parseCSTR(const char* buff, size_t len, std::string& ret, int& rlen);
 

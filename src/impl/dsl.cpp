@@ -238,12 +238,12 @@ namespace KParser {
         idMap.emplace(std::make_pair("COMMENT", new DSLID{ this, "COMMENT", true }));
         idMap.emplace(std::make_pair("EOF", new DSLID{ this,"EOF", true }));
 
-        r_id = p.regex(R"(^\$[a-zA-Z_][a-zA-Z0-9_]*)");
+        r_id = p.regex(R"(^[a-zA-Z_][a-zA-Z0-9_]*)");
         r_text = p.custom([&](const char* begin, const char* end)->const char* {
             int rsize = 0;
             std::string r;
             auto res = parseCSTR(begin, end - begin, r, rsize);
-            if (rsize == 0) {
+            if (!res) {
                 return nullptr;
             }
             return begin + rsize;
@@ -274,9 +274,7 @@ namespace KParser {
         r_ruleList = p.all(p.many1(r_rule), p.eof());
 
         r_id->eval([&](auto& m, auto b, auto e) { 
-                std::string s = m.str();
-                s = s.substr(1, s.length() - 1);
-                return (DSLNode*)new DSLID{ this, s };
+                return (DSLNode*)new DSLID{ this, m.str() };
             });
         r_regex->eval([&](auto& m, auto b, auto e) {
             std::string s = m.str();

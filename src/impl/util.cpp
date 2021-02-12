@@ -18,26 +18,7 @@ namespace KParser {
         return std::string(it, rit.base());
     }
 
-
-    bool test_keych(char ch) {
-        /* 
-         * unary op: ? + *
-         * binary op: | ' '
-         * group: ( ) [ ]
-         * keyword: = ;
-         * other first set: $ /
-        */
-        static char firstChars[] = { '?', '+', '*', '|', ' ', '(', ')', '[', ']', '=', ';', '$', '/' };
-        char* begin = &firstChars[0];
-        char* end = begin + sizeof(firstChars);
-        auto* it = std::find(begin, end, ch);
-        if (it == end) {
-            return false;
-        }
-        return true;
-    }
-
-    char tanslate_escapech(char ch) {
+    char tanslateEscapedChar(char ch) {
         switch (ch) {
         case 'a':
             return '\a';
@@ -69,6 +50,7 @@ namespace KParser {
 
     bool parseCSTR(const char* buff, size_t len, std::string& ret, int& rlen) {
         enum class State : int8_t {
+            left_p,
             read_ch,
             escaping,
             escaping_hex1,
@@ -78,17 +60,27 @@ namespace KParser {
             escaping_oct3,
             done,
         };
-        State st = State::read_ch;
+        State st = State::left_p;
+        char leftP = '\"';
         int ech = 0;
         int i = 0;
         for (; i < len; ++i) {
             auto ch = buff[i];
-            if (st == State::read_ch) {
+            if (st == State::left_p) {
+                if (ch == '\'' || ch == '\"') {
+                    leftP = ch;
+                    st = State::read_ch;
+                }
+                else {
+                    return false;
+                }
+            } else if (st == State::read_ch) {
                 if (ch == '\\') {
                     st = State::escaping;
                 }
-                else if (test_keych(ch)) {
-                    st == State::done;
+                else if (ch == leftP) { //close
+                    i++;
+                    st = State::done;
                     break;
                 }
                 else {
@@ -169,7 +161,7 @@ namespace KParser {
             }
             else if (st == State::escaping) {
                 st = State::read_ch;
-                char nch = tanslate_escapech(ch);
+                char nch = tanslateEscapedChar(ch);
                 if (nch != 0) {
                     ret.push_back(nch);
                 }
@@ -191,7 +183,7 @@ namespace KParser {
             }
         }
         rlen = i;
-        if (rlen == 0) {
+        if (st != State::done) {
             return false;
         }
         return true;
@@ -200,16 +192,16 @@ namespace KParser {
     bool parseRegex(const char* buff, size_t len, int& rlen) {
         int i = 0;
         enum class State : int8_t {
-            read_left,
+            left_p,
             read_ch,
             escaping,
             read_done
         };
-        State st = State::read_left;
+        State st = State::left_p;
         char ch = 257;
         for (; i < len; ++i) {
             auto ch = buff[i];
-            if (st == State::read_left) {
+            if (st == State::left_p) {
                 if (ch != '/') {
                     return false;
                 }
@@ -236,7 +228,7 @@ namespace KParser {
             }
         }
         rlen = i;
-        if (i <= 2) {
+        if (rlen <= 2) {
             return false;
         }
         if (st != State::read_done) {
