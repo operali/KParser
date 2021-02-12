@@ -135,4 +135,16 @@ namespace KParser {
         RuleAny(ParserImpl* gen) :RuleCompound(gen) {};
         MatchR* match(uint32_t start) final;
     };
+
+    struct RuleTill : public RuleNode {
+        RuleNode* m_cond;
+        RuleTill(ParserImpl* gen, RuleNode* cond) :RuleNode(gen), m_cond(cond) {};
+        MatchR* match(uint32_t start) final;
+    };
+
+    struct RuleUntil : public RuleNode {
+        RuleNode* m_cond;
+        RuleUntil(ParserImpl* gen, RuleNode* cond) :RuleNode(gen), m_cond(cond) {};
+        MatchR* match(uint32_t start) final;
+    };
 }

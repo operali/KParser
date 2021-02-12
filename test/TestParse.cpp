@@ -7,6 +7,20 @@
 
 #define X
 
+//TEST(BASIC, TMP) {
+//    KParser::Parser p;
+//    auto r1 = p.str("abc");
+//    auto r = p.till(r1);
+//    r1->eval([&](auto& m, auto b, auto e) {
+//        return m.str();
+//        });
+//    auto m = r->parse("xxxabc");
+//    if (m != nullptr) {
+//        EXPECT_EQ(m->str(), "xxxabc");
+//        EXPECT_EQ(*(m->capture_s<std::string>(0)), "abc");
+//    }
+//}
+
 #ifdef X
 TEST(BASIC, remove_space) {
     {
@@ -402,29 +416,44 @@ TEST(FEATURE, until_1) {
 }
 
 TEST(FEATURE, till) {
-    KParser::Parser p;
-    int count = 0;
-    auto dem = p.str(",")->visit([&](KParser::Match& m, bool capture) {
-        if (!capture) {
-            count++;
-        }
-        });
-    auto r = p.many(p.till(dem));
     {
-        auto m = r->parse(",2, asdfasfd3,4 ,,6,");
-        EXPECT_EQ(count, 6);
+        // auto& all = KParser::KObject::debug();
+        EXPECT_EQ(KParser::KObject::count, 0);
+
+        KParser::Parser p;
+        int count = 0;
+        auto dem = p.str(",")->visit([&](KParser::Match& m, bool capture) {
+            if (!capture) {
+                count++;
+            }
+            });
+        auto r = p.many(p.till(dem));
+        {
+            auto m = r->parse(",2, asdfasfd3,4 ,,6,");
+            EXPECT_EQ(count, 6);
+        }
     }
+    // auto& all = KParser::KObject::debug();
+    EXPECT_EQ(KParser::KObject::count, 0);
 }
 
 TEST(FEATURE, till_1) {
-    KParser::Parser p;
-    int count = 0;
     {
-        auto r = p.till("*/");
-        auto m = r->parse("   */   */");
-        ASSERT_EQ(m->occupied_str(), "   */   ");
-        EXPECT_EQ(m->str(), "*/");
+        KParser::Parser p;
+        int count = 0;
+        {
+            auto r1 = p.str("*/");
+            r1->eval([&](auto& m, auto b, auto e) {
+                return m.str();
+                });
+            auto r = p.till(r1);
+            auto m = r->parse("   */   */");
+            EXPECT_EQ(m->str(), "   */");
+            EXPECT_EQ(*m->capture_s<std::string>(0), "*/");
+        }
     }
+    // auto& all = KParser::KObject::debug();
+    EXPECT_EQ(KParser::KObject::count, 0);
 }
 
 TEST(FEATURE, regex) {
@@ -445,25 +474,29 @@ TEST(FEATURE, regex) {
     }
 }
 TEST(FEATURE, regex_1) {
-    KParser::Parser p;
     {
-        auto r = p.all(p.none(), p.regex("^[a-zA-Z_][a-zA-Z0-9_]*$"));
-        auto m = r->parse("asdfasfd");
-        ASSERT_EQ(m != nullptr, true);
-        ASSERT_EQ(m->str(), "asdfasfd");
+        KParser::Parser p;
+        {
+            auto r = p.all(p.none(), p.regex("^[a-zA-Z_][a-zA-Z0-9_]*$"));
+            auto m = r->parse("asdfasfd");
+            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m->str(), "asdfasfd");
+        }
+        {
+
+            auto r = p.all(
+                p.none(),
+                p.regex("[a-zA-Z_][a-zA-Z0-9_]*")->visit([&](KParser::Match& m, bool capture) {
+                    })
+            );
+            auto m = r->parse("  _1234_");
+            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m->occupied_str(), "  _1234_");
+            ASSERT_EQ(m->str(), "_1234_");
+        }
     }
-    {
-        
-        auto r = p.all(
-            p.none(),
-            p.regex("[a-zA-Z_][a-zA-Z0-9_]*")->visit([&](KParser::Match& m, bool capture) {
-                })
-        );
-        auto m = r->parse("  _1234_");
-        ASSERT_EQ(m != nullptr, true);
-        ASSERT_EQ(m->occupied_str(), "  _1234_");
-        ASSERT_EQ(m->str(), "_1234_");
-    }
+    // auto& all = KParser::KObject::debug();
+    EXPECT_EQ(KParser::KObject::count, 0);
 }
 
 TEST(FEATURE, identify) {
@@ -493,6 +526,7 @@ TEST(FEATURE, identify) {
             EXPECT_EQ(m->str(), "12");
         }
     }
+    // auto& all = KParser::KObject::debug();
     EXPECT_EQ(KParser::KObject::count, 0);
 }
 

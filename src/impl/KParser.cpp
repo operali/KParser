@@ -11,7 +11,9 @@
 
 namespace KParser {
     uint32_t KObject::count = 0;
-    // std::vector<KObject*> KObject::all;
+#ifdef KOBJECT_DEBUG
+    std::vector<KObject*> KObject::all;
+#endif
 
     Parser::~Parser() {
         delete impl;
@@ -88,22 +90,8 @@ namespace KParser {
         return many1(this->str(strNode));
     }
 
-    Rule* Parser::until(Rule* node) {
-        return custom([=](const char* b, const char* e)->const char* {
-            const char* c = b;
-            auto n = ((RuleNode*)node);
-            auto psrc = n->m_gen->m_cache;
-            while (c != e) {
-                auto m = n->match(c - psrc);
-                std::unique_ptr<MatchR> um;
-                um.reset(m);
-                if (um->alter()) {
-                    return c;
-                }
-                c++;
-            }
-            return nullptr;
-            });
+    Rule* Parser::until(Rule* cond) {
+        return new RuleUntil(this->impl, (RuleNode*)cond);
     }
 
     Rule* Parser::until(const char* strNode) {
@@ -112,7 +100,7 @@ namespace KParser {
 
     // ...(pattern)
     Rule* Parser::till(Rule* cond) {
-        return all(until(cond), cond);
+        return new RuleTill(this->impl, (RuleNode*)cond);
     }
 
     Rule* Parser::till(const char* strNode) {

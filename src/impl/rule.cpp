@@ -371,6 +371,7 @@ namespace KParser {
         MatchREmpty(uint32_t start, RuleNode* rule) 
             :MatchR(start, rule) {
         }
+
         StepInT stepIn() override {
             if (m_length == LEN::SUCC) {
                 return StepInT{false, nullptr};
@@ -385,25 +386,24 @@ namespace KParser {
     }
 
     //////////////////////////////////////////////////////////////////////////
-    //STR
-    
+    //STR    
     struct MatchRStr : public MatchR {
         MatchRStr(uint32_t start, RuleNode* rule) 
-            :MatchR(start, rule) {
-        }
+            :MatchR(start, rule) {}
         
         StepInT stepIn() override {
             if (m_length == LEN::FAIL || m_length >= LEN::SUCC) {
                 return StepInT{ false, nullptr };
             }
-            auto parser = m_ruleNode->m_gen;
-            const char* bptr = parser->m_cache + m_startPos;
-            const char* eptr = parser->m_cache + parser->length;
+            auto* parser = m_ruleNode->m_gen;
+            auto* buff = parser->m_cache;
+            auto len = parser->length;
+            const char* bptr = buff + m_startPos;
+            const char* eptr = buff + len;
             const char* cptr = bptr;
             const RuleStr* rule = static_cast<const RuleStr*>(this->m_ruleNode);
             const char* toMatch = rule->buff;
             auto toMatchEnd = toMatch + rule->len;
-            auto text_len = parser->length;
             if (toMatch == nullptr) {
                 m_length = rule->len;
                 return StepInT{ true, nullptr };
@@ -483,10 +483,10 @@ namespace KParser {
             }*/
         }
 
-        void release() override {
-            MatchR::release();
-            m_curMatcher = nullptr;
-        }
+         void release() override {
+             MatchR::release();
+             m_curMatcher = nullptr;
+         }
 
         inline bool nextNode() {
             this->m_curIdx++;
@@ -570,10 +570,12 @@ namespace KParser {
             childMatch.resize(0);
             childMatch.clear();*/
         }
+        
         void release() override {
-            MatchR::release();
-            childMatch.clear();
+             MatchR::release();
+             childMatch.clear();
         }
+
         bool nextNode() {
             if (this->m_ruleNode->m_gen->m_skipBlank) {
                 auto parser = m_ruleNode->m_gen;
@@ -672,5 +674,149 @@ namespace KParser {
 
     MatchR* RuleAll::match(uint32_t start) {
         return new MatchRAll(start, this);
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    //Until
+
+    struct MatchRUntill : public MatchR {
+        MatchR* m_curMatcher = nullptr;
+        uint32_t m_maxLen = 0;
+        bool m_accept = false;
+        MatchRUntill(uint32_t start, RuleNode* rule)
+            :MatchR(start, rule) {
+            auto* parser = m_ruleNode->m_gen;
+            m_maxLen = parser->length - m_startPos;
+        }
+
+        void release() override {
+            MatchR::release();
+            m_curMatcher = nullptr;
+        }
+
+        bool visited = false;
+        MatchR* visitStep() override {
+            if (visited) {
+                visited = false;
+                return nullptr;
+            }
+            visited = true;
+            return m_curMatcher;
+        }
+
+        StepInT stepIn() override {
+            if (m_length == LEN::FAIL) {
+                return StepInT{ false, nullptr };
+            }
+            if (m_accept) {
+                return StepInT{ false, nullptr };
+            }
+            if (m_curMatcher != nullptr) {
+                m_accept = true;
+                // clear
+                m_curMatcher->release();
+                delete m_curMatcher;
+                m_curMatcher = nullptr;
+                // m_length += m_curMatcher->length();
+                return StepInT{ true, nullptr };
+            }
+            m_length++;
+            if (m_length >= m_maxLen) {
+                if (m_curMatcher) {
+                    m_curMatcher->release();
+                    delete m_curMatcher;
+                    m_curMatcher = nullptr;
+                }
+                m_length = LEN::FAIL;
+                return StepInT{ false, nullptr };
+            }
+            auto* cond = ((RuleTill*)m_ruleNode)->m_cond;
+            m_curMatcher = cond->match(m_startPos + m_length);
+            return StepInT{ false, m_curMatcher };
+        };
+
+        void stepOut(MatchR* r) override {
+            if (r != nullptr) {
+                return;
+            }
+            m_curMatcher->release();
+            delete m_curMatcher;
+            m_curMatcher = nullptr;
+        };
+    };
+
+    MatchR* RuleUntil::match(uint32_t start) {
+        return new MatchRUntill(start, this);
+    }
+    
+
+
+    //////////////////////////////////////////////////////////////////////////
+    //till
+
+    struct MatchRTill : public MatchR {
+        MatchR* m_curMatcher = nullptr;
+        uint32_t m_maxLen = 0;
+        bool m_accept = false;
+        MatchRTill(uint32_t start, RuleNode* rule)
+            :MatchR(start, rule) {
+            auto* parser = m_ruleNode->m_gen;
+            m_maxLen = parser->length - m_startPos;
+        }
+
+         void release() override {
+             MatchR::release();
+             m_curMatcher = nullptr;
+         }
+
+        bool visited = false;
+        MatchR* visitStep() override {
+            if (visited) {
+                visited = false;
+                return nullptr;
+            }
+            visited = true;
+            return m_curMatcher;
+        }
+
+        StepInT stepIn() override {
+            if (m_length == LEN::FAIL) {
+                return StepInT{ false, nullptr };
+            }
+            if (m_accept) {
+                return StepInT{ false, nullptr };
+            }
+            if (m_curMatcher != nullptr) {
+                m_accept = true;
+                m_length += m_curMatcher->length();
+                return StepInT{ true, nullptr };
+            }
+            m_length++;
+            if (m_length >= m_maxLen) {
+                if (m_curMatcher) {
+                    m_curMatcher->release();
+                    delete m_curMatcher;
+                    m_curMatcher = nullptr;
+                }
+                m_length = LEN::FAIL;
+                return StepInT{ false, nullptr };
+            }
+            auto* cond = ((RuleTill*)m_ruleNode)->m_cond;
+            m_curMatcher = cond->match(m_startPos+m_length);
+            return StepInT{ false, m_curMatcher };
+        };
+
+        void stepOut(MatchR* r) override {
+            if (r != nullptr) {
+                return;
+            }
+            m_curMatcher->release();
+            delete m_curMatcher;
+            m_curMatcher = nullptr;
+        };
+    };
+
+    MatchR* RuleTill::match(uint32_t start) {
+        return new MatchRTill(start, this);
     }
 }

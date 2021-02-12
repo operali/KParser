@@ -5,16 +5,33 @@
 #include <memory>
 #include <vector>
 
+// #define KOBJECT_DEBUG
+
+#ifdef KOBJECT_DEBUG
+#include <algorithm>
+#endif
+
+
 namespace KParser {
     struct KObject {
+#ifdef KOBJECT_DEBUG
+        static std::vector<KObject*> all;
+        inline static std::vector<KObject*>& debug() {
+            return all;
+        }
+#endif
+
         static uint32_t count;
-        //static std::vector<KObject*> all;
         KObject() {
-            //all.push_back(this);
+#ifdef KOBJECT_DEBUG
+            all.push_back(this);
+#endif
             KObject::count++;
         }
         virtual ~KObject() {
-            //all.erase(std::remove(all.begin(), all.end(), this));
+#ifdef KOBJECT_DEBUG
+            all.erase(std::remove(all.begin(), all.end(), this));
+#endif
             KObject::count--;
         }
     };

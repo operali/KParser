@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#define X
+// #define X
 
 #ifdef X
 
