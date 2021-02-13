@@ -7,7 +7,7 @@
 #include "../src/impl/text/text.h"
 
 TEST(TEXT, first) {
-    KParser::KText text;
+    KLib42::KText text;
     {
         text.setText("\n\nabcd\n12345");
         auto s = text.getSource();
@@ -71,7 +71,7 @@ TEST(TEXT, first) {
 }
 
 TEST(TEXT, second) {
-    KParser::KText text;
+    KLib42::KText text;
     {
         text.setText("abcd\n12345\n!@#$%");
         auto s = text.getSource();

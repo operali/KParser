@@ -1,5 +1,5 @@
 #pragma once
-namespace KParser {
+namespace KLib42 {
     std::string trim(const std::string& s);
 
     char tanslateEscapedChar(char ch);

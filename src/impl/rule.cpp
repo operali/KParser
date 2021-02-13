@@ -7,8 +7,7 @@
 
 // #define isspace(ch) ((ch) == ' ' || (ch) == '\t' || (ch) == '\r' || (ch) == '\n' || (ch) == '\v')
 
-
-namespace KParser {
+namespace KLib42 {
     struct LINE {
         RuleNode* node;
         int32_t iden;
@@ -157,7 +156,7 @@ namespace KParser {
         }
         opStk.push_back(expStk.size());
 
-        m->visit([&](KParser::Match& m, bool is_begin) {
+        m->visit([&](KLib42::Match& m, bool is_begin) {
             auto mr = (MatchR*)&m;
             auto rule = mr->m_ruleNode;
             auto f = rule->m_visitHandle;
@@ -212,7 +211,9 @@ namespace KParser {
                 std::cerr << e.what() << std::endl;
             }
             expStk.erase(b, expStk.end());
-            expStk.emplace_back(std::move(res));
+            if (!res.empty()) {
+                expStk.emplace_back(std::move(res));
+            }
             opStk.pop_back();
         }
         return um;
@@ -285,6 +286,10 @@ namespace KParser {
         return &m_ruleNode->m_gen->m_expStk.at(i);
     }
 
+    size_t MatchR::capture_size() {
+        return m_ruleNode->m_gen->m_expStk.size();
+    };
+
     std::string MatchR::errInfo() {
         return m_ruleNode->m_gen->m_interface->errInfo();
     }
@@ -324,7 +329,7 @@ namespace KParser {
     }
 
     void MatchR::release() {
-        visit([](KParser::Match& m, bool capture) {
+        visit([](KLib42::Match& m, bool capture) {
             if (!capture) {
                 delete& m;
             }

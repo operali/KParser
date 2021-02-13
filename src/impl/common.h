@@ -7,7 +7,7 @@
 #include <tuple>
 #include <functional>
 
-namespace KParser {
+namespace KLib42 {
     using StrT = std::string;
     
     using AnyT = KAny;

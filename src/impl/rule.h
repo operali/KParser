@@ -4,7 +4,7 @@
 #include <vector>
 #include "any.h"
 
-namespace KParser {
+namespace KLib42 {
 
     struct RuleNode;
     
@@ -48,6 +48,7 @@ namespace KParser {
         StrT suffix() override;
 
         KAny* capture(uint32_t i) override;
+        size_t capture_size() override;
         
         std::string errInfo() final;
 

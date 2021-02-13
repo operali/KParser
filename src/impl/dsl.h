@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 
-namespace KParser {
+namespace KLib42 {
     struct DSLNode;
     struct DSLFactory {
         std::vector<DSLNode*> nodes;

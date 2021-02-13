@@ -18,14 +18,14 @@ struct A {
 };
 TEST(SHARED, text) {
     {
-        KParser::KShared<A> w(new A);
+        KLib42::KShared<A> w(new A);
         ASSERT_NE(&w, nullptr);
         ASSERT_EQ(count, 1);
     }
     ASSERT_EQ(count, 0);
 
     {
-        auto w = KParser::makeShared(A{});
+        auto w = KLib42::makeShared(A{});
         ASSERT_EQ(count, 1);
         auto s = w.clone();
         ASSERT_EQ(count, 1);
@@ -35,7 +35,7 @@ TEST(SHARED, text) {
     ASSERT_EQ(count, 0);
 
     {
-        auto w = KParser::makeShared(A{});
+        auto w = KLib42::makeShared(A{});
         auto s = w.clone();
         auto s1 = s.clone();
         ASSERT_EQ(count, 1);
@@ -43,7 +43,7 @@ TEST(SHARED, text) {
     ASSERT_EQ(count, 0);
 
     {
-        auto w = KParser::makeShared(A{});
+        auto w = KLib42::makeShared(A{});
         {   
             auto s = w.clone();
             auto s1 = s.clone();
@@ -53,7 +53,7 @@ TEST(SHARED, text) {
 };
 
 TEST(SHARED, makeShared) {
-    auto a = KParser::makeShared(134);
+    auto a = KLib42::makeShared(134);
     {
         *a = 100;
     }
@@ -66,7 +66,7 @@ TEST(SHARED, makeShared) {
 }
 
 TEST(SHARED, weak) {
-    auto a = KParser::makeShared(std::string("abc"));
+    auto a = KLib42::makeShared(std::string("abc"));
     {
         a->push_back('1');
         ASSERT_EQ(*a, "abc1");

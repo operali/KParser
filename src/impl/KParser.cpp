@@ -9,7 +9,7 @@
 #include <regex>
 #include "dsl.h"
 
-namespace KParser {
+namespace KLib42 {
     uint32_t KObject::count = 0;
 #ifdef KOBJECT_DEBUG
     std::vector<KObject*> KObject::all;
@@ -40,27 +40,27 @@ namespace KParser {
     }
 
     Rule* Parser::none() {
-        return new KParser::RuleEmpty(impl);
+        return new KLib42::RuleEmpty(impl);
     }
 
     Rule* Parser::all() {
-        return new KParser::RuleAll(impl);
+        return new KLib42::RuleAll(impl);
     }
 
     Rule* Parser::any() {
-        return new KParser::RuleAny(impl);
+        return new KLib42::RuleAny(impl);
     }
 
     Rule* Parser::not(Rule* node) {
-        return new KParser::RuleNot(impl, (RuleNode*)node);
+        return new KLib42::RuleNot(impl, (RuleNode*)node);
     }
 
     Rule* Parser::one() {
-        return new KParser::RuleOne(impl);
+        return new KLib42::RuleOne(impl);
     }
 
     Rule* Parser::str(std::string&& str) {
-        return new KParser::RuleStr(impl, std::string(str));
+        return new KLib42::RuleStr(impl, std::string(str));
     }
 
     Rule* Parser::optional(Rule* node) {

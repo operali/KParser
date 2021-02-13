@@ -3,7 +3,7 @@
 #include <iostream>
 #include "util.h"
 
-namespace KParser {
+namespace KLib42 {
     
     std::string trim(const std::string& s)
     {

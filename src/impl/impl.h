@@ -8,7 +8,7 @@
 #include <algorithm>
 
 
-namespace KParser {
+namespace KLib42 {
     
     struct RuleNode;
     class Parser;

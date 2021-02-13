@@ -3,7 +3,7 @@
 #include "dsl.h"
 #include "util.h"
 
-namespace KParser {
+namespace KLib42 {
 
     DSLNode::DSLNode(DSLFactory* builder) :builder(builder) {
         builder->nodes.push_back(this);
@@ -14,7 +14,7 @@ namespace KParser {
         handle(true, this);
     }
 
-    void DSLID::prepare(KParser::Parser& p) {
+    void DSLID::prepare(KLib42::Parser& p) {
         if (name == "ID") {
             rule = p.identifier();
             rule->eval([&](auto& m, auto b, auto e) {
@@ -86,12 +86,12 @@ namespace KParser {
     }
 
 
-    void DSLText::prepare(KParser::Parser& p) {
+    void DSLText::prepare(KLib42::Parser& p) {
         rule = p.str(std::string(name));
     }
 
 
-    void DSLRegex::prepare(KParser::Parser& p) {
+    void DSLRegex::prepare(KLib42::Parser& p) {
         rule = p.regex(name);
     }
 
@@ -107,7 +107,7 @@ namespace KParser {
     }
 
 
-    bool DSLMany::build(KParser::Parser& p) {
+    bool DSLMany::build(KLib42::Parser& p) {
         if (!node->rule) {
             return false;
         }
@@ -116,7 +116,7 @@ namespace KParser {
     }
 
 
-    bool DSLMany1::build(KParser::Parser& p) {
+    bool DSLMany1::build(KLib42::Parser& p) {
         if (!node->rule) {
             return false;
         }
@@ -135,7 +135,7 @@ namespace KParser {
         handle(true, this);
         visiting = false;
     }
-    bool DSLList::build(KParser::Parser& p) {
+    bool DSLList::build(KLib42::Parser& p) {
         if (!node->rule || !dem->rule) {
             return false;
         }
@@ -143,7 +143,7 @@ namespace KParser {
         return true;
     }
 
-    bool DSLOption::build(KParser::Parser& p) {
+    bool DSLOption::build(KLib42::Parser& p) {
         if (!node->rule) {
             return false;
         }
@@ -165,10 +165,10 @@ namespace KParser {
         visiting = false;
     }
 
-    void DSLAny::prepare(KParser::Parser& p) {
+    void DSLAny::prepare(KLib42::Parser& p) {
         rule = p.any();
     }
-    bool DSLAny::build(KParser::Parser& p) {
+    bool DSLAny::build(KLib42::Parser& p) {
         for (auto& c : nodes) {
             if (!c->rule) {
                 std::cerr << "invalid rule of " << rule->toString() << std::endl;
@@ -179,10 +179,10 @@ namespace KParser {
         return true;
     }
 
-    void DSLAll::prepare(KParser::Parser& p) {
+    void DSLAll::prepare(KLib42::Parser& p) {
         rule = p.all();
     }
-    bool DSLAll::build(KParser::Parser& p) {
+    bool DSLAll::build(KLib42::Parser& p) {
         for (auto& c : nodes) {
             if (!c->rule) {
                 std::cerr << "invalid rule of " << rule->toString() << std::endl;
@@ -193,13 +193,13 @@ namespace KParser {
         return true;
     }
 
-    bool DSLRule::build(KParser::Parser& p) {
+    bool DSLRule::build(KLib42::Parser& p) {
         this->rule = node->rule;
         DSLContext* ctx = static_cast<DSLContext*>(builder);
         auto it = ctx->handleMap.find(this->name);
         if (it != ctx->handleMap.end()) {
             auto handle = it->second;
-            this->rule->eval([=](KParser::Match& m, KParser::IT arg, KParser::IT noarg)->KAny {
+            this->rule->eval([=](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg)->KAny {
                 return handle(m, arg, noarg);
             });
         }
@@ -213,11 +213,11 @@ namespace KParser {
         }
     }
 
-    void DSLContext::prepareEvaluation(const std::string& evtName, std::function<KAny(KParser::Match& m, KParser::IT arg, KParser::IT noarg)> handle) {
+    void DSLContext::prepareEvaluation(const std::string& evtName, std::function<KAny(KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg)> handle) {
         handleMap[evtName] = handle;
     }
 
-    std::unique_ptr<KParser::Match> DSLContext::parse(const std::string& ruleName, const std::string& str) {
+    std::unique_ptr<KLib42::Match> DSLContext::parse(const std::string& ruleName, const std::string& str) {
         auto it = idMap.find(ruleName);
         if (it != idMap.end()) {
             auto m = it->second->rule->parse(str);
@@ -231,7 +231,7 @@ namespace KParser {
 
 
     DSLContext::DSLContext() {
-        KParser::Parser& p = m_parser;
+        KLib42::Parser& p = m_parser;
         idMap.emplace(std::make_pair("ID", new DSLID{ this, "ID" , true }));
         idMap.emplace(std::make_pair("NUM", new DSLID{ this, "NUM", true }));
         idMap.emplace(std::make_pair("NONE", new DSLID{ this, "NONE", true }));

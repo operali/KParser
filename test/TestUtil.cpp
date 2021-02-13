@@ -9,7 +9,7 @@
 
 TEST(UTIL, KAny) {
     using NINT = int;
-    using namespace KParser;
+    using namespace KLib42;
     {
         int a = 1234;
         KAny va(a);

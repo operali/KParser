@@ -13,7 +13,7 @@
 #endif
 
 
-namespace KParser {
+namespace KLib42 {
     struct KObject {
 #ifdef KOBJECT_DEBUG
         static std::vector<KObject*> all;
@@ -46,6 +46,7 @@ namespace KParser {
         virtual std::string prefix() = 0;
         virtual std::string suffix() = 0;
         virtual KAny* capture(uint32_t i) = 0;
+        virtual size_t capture_size() = 0;
         virtual std::string errInfo() = 0;
         template<typename T>
         inline T* capture_s(uint32_t i) {

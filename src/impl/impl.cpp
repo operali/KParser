@@ -1,6 +1,6 @@
 #include "impl.h"
 
-namespace KParser {
+namespace KLib42 {
     ParserImpl::ParserImpl(Parser* parser, size_t lookback, bool skipBlank)
         :m_interface(parser), m_skipBlank(skipBlank), m_lookback(lookback), m_headMax(0), m_cache(nullptr), length(0) {
     }

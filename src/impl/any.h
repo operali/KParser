@@ -1,7 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <tuple>
-namespace KParser {
+namespace KLib42 {
     class KAny {
         /*template<typename T> struct TID { static void id(){} };
         template<typename T> static size_t TOF() { return reinterpret_cast<size_t>(TID<T>::id); }
@@ -51,6 +51,10 @@ namespace KParser {
         KAny():val(nullptr) {
 
         }
+
+        bool empty() {
+            return val == nullptr;
+        }
         
         KAny(KAny&& rh): val(rh.val) {
             rh.val = nullptr;
@@ -70,11 +74,23 @@ namespace KParser {
         }
 
         template<typename T>
-        KAny(T&& val) : val(new DataHolder<std::decay<T>::type>(std::forward<T>(val))) {
+        KAny(T&& val) {
+            if (&typeid(val) != &typeid(nullptr_t)) {
+                this->val = new DataHolder<std::decay<T>::type>(std::forward<T>(val));
+            }
+            else {
+                this->val = nullptr;
+            }
         }
 
         template<typename T>
         KAny(const T& val):val(new DataHolder<T>(val)) {
+            if (&typeid(val) != &typeid(nullptr_t)) {
+                this->val = new DataHolder<std::decay<T>::type>(std::forward<T>(val));
+            }
+            else {
+                this->val = nullptr;
+            }
         }
 
         ~KAny() {

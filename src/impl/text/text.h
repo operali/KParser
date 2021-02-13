@@ -2,7 +2,7 @@
 #pragma once
 #include "../ref.h"
 
-namespace KParser {
+namespace KLib42 {
     struct ITextObject {
         virtual ~ITextObject() = default;
     };

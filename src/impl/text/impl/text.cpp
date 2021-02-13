@@ -1,7 +1,9 @@
-#include "./data.h"
+#include <vector>
+#include <string>
 #include <algorithm>
+#include "../text.h"
 
-namespace KParser {
+namespace KLib42 {
 
 	struct KTextImpl {
 		char* _buff;

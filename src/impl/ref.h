@@ -1,7 +1,7 @@
 
 #pragma once
 
-namespace KParser {
+namespace KLib42 {
     struct KCounter;
     template<typename T>
     struct KShared;
