@@ -199,7 +199,7 @@ namespace KParser {
         auto it = ctx->handleMap.find(this->name);
         if (it != ctx->handleMap.end()) {
             auto handle = it->second;
-            this->rule->eval([=](KParser::Match& m, KParser::IT arg, KParser::IT noarg)->libany::any {
+            this->rule->eval([=](KParser::Match& m, KParser::IT arg, KParser::IT noarg)->KAny {
                 return handle(m, arg, noarg);
             });
         }
@@ -213,7 +213,7 @@ namespace KParser {
         }
     }
 
-    void DSLContext::prepareEvaluation(const std::string& evtName, std::function<libany::any(KParser::Match& m, KParser::IT arg, KParser::IT noarg)> handle) {
+    void DSLContext::prepareEvaluation(const std::string& evtName, std::function<KAny(KParser::Match& m, KParser::IT arg, KParser::IT noarg)> handle) {
         handleMap[evtName] = handle;
     }
 
@@ -292,7 +292,7 @@ namespace KParser {
         r_any->eval([&](auto& m, auto b, auto e) {
             auto* node = new DSLAny(this);
             while (b != e) {
-                node->nodes.push_back(libany::any_cast<DSLNode*>(*b++));
+                node->nodes.push_back(*(*b++).get<DSLNode*>());
             }
             if (node->nodes.size() == 1) {
                 DSLNode* n = node->nodes[0];
@@ -304,7 +304,7 @@ namespace KParser {
         r_all->eval([&](auto& m, auto b, auto e) {
             auto* node = new DSLAll(this);
             while (b != e) {
-                node->nodes.push_back(libany::any_cast<DSLNode*>(*b++));
+                node->nodes.push_back(*(*b++).get<DSLNode*>());
             }
             if (node->nodes.size() == 1) {
                 DSLNode* n = node->nodes[0];
@@ -314,26 +314,26 @@ namespace KParser {
 
             });
         r_many->eval([&](auto& m, auto b, auto e) {
-            auto* node = new DSLMany(this, libany::any_cast<DSLNode*>(*b));
+            auto* node = new DSLMany(this, *(*b).get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_many1->eval([&](auto& m, auto b, auto e) {
-            auto* node = new DSLMany1(this, libany::any_cast<DSLNode*>(*b));
+            auto* node = new DSLMany1(this, *(*b).get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_list->eval([&](auto& m, auto b, auto e) {
-            auto* item = libany::any_cast<DSLNode*>(*b++);
-            auto* dem = libany::any_cast<DSLNode*>(*b++);
+            auto* item = *(*b++).get<DSLNode*>();
+            auto* dem = *(*b++).get<DSLNode*>();
             auto* node = new DSLList(this, item, dem);
             return (DSLNode*)node;
             });
         r_option->eval([&](auto& m, auto b, auto e) {
-            auto* node = new DSLOption(this, libany::any_cast<DSLNode*>(*b));
+            auto* node = new DSLOption(this, *(*b).get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_rule->eval([&](auto& m, auto b, auto e) {
-            DSLID* id = (DSLID*)libany::any_cast<DSLNode*>(*b++);
-            DSLRule* r = new DSLRule(this, libany::any_cast<DSLNode*>(*b++));
+            DSLID* id = (DSLID*)*(*b++).get<DSLNode*>();
+            DSLRule* r = new DSLRule(this, *(*b++).get<DSLNode*>());
             r->name = id->name;
             r->ruleLine = m.str();
             return (DSLNode*)r;
@@ -341,7 +341,7 @@ namespace KParser {
         r_ruleList->eval([&](auto& m, auto b, auto e) {
             auto* node = new DSLRuleList(this);
             while (b != e) {
-                node->nodes.push_back((DSLRule*)libany::any_cast<DSLNode*>(*b++));
+                node->nodes.push_back((DSLRule*)*(*b++).get<DSLNode*>());
             }
             return (DSLNode*)node;
             });

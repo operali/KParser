@@ -901,8 +901,8 @@ TEST(CAPTURE, cap1) {
             return m.str();
             });
         auto m = r->parse("abcabc");
-        auto v = libany::any_cast<std::string>(m->capture(0));
-        auto v1 = libany::any_cast<std::string>(m->capture(0));
+        auto v = m->capture_s<std::string>(0);
+        auto v1 = m->capture(0)->get<std::string>();
         EXPECT_EQ(*v, "abc");
         EXPECT_EQ(*v1, "abc");
     
@@ -914,13 +914,13 @@ TEST(CAPTURE, cap1) {
                 });
             auto* r1 = p.many1(r);
             auto m = r1->parse("abcabc");
-            auto v = *libany::any_cast<std::string>(m->capture(0));
+            auto v = *m->capture_s<std::string>(0);
             EXPECT_EQ(v, "abc");
 
-            auto v1 = *libany::any_cast<std::string>(m->capture(0));
+            auto v1 = *m->capture_s<std::string>(0);
             EXPECT_EQ(v1, "abc");
 
-            auto v2 = *libany::any_cast<std::string>(m->capture(1));
+            auto v2 = *m->capture_s<std::string>(1);
             EXPECT_EQ(v2, "abc");
         }
     }

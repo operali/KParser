@@ -374,24 +374,24 @@ b = a+ EOF;
         std::string strVal= "";
         int count = 0;
         ctx.prepareEvaluation("a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
-            try {
-                int num = libany::any_cast<int>(*arg);
+            int* pNum = arg->get<int>();
+            if (pNum) {
+                int num = *pNum;
                 std::cout << "number: " << num << std::endl;
                 numVal += num;
                 return nullptr;
             }
-            catch (libany::bad_any_cast & ex) {
-                try {
-                    auto id = libany::any_cast<std::string>(*arg);
+            else {
+                auto* pid = arg->get<std::string>();
+                if (pid) {
+                    auto id = *pid;
                     strVal += id;
                     std::cout << "string: " << id << std::endl;
                     return nullptr;
                 }
-                catch (libany::bad_any_cast & ex) {
-
-                }
+                return nullptr;
             }
-            return nullptr;
+            
         });
         ctx.prepareEvaluation("b", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
             for (; arg != noarg; ++arg) {
@@ -436,25 +436,27 @@ a = ID | NUM;
 b = [a ','] EOF;
 )");
         p.prepareEvaluation("a", [&](KParser::Match& m, KParser::IT arg, KParser::IT noarg) {
-                        try {
-                            int num = libany::any_cast<int>(*arg);
-                            std::cout << "number of" << num << std::endl;
-                            numval += num;
-                            return nullptr;
-                        }
-                        catch (libany::bad_any_cast & ex) {
-                            try {
-                                auto id = libany::any_cast<std::string>(*arg);
-                                strval += id;
-                                std::cout << "string of" << id << std::endl;
-                                return nullptr;
-                            }
-                            catch (libany::bad_any_cast & ex) {
-            
-                            }
-                        }
-                        return nullptr;
-                    });
+            int* pNum = arg->get<int>();
+            if (pNum) {
+                int num = *pNum;
+                std::cout << "number of" << num << std::endl;
+                numval += num;
+                return nullptr;
+            }
+            else {
+                std::string* pid = arg->get<std::string>();
+                if (pid) {
+                    auto id = *pid;
+                    strval += id;
+                    std::cout << "string of" << id << std::endl;
+                    return nullptr;
+                }
+                else {
+                    return nullptr;
+                }
+
+            }
+            });
         auto r = p.build();
         if (!r) {
             std::cerr << p.getLastError()<< std::endl;

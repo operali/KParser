@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <string>
 
 // #define KOBJECT_DEBUG
 
@@ -35,7 +36,7 @@ namespace KParser {
             KObject::count--;
         }
     };
-    using IT = std::vector<libany::any>::iterator;
+    using IT = std::vector<KAny>::iterator;
 
 
     struct Match : private KObject {
@@ -44,16 +45,11 @@ namespace KParser {
         virtual std::string str() = 0;
         virtual std::string prefix() = 0;
         virtual std::string suffix() = 0;
-        virtual libany::any* capture(uint32_t i) = 0;
+        virtual KAny* capture(uint32_t i) = 0;
         virtual std::string errInfo() = 0;
         template<typename T>
         inline T* capture_s(uint32_t i) {
-            try {
-                return libany::any_cast<T>(capture(i));
-            }
-            catch (libany::bad_any_cast& _) {
-                return nullptr;
-            }
+            return capture(i)->get<T>();
         }
     };
 
@@ -126,7 +122,7 @@ namespace KParser {
     struct EasyParserImpl;
     struct  EasyParser  {
         void prepareRules(const char* strRule);
-        void prepareEvaluation(const char* ruleName, std::function<libany::any(Match& m, IT arg, IT noarg)> eval);
+        void prepareEvaluation(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)> eval);
         bool build();
         std::unique_ptr<Match> parse(const char* ruleName, const std::string& toParse);
         std::string getLastError();
@@ -140,7 +136,7 @@ namespace KParser {
     struct Rule : private KObject {
         virtual std::unique_ptr<Match> parse(const std::string& text) = 0;
         virtual Rule* visit(std::function<void(Match&, bool)> handle) = 0;
-        virtual Rule* eval(std::function<libany::any(Match& m, IT arg, IT noarg)> eval) = 0;
+        virtual Rule* eval(std::function<KAny(Match& m, IT arg, IT noarg)> eval) = 0;
         virtual std::string toString() = 0;
         virtual void appendChild(Rule* r) = 0;
         virtual Parser* host() = 0;
@@ -156,7 +152,7 @@ namespace KParser {
 
             // to make sure static assert is valid
 #if __cpp_static_assert > 201400
-            static_assert(std::is_same_v<T, Rule*>);
+            static_assert(std::is_convertible<T, Rule*>::value);
 #endif
             this->appendChild(node);
         }

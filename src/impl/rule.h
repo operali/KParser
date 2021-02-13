@@ -47,7 +47,7 @@ namespace KParser {
         StrT prefix() override;
         StrT suffix() override;
 
-        libany::any* capture(uint32_t i) override;
+        KAny* capture(uint32_t i) override;
         
         std::string errInfo() final;
 
@@ -76,12 +76,12 @@ namespace KParser {
 
         virtual MatchR* match(uint32_t start) = 0;
         std::function<void(Match& m, bool on)> m_visitHandle;
-        std::function<libany::any(Match& m, IT arg, IT noarg)> m_evalHandle;
+        std::function<KAny(Match& m, IT arg, IT noarg)> m_evalHandle;
 
         std::unique_ptr<Match> parse(const std::string& text) override;
 
         RuleNode* visit(std::function<void(Match&, bool)> act) override;
-        RuleNode* eval(std::function<libany::any(Match& m, IT arg, IT noarg)> eval) override;
+        RuleNode* eval(std::function<KAny(Match& m, IT arg, IT noarg)> eval) override;
         void appendChild(Rule* r) override;
         std::string toString() override;
         Parser* host() override;

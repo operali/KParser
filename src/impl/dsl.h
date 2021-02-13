@@ -114,7 +114,7 @@ namespace KParser {
         Parser m_parser;
         std::string lastError;
         std::unordered_map <std::string, DSLNode*> idMap;
-        std::unordered_map <std::string, std::function<libany::any(Match& m, IT arg, IT noarg)>> handleMap;
+        std::unordered_map <std::string, std::function<KAny(Match& m, IT arg, IT noarg)>> handleMap;
 
         Rule* r_id;
         Rule* r_text; // `id`
@@ -132,7 +132,7 @@ namespace KParser {
 
         DSLContext();
         void prepareRules(std::string str);
-        void prepareEvaluation(const std::string& evtName, std::function<libany::any(Match& m, IT arg, IT noarg)> handle);
+        void prepareEvaluation(const std::string& evtName, std::function<KAny(Match& m, IT arg, IT noarg)> handle);
         bool build();
         std::unique_ptr<Match> parse(const std::string& ruleName, const std::string& str);
     };

@@ -226,7 +226,7 @@ namespace KParser {
         return impl->build();
     }
 
-    void EasyParser::prepareEvaluation(const char* ruleName, std::function<libany::any(Match& m, IT arg, IT noarg)> eval) {
+    void EasyParser::prepareEvaluation(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)> eval) {
         impl->prepareEvaluation(ruleName, eval);
     }
 

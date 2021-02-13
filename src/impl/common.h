@@ -10,7 +10,7 @@
 namespace KParser {
     using StrT = std::string;
     
-    using AnyT = libany::any;
+    using AnyT = KAny;
 
     template<typename T>
     using VecT = std::vector<T>;

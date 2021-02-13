@@ -96,7 +96,7 @@ namespace KParser {
         return this;
     };
 
-    RuleNode* RuleNode::eval(std::function<libany::any(Match& m, IT arg, IT noarg)> eval){
+    RuleNode* RuleNode::eval(std::function<KAny(Match& m, IT arg, IT noarg)> eval){
         m_evalHandle = eval;
         return this;
     }
@@ -137,8 +137,8 @@ namespace KParser {
         std::unique_ptr<Match> um;
         um.reset(m);
 
-        std::vector<libany::any>& expStk = m_gen->m_expStk;
-        using IT = std::vector<libany::any>::iterator;
+        std::vector<KAny>& expStk = m_gen->m_expStk;
+        using IT = std::vector<KAny>::iterator;
         std::vector<uint32_t> opStk;
 
         auto r = m->alter();
@@ -174,12 +174,12 @@ namespace KParser {
             } else {
                 auto eval = ((MatchR*)&m)->m_ruleNode->m_evalHandle;
                 if (eval) {
-                    libany::any res;
+                    KAny res;
                     auto from = opStk.back();
                     IT b = expStk.begin() + from;
                     try {
-                        auto v = eval(*mr, b, expStk.end());
-                        std::swap(v, res);
+                        KAny v(eval(*mr, b, expStk.end()));
+                        res.swap(v);
                     }
                     catch (std::exception& e) {
                         std::cerr << e.what() << std::endl;
@@ -201,12 +201,12 @@ namespace KParser {
         }
         auto eval = m->m_ruleNode->m_evalHandle;
         if (eval) {
-            libany::any res;
+            KAny res;
             auto from = opStk.back();
             IT b = expStk.begin() + from;
             try {
                 auto v = eval(*m, b, expStk.end());
-                std::swap(v, res);
+                v.swap(res);
             }
             catch (std::exception& e) {
                 std::cerr << e.what() << std::endl;
@@ -278,7 +278,7 @@ namespace KParser {
         }
     }
 
-    libany::any* MatchR::capture(uint32_t i) {
+    KAny* MatchR::capture(uint32_t i) {
         if (i >= m_ruleNode->m_gen->m_expStk.size()) {
             return nullptr;
         }

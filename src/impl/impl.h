@@ -32,7 +32,7 @@ namespace KParser {
 
         ParseErr parseErrInfo;
         
-        std::vector<libany::any> m_expStk;
+        std::vector<KAny> m_expStk;
 
         std::vector<const char*> m_ll;
 
