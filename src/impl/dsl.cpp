@@ -32,50 +32,6 @@ namespace KLib42 {
         else if (name == "NONE") {
             rule = p.none();
         }
-        else if (name == "COMMENT") {
-            auto commentRule1 = p.custom([=](const char* b, const char* e)->const char* {
-                if (*b++ != '/' || b == e) {
-                    return nullptr;
-                }
-                if (*b++ != '*' || b == e) {
-                    return nullptr;
-                }
-                bool tryEnd = false;
-                for (; b != e; ++b) {
-                    if (tryEnd) {
-                        if (*b == '/') {
-                            return b + 1;
-                        }
-                        else {
-                            tryEnd = false;
-                        }
-                    }
-                    else {
-                        if (*b == '*') {
-                            tryEnd = true;
-                        }
-                    }
-                }
-                return b;
-                });
-            auto commentRule2 = p.custom([=](const char* b, const char* e)->const char* {
-                if (*b++ != '/' || b == e) {
-                    return nullptr;
-                }
-                if (*b++ != '/' || b == e) {
-                    return nullptr;
-                }
-
-                for (; b != e; ++b) {
-                    if (*b == '\n') {
-                        return b;
-                    }
-                }
-                return b;
-                });
-            rule = p.any(commentRule1, commentRule2);
-        }
-
         else if (name == "EOF") {
             rule = p.eof();
         }
@@ -235,8 +191,49 @@ namespace KLib42 {
         idMap.emplace(std::make_pair("ID", new DSLID{ this, "ID" , true }));
         idMap.emplace(std::make_pair("NUM", new DSLID{ this, "NUM", true }));
         idMap.emplace(std::make_pair("NONE", new DSLID{ this, "NONE", true }));
-        idMap.emplace(std::make_pair("COMMENT", new DSLID{ this, "COMMENT", true }));
         idMap.emplace(std::make_pair("EOF", new DSLID{ this,"EOF", true }));
+
+        auto commentRule1 = p.custom([=](const char* b, const char* e)->const char* {
+            if (*b++ != '/' || b == e) {
+                return nullptr;
+            }
+            if (*b++ != '*' || b == e) {
+                return nullptr;
+            }
+            bool tryEnd = false;
+            for (; b != e; ++b) {
+                if (tryEnd) {
+                    if (*b == '/') {
+                        return b + 1;
+                    }
+                    else {
+                        tryEnd = false;
+                    }
+                }
+                else {
+                    if (*b == '*') {
+                        tryEnd = true;
+                    }
+                }
+            }
+            return b;
+            });
+        auto commentRule2 = p.custom([=](const char* b, const char* e)->const char* {
+            if (*b++ != '/' || b == e) {
+                return nullptr;
+            }
+            if (*b++ != '/' || b == e) {
+                return nullptr;
+            }
+
+            for (; b != e; ++b) {
+                if (*b == '\n') {
+                    return b;
+                }
+            }
+            return b;
+            });
+        r_comment = p.any(commentRule1, commentRule2);
 
         r_id = p.regex(R"(^[a-zA-Z_][a-zA-Z0-9_]*)");
         r_text = p.custom([&](const char* begin, const char* end)->const char* {
@@ -268,10 +265,12 @@ namespace KLib42 {
         r_option = p.all(r_item, "?");
         r_many = p.all(r_item, "*");
         r_many1 = p.all(r_item, "+");
+        r_till = p.all("...", r_item);
         r_list = p.all("[", r_item, r_item, "]");
         r_expr->add(r_many, r_many1, r_option, r_list, r_item);
-        r_rule = p.all(r_id, "=", r_any, ";");
+        r_rule = p.all(p.many(r_comment), r_id, "=", r_any, ";", p.many(r_comment));
         r_ruleList = p.all(p.many1(r_rule), p.eof());
+        
 
         r_id->eval([&](auto& m, auto b, auto e) { 
                 return (DSLNode*)new DSLID{ this, m.str() };

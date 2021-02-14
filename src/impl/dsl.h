@@ -115,7 +115,7 @@ namespace KLib42 {
         std::string lastError;
         std::unordered_map <std::string, DSLNode*> idMap;
         std::unordered_map <std::string, std::function<KAny(Match& m, IT arg, IT noarg)>> handleMap;
-
+        Rule* r_comment;
         Rule* r_id;
         Rule* r_text; // `id`
         Rule* r_regex; // r`id`
@@ -124,6 +124,7 @@ namespace KLib42 {
         Rule* r_option; // item?
         Rule* r_many; // item*
         Rule* r_many1; // item+
+        Rule* r_till; // ...item
         Rule* r_list; // [k, x]
         Rule* r_rule; // `id` `=` any `;`
         Rule* r_any; // seq(p.all , "|");

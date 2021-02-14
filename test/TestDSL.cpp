@@ -224,6 +224,30 @@ TEST(DSL_BASIC, group) {
     }
 }
 
+TEST(DSL_BASIC, till) {
+    KLib42::Parser p;
+    KLib42::DSLContext ctx;
+    {
+        auto m = ctx.r_till->parse("...'abc'");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "...'abc'");
+        KLib42::DSLNode** id = m->capture_s<KLib42::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        EXPECT_EQ(&typeid(**id), &typeid(KLib42::DSLText));
+        ASSERT_EQ(((KLib42::DSLText*)(*id))->name, "abc");
+    }
+
+    {
+        auto m = ctx.r_till->parse("...(abc)");
+        ASSERT_EQ(m != nullptr, true);
+        EXPECT_EQ(m->str(), "...(abc)");
+        KLib42::DSLNode** id = m->capture_s<KLib42::DSLNode*>(0);
+        ASSERT_EQ(id != nullptr, true);
+        EXPECT_EQ(&typeid(**id), &typeid(KLib42::DSLID));
+        ASSERT_EQ(((KLib42::DSLID*)(*id))->name, "abc");
+    }
+}
+
 TEST(DSL_BASIC, all) {
     KLib42::Parser p;
     KLib42::DSLContext ctx;
@@ -346,13 +370,18 @@ TEST(DSL_BASIC, rule) {
 TEST(DSL_BASIC, ruleList) {
     KLib42::DSLContext ctx;
     {
-        auto m = ctx.r_ruleList->parse(R"(  a = a a | b;
-b = a | b;
+        auto m = ctx.r_ruleList->parse(R"(
+// comment 1
+// comment 2
+a = a a | b;
+/*second comments * / */b = a | b;
 c = c | /d*/;
 )");
         ASSERT_EQ(m != nullptr, true);
-        EXPECT_EQ(m->str(), R"(a = a a | b;
-b = a | b;
+        EXPECT_EQ(m->str(), R"(// comment 1
+// comment 2
+a = a a | b;
+/*second comments * / */b = a | b;
 c = c | /d*/;)");
 
         KLib42::DSLNode** d = m->capture_s<KLib42::DSLNode*>(0);
