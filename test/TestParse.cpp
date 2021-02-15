@@ -15,7 +15,7 @@
 //        return m.str();
 //        });
 //    auto m = r->parse("xxxabc");
-//    if (m != nullptr) {
+//    if (m.get() != nullptr) {
 //        EXPECT_EQ(m->str(), "xxxabc");
 //        EXPECT_EQ(*(m->capture_s<std::string>(0)), "abc");
 //    }
@@ -28,7 +28,7 @@ TEST(BASIC, remove_space) {
         std::vector<std::string> v;
         auto k = p.many1(p.identifier()->visit([&](KLib42::Match& m, bool capture) {
             if (!capture) {
-                v.push_back(m.occupied_str());
+                v.push_back(m.str());
             }
             }));
         k->parse(R"(a1
@@ -65,7 +65,7 @@ TEST(BASIC, class1_) {
                 "abc",
                 str("123")->visit([this](KLib42::Match& m, bool capture) {
                     std::cout << "hello" << std::endl;
-                    this->val = m.occupied_str();
+                    this->val = m.str();
                     })
             );
         }
@@ -75,7 +75,7 @@ TEST(BASIC, class1_) {
         MyParser parser;
         try {
             auto m = parser.ruleOf()->parse("123");
-            EXPECT_EQ(m != nullptr, true);
+            EXPECT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(parser.val, "123");
 
         }
@@ -83,6 +83,7 @@ TEST(BASIC, class1_) {
             EXPECT_EQ(true, false);
         }
     }
+    EXPECT_EQ(KLib42::KObject::count, 0);
 }
 
 TEST(BASIC, leaf_none) {
@@ -110,17 +111,17 @@ TEST(BASIC, leaf_str) {
         auto r = p.str("1234");
         {
             auto m = r->parse("1234");
-            std::string v = m->occupied_str();
+            std::string v = m->str();
             EXPECT_EQ(v, "1234");
         }
 
         {
-            EXPECT_EQ(r->parse("123"), nullptr);
+            EXPECT_EQ(r->parse("123").get(), nullptr);
         }
 
         {
             auto m = r->parse("12345");
-            EXPECT_EQ(m != nullptr, true);
+            EXPECT_EQ(m.get() != nullptr, true);
         }
     }
     EXPECT_EQ(KLib42::KObject::count, 0);
@@ -136,8 +137,8 @@ TEST(BASIC, branch_all) {
                 "5678"
             );
             auto m = r->parse("12345678");
-            ASSERT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
+            ASSERT_EQ(m.get() != nullptr, true);
+            std::string v = m->str();
             EXPECT_EQ(v, "12345678");
         }
         {
@@ -147,8 +148,8 @@ TEST(BASIC, branch_all) {
             );
 
             auto m = r->parse("12345678");
-            ASSERT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
+            ASSERT_EQ(m.get() != nullptr, true);
+            std::string v = m->str();
             EXPECT_EQ(v, "12345678");
         }
     }
@@ -165,9 +166,9 @@ TEST(BASIC, branch_any1) {
                 p.str("5678")
             );
             auto um = r->parse("5678    ");
-            auto m = (KLib42::MatchR*)um.get();
-            ASSERT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
+            auto pm = (KLib42::MatchR*)um.get();
+            ASSERT_EQ(pm != nullptr, true);
+            std::string v = pm->str();
         }
         {
             auto r = (KLib42::RuleNode*)p.any(
@@ -176,11 +177,11 @@ TEST(BASIC, branch_any1) {
             );
 
             auto um = r->parse("5678    ");
-            auto m = (KLib42::MatchR*)um.get();
-            ASSERT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
+            auto pm = (KLib42::MatchR*)um.get();
+            ASSERT_EQ(pm != nullptr, true);
+            std::string v = pm->str();
             EXPECT_EQ(v, "5678");
-            EXPECT_EQ(m->length(), 4);
+            EXPECT_EQ(pm->length(), 4);
         }
     }
     EXPECT_EQ(KLib42::KObject::count, 0);
@@ -198,7 +199,7 @@ TEST(BASIC, branch_all_any) {
             k, k
         );
         auto m = r->parse("5678 1234");
-        std::string v = m->occupied_str();
+        std::string v = m->str();
         EXPECT_EQ(v, "5678 1234");
         EXPECT_EQ(m->length(), 9);
     }
@@ -216,7 +217,7 @@ TEST(IMPLEMENT, match) {
             p.none()
         );
         auto m = r->parse("abcde");
-        ASSERT_EQ(m->occupied_str(), "");
+        ASSERT_EQ(m->str(), "");
     }
     EXPECT_EQ(KLib42::KObject::count, 0);
 }
@@ -230,26 +231,26 @@ TEST(FEATURE, many) {
         auto ks = p.many(k);
         {
             auto m = ks->parse("");
-            EXPECT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
+            EXPECT_EQ(m.get() != nullptr, true);
+            std::string v = m->str();
             EXPECT_EQ(v, "");
         }
         {
             auto m = ks->parse("abc");
-            ASSERT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
+            ASSERT_EQ(m.get() != nullptr, true);
+            std::string v = m->str();
             EXPECT_EQ(v, "abc");
         }
         {
             auto m = ks->parse("abcabc");
-            ASSERT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
+            ASSERT_EQ(m.get() != nullptr, true);
+            std::string v = m->str();
             EXPECT_EQ(v, "abcabc");
         }
         {
             auto m = ks->parse("abcdabc");
-            ASSERT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
+            ASSERT_EQ(m.get() != nullptr, true);
+            std::string v = m->str();
             EXPECT_EQ(v, "abc");
         }
     }
@@ -268,17 +269,17 @@ TEST(FEATURE, many_1) {
         auto ks = p.many(k);
         {
             auto m = ks->parse("abc");
-            std::string v = m->occupied_str();
+            std::string v = m->str();
             EXPECT_EQ(v, "abc");
         }
         {
             auto m = ks->parse("abc123");
-            std::string v = m->occupied_str();
+            std::string v = m->str();
             EXPECT_EQ(v, "abc123");
         }
         {
             auto m = ks->parse("abc 123abc abc 12312");
-            std::string v = m->occupied_str();
+            std::string v = m->str();
             EXPECT_EQ(v, "abc 123abc abc 123");
         }
     }
@@ -296,25 +297,25 @@ TEST(FEATURE, many1) {
         auto ks = p.many1(k);
         {
             auto m = ks->parse("");
-            EXPECT_EQ(m, nullptr);
+            EXPECT_EQ(m.get(), nullptr);
         }
         {
             auto m = ks->parse("abc");
-            EXPECT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
+            EXPECT_EQ(m.get() != nullptr, true);
+            std::string v = m->str();
             EXPECT_EQ(v, "abc");
         }
         {
             auto m = ks->parse("abc123");
-            EXPECT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
+            EXPECT_EQ(m.get() != nullptr, true);
+            std::string v = m->str();
             EXPECT_EQ(v, "abc123");
         }
         {
             auto m = ks->parse("  abc 123abc abc 12312");
-            EXPECT_EQ(m != nullptr, true);
-            std::string v = m->occupied_str();
-            EXPECT_EQ(v, "  abc 123abc abc 123");
+            EXPECT_EQ(m.get() != nullptr, true);
+            std::string v = m->str();
+            EXPECT_EQ(v, "abc 123abc abc 123");
         }
     }
     EXPECT_EQ(KLib42::KObject::count, 0);
@@ -339,8 +340,8 @@ TEST(FEATURE, pred) {
             });
         {
             auto m = r->parse("abdddd");
-            ASSERT_EQ(m != nullptr, true);
-            EXPECT_EQ(m->occupied_str(), "abddd");
+            ASSERT_EQ(m.get() != nullptr, true);
+            EXPECT_EQ(m->str(), "abddd");
         };
     }
 }
@@ -355,13 +356,13 @@ TEST(FEATURE, optional) {
         );
         {
             auto m = r->parse("");
-            ASSERT_EQ(m != nullptr, true);
-            EXPECT_EQ(m->occupied_str(), "");
+            ASSERT_EQ(m.get() != nullptr, true);
+            EXPECT_EQ(m->str(), "");
         };
         {
             auto m = r->parse("abc");
-            ASSERT_EQ(m != nullptr, true);
-            EXPECT_EQ(m->occupied_str(), "abc");
+            ASSERT_EQ(m.get() != nullptr, true);
+            EXPECT_EQ(m->str(), "abc");
         };
     }
 }
@@ -372,12 +373,12 @@ TEST(FEATURE, NOT) {
         auto r = p.not(p.str("abc"));
         {
             auto m = r->parse("abc");
-            ASSERT_EQ(m == nullptr, true);
+            ASSERT_EQ(m.get() == nullptr, true);
         }
 
         {
             auto m = r->parse("ddd");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(m->str(), "");
         };
     }
@@ -389,43 +390,43 @@ TEST(FEATURE, CHAR) {
         {
             auto r = p.one();
             auto m = r->parse("ab");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             ASSERT_EQ(m->str(), "a");
         }
         {
             auto r = p.all(p.one(), p.one());
             auto m = r->parse("ab");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             ASSERT_EQ(m->str(), "ab");
         }
         {
             auto r = p.all(p.one(), p.one(), p.one());
             auto m = r->parse("ab");
-            ASSERT_EQ(m == nullptr, true);
+            ASSERT_EQ(m.get() == nullptr, true);
         }
         {
             auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
             auto m = r->parse("abc");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             ASSERT_EQ(m->str(), "");
         }
         {
             auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
             auto m = r->parse("asdfasdfabc");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(m->str(), "asdfasdf");
         };
 
         {
             auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
             auto m = r->parse("asdfasdfasdf");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(m->str(), "asdfasdfasdf");
         };
         {
             auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
             auto m = r->parse("asdfasdfabcasdf");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(m->str(), "asdfasdf");
         };
     }
@@ -439,13 +440,13 @@ TEST(FEATURE, until) {
         );
         {
             auto m = r->parse("12341234abc");
-            ASSERT_EQ(m != nullptr, true);
-            EXPECT_EQ(m->occupied_str(), "12341234");
+            ASSERT_EQ(m.get() != nullptr, true);
+            EXPECT_EQ(m->str(), "12341234");
         }
 
         {
             auto m = r->parse("12341234");
-            ASSERT_EQ(m == nullptr, true);
+            ASSERT_EQ(m.get() == nullptr, true);
         };
     }
 }
@@ -514,7 +515,7 @@ TEST(FEATURE, till_1) {
             auto r = p.till(r1);
             auto m = r->parse("   */   */");
             EXPECT_EQ(m->str(), "   */");
-            EXPECT_EQ(*m->capture_s<std::string>(0), "*/");
+            EXPECT_EQ(*m->capture<std::string>(0), "*/");
         }
     }
     // auto& all = KParser::KObject::debug();
@@ -526,16 +527,16 @@ TEST(FEATURE, regex) {
     {
         auto r = p.regex("^[0-9]+");
         auto m = r->parse("12345bc");
-        ASSERT_EQ(m != nullptr, true);
-        EXPECT_EQ(m->occupied_str(), "12345");
+        ASSERT_EQ(m.get() != nullptr, true);
+        EXPECT_EQ(m->str(), "12345");
         EXPECT_EQ(m->str(), "12345");
     }
 
     {
         auto r = p.regex("[0-9]+");
         auto m = r->parse("12345bc");
-        ASSERT_EQ(m != nullptr, true);
-        EXPECT_EQ(m->occupied_str(), "12345");
+        ASSERT_EQ(m.get() != nullptr, true);
+        EXPECT_EQ(m->str(), "12345");
     }
 }
 TEST(FEATURE, regex_1) {
@@ -544,7 +545,7 @@ TEST(FEATURE, regex_1) {
         {
             auto r = p.all(p.none(), p.regex("^[a-zA-Z_][a-zA-Z0-9_]*$"));
             auto m = r->parse("asdfasfd");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             ASSERT_EQ(m->str(), "asdfasfd");
         }
         {
@@ -555,8 +556,7 @@ TEST(FEATURE, regex_1) {
                     })
             );
             auto m = r->parse("  _1234_");
-            ASSERT_EQ(m != nullptr, true);
-            ASSERT_EQ(m->occupied_str(), "  _1234_");
+            ASSERT_EQ(m.get() != nullptr, true);
             ASSERT_EQ(m->str(), "_1234_");
         }
     }
@@ -570,24 +570,24 @@ TEST(FEATURE, identify) {
         {
             auto r = p.identifier();
             auto m = r->parse("42");
-            ASSERT_EQ(m != nullptr, false);
+            ASSERT_EQ(m.get() != nullptr, false);
         }
         {
             auto r = p.integer_();
             auto m = r->parse("42x");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(m->str(), "42");
         }
         {
             auto r = p.float_();
             auto m = r->parse("42.3x");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(m->str(), "42.3");
         }
         {
             auto r = p.float_();
             auto m = r->parse("12 ");
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(m->str(), "12");
         }
     }
@@ -601,25 +601,25 @@ TEST(FEATURE, eof) {
         {
             auto r = p.all(p.identifier(), p.eof());
             auto m = r->parse("ddd x");
-            ASSERT_EQ(m != nullptr, false);
+            ASSERT_EQ(m.get() != nullptr, false);
         }
         {
             auto r = p.all(p.identifier(), p.eof());
             auto m = r->parse("ddd ");
-            ASSERT_EQ(m != nullptr, true);
-            EXPECT_EQ(m->occupied_str(), "ddd ");
+            ASSERT_EQ(m.get() != nullptr, true);
+            EXPECT_EQ(m->str(), "ddd");
         }
         {
             auto r = p.all(p.identifier(), p.integer_(), p.eof());
             auto m = r->parse("ddd 123 x");
-            ASSERT_EQ(m != nullptr, false);
+            ASSERT_EQ(m.get() != nullptr, false);
         }
 
         {
             auto r = p.all(p.identifier(), p.integer_(), p.eof());
             auto m = r->parse("ddd 123 ");
-            ASSERT_EQ(m != nullptr, true);
-            EXPECT_EQ(m->occupied_str(), "ddd 123 ");
+            ASSERT_EQ(m.get() != nullptr, true);
+            EXPECT_EQ(m->str(), "ddd 123");
         }
     }
 }
@@ -662,11 +662,11 @@ TEST(example, c_function) {
 
         argType tmpType;
         auto startArg = [&](KLib42::Match& m, bool capture) {
-            tmpType.type = m.occupied_str();
+            tmpType.type = m.str();
         };
 
         auto stopArg = [&](KLib42::Match& m, bool capture) {
-            tmpType.name = m.occupied_str();
+            tmpType.name = m.str();
             args.push_back(tmpType);
         };
 
@@ -677,7 +677,7 @@ TEST(example, c_function) {
 
         auto func = p.all(
             p.many(mod),
-            type()->visit([&](KLib42::Match& m, bool capture) {retType = m.occupied_str(); }),
+            type()->visit([&](KLib42::Match& m, bool capture) {retType = m.str(); }),
             p.identifier(),
             p.str("("),
             p.list(arg, p.str(",")),
@@ -704,7 +704,7 @@ TEST(example, s_exp) {
             std::vector<std::string> ids;
             id->visit([&](KLib42::Match& m, bool capture) {
                 if (!capture) {
-                    ids.push_back(m.occupied_str());
+                    ids.push_back(m.str());
                 }
                 
                 });
@@ -721,7 +721,7 @@ TEST(example, s_exp) {
                 });
 
             auto m = group->parse(text);
-            ASSERT_EQ(m != nullptr, true);
+            ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(count, 4);
 
             ASSERT_EQ(ids.size(), 4);
@@ -861,7 +861,7 @@ TEST(DEBUG, trace_back2) {
         auto r1 = p.many(p.str("Abc")->visit(counter));
         auto r2 = p.str(ssSubstr.str());
         auto r = p.all(r1, r2);
-        EXPECT_EQ(r->parse(ssToMatch.str()) != nullptr, true);
+        EXPECT_EQ(r->parse(ssToMatch.str()).get() != nullptr, true);
 
         EXPECT_EQ(count, 2); //1*2
     }
@@ -884,7 +884,7 @@ TEST(DEBUG, trace_back2) {
         auto r1 = p.many(p.str("Abc")->visit(counter));
         auto r2 = p.str(ssSubstr.str());
         auto r = p.all(r1, r2);
-        EXPECT_EQ(r->parse(ssToMatch.str()) == nullptr, true);
+        EXPECT_EQ(r->parse(ssToMatch.str()).get() == nullptr, true);
         EXPECT_EQ(count, 0);
 
     }
@@ -901,8 +901,8 @@ TEST(CAPTURE, cap1) {
             return m.str();
             });
         auto m = r->parse("abcabc");
-        auto v = m->capture_s<std::string>(0);
-        auto v1 = m->capture(0)->get<std::string>();
+        auto v = m->capture<std::string>(0);
+        auto v1 = m->captureAny(0)->get<std::string>();
         EXPECT_EQ(*v, "abc");
         EXPECT_EQ(*v1, "abc");
     
@@ -914,13 +914,13 @@ TEST(CAPTURE, cap1) {
                 });
             auto* r1 = p.many1(r);
             auto m = r1->parse("abcabc");
-            auto v = *m->capture_s<std::string>(0);
+            auto v = *m->capture<std::string>(0);
             EXPECT_EQ(v, "abc");
 
-            auto v1 = *m->capture_s<std::string>(0);
+            auto v1 = *m->capture<std::string>(0);
             EXPECT_EQ(v1, "abc");
 
-            auto v2 = *m->capture_s<std::string>(1);
+            auto v2 = *m->capture<std::string>(1);
             EXPECT_EQ(v2, "abc");
         }
     }
@@ -941,7 +941,7 @@ TEST(EVAL, NULLPTR) {
         });
 
     auto m = r->parse("abccde");
-    auto v = m->capture_size();
+    auto v = m->captureSize();
     EXPECT_EQ(v, 0);
 }
 #endif

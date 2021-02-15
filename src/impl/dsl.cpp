@@ -2,6 +2,7 @@
 #include "common.h"
 #include "dsl.h"
 #include "util.h"
+#include "KParser.h"
 
 namespace KLib42 {
 
@@ -99,6 +100,14 @@ namespace KLib42 {
         return true;
     }
 
+    bool DSLTill::build(Parser& p) {
+        if (!node->rule) {
+            return false;
+        }
+        rule = p.till(node->rule);
+        return true;
+    };
+
     bool DSLOption::build(KLib42::Parser& p) {
         if (!node->rule) {
             return false;
@@ -173,11 +182,11 @@ namespace KLib42 {
         handleMap[evtName] = handle;
     }
 
-    std::unique_ptr<KLib42::Match> DSLContext::parse(const std::string& ruleName, const std::string& str) {
+    KUnique<KLib42::Match> DSLContext::parse(const std::string& ruleName, const std::string& str) {
         auto it = idMap.find(ruleName);
         if (it != idMap.end()) {
             auto m = it->second->rule->parse(str);
-            if (m == nullptr) {
+            if (m.get() == nullptr) {
                 lastError = m_parser.errInfo();
             }
             return m;
@@ -267,7 +276,7 @@ namespace KLib42 {
         r_many1 = p.all(r_item, "+");
         r_till = p.all("...", r_item);
         r_list = p.all("[", r_item, r_item, "]");
-        r_expr->add(r_many, r_many1, r_option, r_list, r_item);
+        r_expr->add(r_till, r_many, r_many1, r_option, r_list, r_item);
         r_rule = p.all(p.many(r_comment), r_id, "=", r_any, ";", p.many(r_comment));
         r_ruleList = p.all(p.many1(r_rule), p.eof());
         
@@ -326,6 +335,11 @@ namespace KLib42 {
             auto* node = new DSLList(this, item, dem);
             return (DSLNode*)node;
             });
+        r_till->eval([&](auto& m, auto b, auto e) {
+            auto* item = *(*b++).get<DSLNode*>();
+            auto* node = new DSLTill(this, item);
+            return (DSLNode*)node;
+            });
         r_option->eval([&](auto& m, auto b, auto e) {
             auto* node = new DSLOption(this, *(*b).get<DSLNode*>());
             return (DSLNode*)node;
@@ -352,12 +366,12 @@ namespace KLib42 {
 
     bool DSLContext::build() {
         auto m = r_ruleList->parse(m_strRule);
-        if (m == nullptr) {
+        if (m.get() == nullptr) {
             lastError = m_parser.errInfo();
             std::cerr << lastError << std::endl;
             return false;
         }
-        DSLNode** d = m->capture_s<DSLNode*>(0);
+        DSLNode** d = m->capture<DSLNode*>(0);
         DSLRuleList* rlist = (DSLRuleList*)*d;
 
         bool succ = true;
@@ -399,13 +413,15 @@ namespace KLib42 {
                 auto it = idMap.find(id->name);
                 if (it == idMap.end()) {
                     std::cerr << id->name << " is not defined " << std::endl;
-                    lastError = id->name + " is not defined\n";
+                    // id->name + " is not defined\n";
+                    lastError = KShared<KError>(new UndefinedIDError(&this->m_parser, id));
                     succ = false;
                     break;
                 }
                 node = it->second;
                 if (node == kv.second) {
-                    lastError = id->name + " is defined recursively\n";
+                    lastError = KShared<KError>(new RecursiveIDError(&this->m_parser, id));
+                    // lastError = id->name + " is defined recursively\n";
                     succ = false;
                     break;
                 }
@@ -468,21 +484,23 @@ namespace KLib42 {
                             }
                             else {
                                 succ = false;
-                                lastError = std::string("invalid id of ") + id->name;
+                                // std::string("invalid id of ") + id->name;
+                                lastError = KShared<KError>(new UndefinedIDError(&this->m_parser, id));
                             }
                         }
                         return;
                     }
-                    auto* child = dynamic_cast<DSLID*>(wrap->node);
-                    if (!child) return;
-                    auto it = idMap.find(child->name);
+                    auto* id = dynamic_cast<DSLID*>(wrap->node);
+                    if (!id) return;
+                    auto it = idMap.find(id->name);
                     if (it != idMap.end()) {
                         // replace
                         wrap->node = it->second;
                     }
                     else {
                         succ = false;
-                        lastError = std::string("invalid id of ") + child->name;
+                        lastError = KShared<KError>(new UndefinedIDError(&this->m_parser, id));
+                        // lastError = std::string("invalid id of ") + child->name;
                     }
                 }
                 else {
@@ -497,7 +515,8 @@ namespace KLib42 {
                             }
                             else {
                                 succ = false;
-                                lastError = std::string("invalid id of ") + id->name;
+                                lastError = KShared<KError>(new UndefinedIDError(&this->m_parser, id));
+                                // lastError = std::string("invalid id of ") + id->name;
                             }
                         }
                         id = dynamic_cast<DSLID*>(plist->dem);
@@ -509,7 +528,8 @@ namespace KLib42 {
                             }
                             else {
                                 succ = false;
-                                lastError = std::string("invalid id of ") + id->name;
+                                lastError = KShared<KError>(new UndefinedIDError(&this->m_parser, id));
+                                // lastError = std::string("invalid id of ") + id->name;
                             }
                         }
                     }
@@ -532,7 +552,8 @@ namespace KLib42 {
                                 }
                                 else {
                                     succ = false;
-                                    lastError = std::string("invalid id of ") + id->name;
+                                    lastError = KShared<KError>(new UndefinedIDError(&this->m_parser, id));
+                                    // lastError = std::string("invalid id of ") + id->name;
                                 }
                             }
                         }

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../KParser.h"
-#include "common.h"
 #include "rule.h"
+#include "./error.h"
 
 // for memcpy
 #include <algorithm>
@@ -15,22 +15,22 @@ namespace KLib42 {
     struct ParserImpl {
         Parser* m_interface;
         bool m_skipBlank;
-        size_t m_lookback;
-        size_t m_headMax;
+        KUSIZE m_lookback;
+        KUSIZE m_headMax;
         
         char* m_cache;
-        size_t length;
-        VecT<RuleNode*> rules;
+        KUSIZE length;
+        std::vector<RuleNode*> rules;
 
-        struct ParseErr {
-            int row = 0;
-            int col = 0;
+        /*struct ParseErr {
+            KUSIZE row = 0;
+            KUSIZE col = 0;
             const char* lineMid = nullptr;
             const char* lineLeft = nullptr;
             const char* lineRight = nullptr;
-        };
+        };*/
 
-        ParseErr parseErrInfo;
+        KShared<KError> parseErrInfo;
         
         std::vector<KAny> m_expStk;
 
@@ -40,7 +40,7 @@ namespace KLib42 {
 
         void genParseError();
 
-        ParserImpl(Parser* parser, size_t lookback, bool skipBlank);
+        ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank);
         ~ParserImpl();
         void reset();
     };

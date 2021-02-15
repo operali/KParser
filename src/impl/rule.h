@@ -17,40 +17,39 @@ namespace KLib42 {
     };
 
     struct MatchR : public Match {
-        uint32_t m_startPos;
-        int32_t m_length;
+        KUSIZE m_startPos;
+        KSIZE m_length;
 
-        enum LEN : int32_t {
+        enum LEN : KSIZE {
             FAIL = -2,
             INIT = -1,
             SUCC = 0
         };
         
         RuleNode* m_ruleNode;
-        MatchR(uint32_t start, RuleNode* rule);
+        MatchR(KUSIZE start, RuleNode* rule);
         virtual ~MatchR() = default;
 
         inline bool succ(){
             return m_length >= LEN::SUCC;
         }
         
-        inline uint32_t length() override {
-            return (uint32_t)m_length;
+        inline KUSIZE length() override {
+            return (KUSIZE)m_length;
         }
 
-        inline void accept(uint32_t sz) {
+        inline void accept(KUSIZE sz) {
             m_length = sz;
         }
 
-        StrT occupied_str() override;
         std::string str() override;
-        StrT prefix() override;
-        StrT suffix() override;
+        std::string prefix() override;
+        std::string suffix() override;
 
-        KAny* capture(uint32_t i) override;
-        size_t capture_size() override;
+        KAny* captureAny(KUSIZE i) override;
+        size_t captureSize() override;
         
-        std::string errInfo() final;
+        KShared<KError> errInfo() final;
 
         virtual StepInT stepIn() {
             throw std::exception();//TODO
@@ -75,11 +74,11 @@ namespace KLib42 {
             return dynamic_cast<T*>(this);
         }
 
-        virtual MatchR* match(uint32_t start) = 0;
+        virtual MatchR* match(KUSIZE start) = 0;
         std::function<void(Match& m, bool on)> m_visitHandle;
         std::function<KAny(Match& m, IT arg, IT noarg)> m_evalHandle;
 
-        std::unique_ptr<Match> parse(const std::string& text) override;
+        KUnique<Match> parse(const std::string& text) override;
 
         RuleNode* visit(std::function<void(Match&, bool)> act) override;
         RuleNode* eval(std::function<KAny(Match& m, IT arg, IT noarg)> eval) override;
@@ -92,13 +91,13 @@ namespace KLib42 {
         RuleEmpty(ParserImpl* gen):RuleNode(gen){
         }
         ~RuleEmpty() override = default;
-        MatchR* match(uint32_t start) final;
+        MatchR* match(KUSIZE start) final;
     };
 
     struct RuleStr : public RuleNode{
         char* buff;
-        uint32_t len;
-        RuleStr(ParserImpl* gen, StrT text):RuleNode(gen){
+        KUSIZE len;
+        RuleStr(ParserImpl* gen, const std::string& text):RuleNode(gen){
             auto ptext = text.c_str();
             len = text.length();
             if (len == 0) {
@@ -111,18 +110,18 @@ namespace KLib42 {
         ~RuleStr() {
             delete[] buff;
         }
-        MatchR* match(uint32_t start) final;
+        MatchR* match(KUSIZE start) final;
     };
 
     struct RuleCustom : public RuleNode {
         PredT pred;
         RuleCustom(ParserImpl* gen, PredT pred) :RuleNode(gen), pred(pred) {
         }
-        MatchR* match(uint32_t start) final;
+        MatchR* match(KUSIZE start) final;
     };
 
     struct RuleCompound : public RuleNode {
-        VecT<RuleNode*> children;
+        std::vector<RuleNode*> children;
         void appendChild(Rule* r) override {
             children.push_back((RuleNode*)r);
         }
@@ -131,34 +130,34 @@ namespace KLib42 {
 
     struct RuleAll : public RuleCompound {
         RuleAll(ParserImpl* gen) :RuleCompound(gen) {};
-        MatchR* match(uint32_t start) final;
+        MatchR* match(KUSIZE start) final;
     };
 
     struct RuleAny : public RuleCompound {
         RuleAny(ParserImpl* gen) :RuleCompound(gen) {};
-        MatchR* match(uint32_t start) final;
+        MatchR* match(KUSIZE start) final;
     };
 
     struct RuleTill : public RuleNode {
         RuleNode* m_cond;
         RuleTill(ParserImpl* gen, RuleNode* cond) :RuleNode(gen), m_cond(cond) {};
-        MatchR* match(uint32_t start) final;
+        MatchR* match(KUSIZE start) final;
     };
 
     struct RuleUntil : public RuleNode {
         RuleNode* m_cond;
         RuleUntil(ParserImpl* gen, RuleNode* cond) :RuleNode(gen), m_cond(cond) {};
-        MatchR* match(uint32_t start) final;
+        MatchR* match(KUSIZE start) final;
     };
 
     struct RuleNot : public RuleNode {
         RuleNode* m_cond;
         RuleNot(ParserImpl* gen, RuleNode* cond) :RuleNode(gen), m_cond(cond) {};
-        MatchR* match(uint32_t start) final;
+        MatchR* match(KUSIZE start) final;
     };
 
     struct RuleOne : public RuleNode {
         RuleOne(ParserImpl* gen) :RuleNode(gen) {};
-        MatchR* match(uint32_t start) final;
+        MatchR* match(KUSIZE start) final;
     };
 }

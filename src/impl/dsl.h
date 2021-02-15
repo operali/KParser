@@ -1,7 +1,8 @@
 #pragma once
-#include "../KParser.h"
+
 #include <vector>
 #include <unordered_map>
+#include "./impl.h"
 
 namespace KLib42 {
     struct DSLNode;
@@ -12,6 +13,7 @@ namespace KLib42 {
 
     struct DSLNode {
         DSLFactory* builder;
+        MatchR* matcher;
         DSLNode(DSLFactory* builder);
 
         virtual ~DSLNode() {}
@@ -71,6 +73,11 @@ namespace KLib42 {
         bool build(Parser& p) override;
     };
 
+    struct DSLTill : public DSLWrap {
+        DSLTill(DSLFactory* builder, DSLNode* node) :DSLWrap(builder, node) {};
+        bool build(Parser& p) override;
+    };
+
     struct DSLOption : public DSLWrap {
         DSLOption(DSLFactory* builder, DSLNode* node) :DSLWrap(builder, node) {};
         bool build(Parser& p) override;
@@ -107,12 +114,10 @@ namespace KLib42 {
         DSLRuleList(DSLFactory* builder) :DSLChildren(builder) {};
     };
 
-
-
     struct DSLContext : DSLFactory {
         std::string m_strRule;
         Parser m_parser;
-        std::string lastError;
+        KShared<KError> lastError;
         std::unordered_map <std::string, DSLNode*> idMap;
         std::unordered_map <std::string, std::function<KAny(Match& m, IT arg, IT noarg)>> handleMap;
         Rule* r_comment;
@@ -135,6 +140,6 @@ namespace KLib42 {
         void prepareRules(std::string str);
         void prepareEvaluation(const std::string& evtName, std::function<KAny(Match& m, IT arg, IT noarg)> handle);
         bool build();
-        std::unique_ptr<Match> parse(const std::string& ruleName, const std::string& str);
+        KUnique<Match> parse(const std::string& ruleName, const std::string& str);
     };
 }

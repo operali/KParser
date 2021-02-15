@@ -1,57 +1,26 @@
 #pragma once
-#include "impl/any.h"
-#include <type_traits>
-#include <functional>
-#include <memory>
-#include <vector>
-#include <string>
-
-// #define KOBJECT_DEBUG
-
-#ifdef KOBJECT_DEBUG
-#include <algorithm>
-#endif
-
+#include "impl/common.h"
 
 namespace KLib42 {
-    struct KObject {
-#ifdef KOBJECT_DEBUG
-        static std::vector<KObject*> all;
-        inline static std::vector<KObject*>& debug() {
-            return all;
-        }
-#endif
-
-        static uint32_t count;
-        KObject() {
-#ifdef KOBJECT_DEBUG
-            all.push_back(this);
-#endif
-            KObject::count++;
-        }
-        virtual ~KObject() {
-#ifdef KOBJECT_DEBUG
-            all.erase(std::remove(all.begin(), all.end(), this));
-#endif
-            KObject::count--;
-        }
-    };
     using IT = std::vector<KAny>::iterator;
-
-
     struct Match : private KObject {
-        virtual std::string occupied_str() = 0;
-        virtual uint32_t length() = 0;
+        // length of this match
+        virtual KUSIZE length() = 0;
+        // text of this match
         virtual std::string str() = 0;
         virtual std::string prefix() = 0;
         virtual std::string suffix() = 0;
-        virtual KAny* capture(uint32_t i) = 0;
-        virtual size_t capture_size() = 0;
-        virtual std::string errInfo() = 0;
+
+        // captures in this match
+        virtual KAny* captureAny(KUSIZE i) = 0;
+        virtual size_t captureSize() = 0;
         template<typename T>
-        inline T* capture_s(uint32_t i) {
-            return capture(i)->get<T>();
+        inline T* capture(KUSIZE i) {
+            return captureAny(i)->get<T>();
         }
+
+        // fail in matching process
+        virtual KShared<KError> errInfo() = 0;
     };
 
     struct Rule;
@@ -60,8 +29,8 @@ namespace KLib42 {
     class Parser : private KObject {
         ParserImpl* impl;
     public:
-        Parser(uint32_t lookback = 42, bool skipBlanks = true);
-        std::string errInfo();
+        Parser(KUSIZE lookback = 42, bool skipBlanks = true);
+        KShared<KError> errInfo();
 
         // epsilon
         Rule* none();
@@ -125,8 +94,8 @@ namespace KLib42 {
         void prepareRules(const char* strRule);
         void prepareEvaluation(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)> eval);
         bool build();
-        std::unique_ptr<Match> parse(const char* ruleName, const std::string& toParse);
-        std::string getLastError();
+        KUnique<Match> parse(const char* ruleName, const std::string& toParse);
+        KShared<KError> getLastError();
         
         EasyParser();
         ~EasyParser();
@@ -135,7 +104,7 @@ namespace KLib42 {
     };
 
     struct Rule : private KObject {
-        virtual std::unique_ptr<Match> parse(const std::string& text) = 0;
+        virtual KUnique<Match> parse(const std::string& text) = 0;
         virtual Rule* visit(std::function<void(Match&, bool)> handle) = 0;
         virtual Rule* eval(std::function<KAny(Match& m, IT arg, IT noarg)> eval) = 0;
         virtual std::string toString() = 0;

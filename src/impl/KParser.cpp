@@ -10,7 +10,7 @@
 #include "dsl.h"
 
 namespace KLib42 {
-    uint32_t KObject::count = 0;
+    KUSIZE KObject::count = 0;
 #ifdef KOBJECT_DEBUG
     std::vector<KObject*> KObject::all;
 #endif
@@ -19,20 +19,17 @@ namespace KLib42 {
         delete impl;
     }
 
-    std::string Parser::errInfo() {
-        auto& err = impl->parseErrInfo;
-        if (err.lineMid == nullptr) {
-            return "no error";
-        }
-        std::stringstream ss;
+    KShared<KError> Parser::errInfo() {
+        return impl->parseErrInfo.clone();
+        /*std::stringstream ss;
         ss << "parse fail at (line:column)" << err.row << ":" << err.col << std::endl;
         ss << std::string(err.lineLeft, err.lineMid)
             << "^^^"
             << std::string(err.lineMid, err.lineRight) << std::endl;
-        return ss.str();
+        return ss.str();*/
     }
 
-    Parser::Parser(uint32_t lookback, bool skipBlanks) :impl(new ParserImpl(this, lookback, skipBlanks)) {
+    Parser::Parser(KUSIZE lookback, bool skipBlanks) :impl(new ParserImpl(this, lookback, skipBlanks)) {
     }
 
     Rule* Parser::custom(PredT p) {
@@ -230,10 +227,10 @@ namespace KLib42 {
         impl->prepareEvaluation(ruleName, eval);
     }
 
-    std::unique_ptr<Match> EasyParser::parse(const char* ruleName, const std::string& toParse) {
+    KUnique<Match> EasyParser::parse(const char* ruleName, const std::string& toParse) {
         return impl->parse(ruleName, toParse);
     }
-    std::string EasyParser::getLastError() {
+    KShared<KError> EasyParser::getLastError() {
         return impl->lastError;
     };
 

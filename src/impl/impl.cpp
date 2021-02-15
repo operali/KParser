@@ -1,7 +1,7 @@
 #include "impl.h"
 
 namespace KLib42 {
-    ParserImpl::ParserImpl(Parser* parser, size_t lookback, bool skipBlank)
+    ParserImpl::ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank)
         :m_interface(parser), m_skipBlank(skipBlank), m_lookback(lookback), m_headMax(0), m_cache(nullptr), length(0) {
     }
 
@@ -23,10 +23,7 @@ namespace KLib42 {
         m_ll.resize(64);
         m_ll.clear();
 
-        parseErrInfo.row = 0;
-        parseErrInfo.lineMid = nullptr;
-        parseErrInfo.lineLeft = nullptr;
-        parseErrInfo.lineRight = nullptr;
+        //parseErrInfo.
     }
 
 
@@ -49,11 +46,12 @@ namespace KLib42 {
 
     void ParserImpl::genParseError() {
         char* errLoc = m_cache + m_headMax;
-        auto it = std::lower_bound(m_ll.begin(), m_ll.end(), errLoc);
+        parseErrInfo.reset(new SyntaxError(m_interface, m_headMax ));
+        /*auto it = std::lower_bound(m_ll.begin(), m_ll.end(), errLoc);
         parseErrInfo.row = it - m_ll.begin();
         parseErrInfo.lineMid = m_cache + m_headMax;
         parseErrInfo.lineLeft = (it == m_ll.begin()) ? m_cache : *(it - 1) + 1;
         parseErrInfo.col = parseErrInfo.lineMid - parseErrInfo.lineLeft;
-        parseErrInfo.lineRight = *it;
+        parseErrInfo.lineRight = *it;*/
     }
 }

@@ -1,8 +1,75 @@
 
 #pragma once
-
+#include<vector>
+#include<assert.h>
 namespace KLib42 {
-    struct KCounter;
+
+	// unique_ptr for simple using
+	template<typename T>
+	struct KUnique
+	{
+		T* _data;
+		KUnique(const KUnique&) = delete;
+		KUnique& operator= (const KUnique& rhs) = delete;
+	public:
+		inline KUnique(T* data = nullptr)
+			: _data(data) {};
+
+		KUnique(KUnique&& rhs):_data(rhs._data) {
+			rhs._data = nullptr;
+		}
+
+		
+		inline ~KUnique() {
+			_destruct();
+		}
+
+		inline void reset(T* pData) {
+			_destruct();
+			_data = pData;
+		}
+
+		inline T* release() {
+			T* pTemp = _data;
+			_data = nullptr;
+			return pTemp;
+		}
+
+		inline T* get()
+		{
+			return _data;
+		}
+
+		inline operator bool() const
+		{
+			return _data != nullptr;
+		}
+
+		inline T& operator * ()
+		{
+			return *_data;
+		}
+
+		inline T* operator -> ()
+		{
+			return _data;
+		}
+		
+	private:
+		inline void _destruct()
+		{
+			if (nullptr == _data) return;
+			delete _data;
+			_data = nullptr;
+		}
+	};
+
+	template<typename T>
+	inline KUnique<T> makeUnique(T&& obj) {
+		return KUnique<T>(new T(std::move(obj)));
+	}
+
+	struct KCounter;
     template<typename T>
     struct KShared;
 
@@ -40,7 +107,8 @@ namespace KLib42 {
 			return true;
 		}
 
-		inline bool exist() {
+		bool exist() const
+		{
 			return count > 0;
 		}
 	};
@@ -52,58 +120,94 @@ namespace KLib42 {
 		T* _reference;
 		KRawShared(KCounter* _counter, T* _reference) :_counter(_counter), _reference(_reference) {};
 		KRawShared(KWeakShared<T>&) = delete;
-		T* getRef();
+		T* get();
 	public:
 		friend struct KShared<T>;
 		friend struct KWeakShared<T>;
 		inline T* operator->() {
-			return getRef();
+			return get();
 		}
 		inline T& operator*() {
-			return *getRef();
+			return *get();
 		}
 		size_t refCount();
 		size_t weakCount();
-		bool exist();
+		operator bool();
 	};
+
+
+	template<typename T>
+	T* KRawShared<T>::get() {
+		if (_counter && _counter->count != 0) {
+			return _reference;
+		}
+		return nullptr;
+	}
+
+	template<typename T>
+	KRawShared<T>::operator bool() {
+		return _counter &&  _counter->exist();
+	}
+
+	template<typename T>
+	size_t KRawShared<T>::refCount() {
+		return _counter?_counter->count:0;
+	}
+
+	template<typename T>
+	size_t KRawShared<T>::weakCount() {
+		return _counter?_counter->wcount:0;
+	}
+
 
 	// not shared
 	template<typename T>
 	struct KWeakShared : public KRawShared<T> {
 	private:
 		KWeakShared(KCounter* _counter, T* _reference) :KRawShared(_counter, _reference) {
-			_counter->addWeak();
+			if(_counter)_counter->addWeak();
 		};
 		friend struct KShared<T>;
-		void release();
 		KWeakShared(T* obj) = delete;
 	public:
-		KShared<T> getShared();
 		KWeakShared(KWeakShared<T>&& other);
 		inline ~KWeakShared() {
-			release();
+			if (_counter) {
+				_counter->rmWeak();
+			}
 		}
 	};
+
+	template<typename T>
+	KWeakShared<T>::KWeakShared(KWeakShared&& other) :KRawShared(other._counter, other._reference) {
+		other._counter = nullptr;
+	}
 
 	// shared
 	template<typename T>
 	struct KShared : public KRawShared<T> {
 	private:
-		void release();
 		friend struct KWeakShared<T>;
-		KShared(KShared& other);
-	public:
 		void share();
+	public:
 		KWeakShared<T> getWeak();
 		KShared clone();
 		KShared(KShared<T>&& other);
-		KShared(T* _reference) :KRawShared(new KCounter(), _reference) {
-			_counter->share();
+		KShared(KShared& other);
+		KShared(T* _reference = nullptr) :KRawShared(nullptr, _reference) {
+			if (_reference) {
+				_counter = new KCounter();
+				_counter->share();
+			}
 		};
-		inline ~KShared() {
+		void release();
+		void reset(T* reference);
+		KShared<T>& operator=(const KShared<T>& rh);
+		~KShared() {
 			release();
 		}
 	};
+
 
 	template<typename T>
 	void KShared<T>::share() {
@@ -112,20 +216,38 @@ namespace KLib42 {
 
 	template<typename T>
 	void KShared<T>::release() {
-		if (_counter && !_counter->rmShare()) {
-			delete _reference;
+		if (_counter && _counter->count != 0) {
+			if (!_counter->rmShare()) {
+				delete _reference;
+			}
+			_counter = nullptr;
 		}
 	}
 
 	template<typename T>
-	T* KRawShared<T>::getRef() {
-		return _reference;
+	void KShared<T>::reset(T* reference) {
+		release();
+		_reference = reference;
+		if (reference) {
+			_counter = new KCounter();
+			_counter->share();
+		}
+	}
+
+	template<typename T>
+	KShared<T>& KShared<T>::operator=(const KShared<T>& rh) {
+		this->release();
+		this->_counter = rh._counter;
+		this->_reference = rh._reference;
+		if (this->_counter) {
+			this->_counter->share();
+		}
+		return *this;
 	}
 
 	template<typename T>
 	KWeakShared<T> KShared<T>::getWeak() {
-		KWeakShared<T> w(this->_counter, this->_reference);
-		return std::move(w);
+		return KWeakShared<T>(this->_counter, this->_reference);
 	}
 
 	template<typename T>
@@ -135,27 +257,9 @@ namespace KLib42 {
 
 	template<typename T>
 	KShared<T> KShared<T>::clone() {
-		KShared<T> r(*this);
-		return std::move(r);
-	}
-	template<typename T>
-	void KWeakShared<T>::release() {
-		if(_counter)_counter->rmWeak();
+		return KShared<T>{*this};
 	}
 
-	template<typename T>
-	KShared<T> KWeakShared<T>::getShared() {
-		if (exist()) {
-			KShared<T> s{ _counter, _reference };
-			return std::move(s);
-		}
-		throw std::exception();
-	}
-
-	template<typename T>
-	KWeakShared<T>::KWeakShared(KWeakShared&& other):KRawShared(other._counter, other._reference) {
-		other._counter = nullptr;
-	}
 
 	template<typename T>
 	KShared<T>::KShared(KShared&& other) : KRawShared{other._counter,  other._reference} {
@@ -163,24 +267,12 @@ namespace KLib42 {
 		other._reference = nullptr;
 	}
 
-	template<typename T>
-	bool KRawShared<T>::exist() {
-		return _counter->count != 0;
-	}
-
-	template<typename T>
-	size_t KRawShared<T>::refCount() {
-		return _counter->count;
-	}
-
-	template<typename T>
-	size_t KRawShared<T>::weakCount() {
-		return _counter->wcount;
-	}
 
 	template<typename T>
 	KShared<T>::KShared(KShared<T>& other):KRawShared<T>(other._counter, other._reference){
-		_counter->share();
+		if (other._reference) {
+			_counter->share();
+		}
 	}
 
 	template <typename T>

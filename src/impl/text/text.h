@@ -1,6 +1,6 @@
 
 #pragma once
-#include "../ref.h"
+#include "../../KParser.h"
 
 namespace KLib42 {
     struct ITextObject {
@@ -15,19 +15,19 @@ namespace KLib42 {
     struct ISource : public ITextObject {
         virtual const char* buff() = 0;
         virtual KShared<IEnumerator<ILine>> lines() = 0;
-        virtual uint32_t lineCount() = 0;
-        virtual uint32_t len() = 0;
+        virtual KUSIZE lineCount() = 0;
+        virtual KUSIZE len() = 0;
         virtual KShared<ILine> getLine(size_t index) = 0;
         virtual KShared<ILocation> getLocation(size_t index) = 0;
     };
 
     struct loc {
-        uint32_t row;
-        uint32_t col;
+        KUSIZE row;
+        KUSIZE col;
     };
 
     struct ILocation : public ITextObject {
-        virtual uint32_t index() = 0;
+        virtual KUSIZE index() = 0;
         virtual loc location() = 0;
         virtual KShared<ILine> getLine() = 0;
     };
@@ -39,7 +39,7 @@ namespace KLib42 {
     };
 
     struct ILine : public ITextObject {
-        virtual uint32_t index() = 0;
+        virtual KUSIZE index() = 0;
         virtual std::string str() = 0;
         virtual KShared<IRange> toRange() = 0;
     };

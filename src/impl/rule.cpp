@@ -10,15 +10,15 @@
 namespace KLib42 {
     struct LINE {
         RuleNode* node;
-        int32_t iden;
-        int32_t id;
+        KSIZE iden;
+        KSIZE id;
     };
 
-    MatchR::MatchR(uint32_t start, RuleNode* rule) 
+    MatchR::MatchR(KUSIZE start, RuleNode* rule) 
         :m_startPos(start), m_ruleNode(rule), m_length(LEN::INIT) {
     }
 
-    using LINES = VecT<LINE>;
+    using LINES = std::vector<LINE>;
     static int idCount = 0;
     static void collectRuleInfo(RuleNode* n, LINES& r, int iden) {
         LINE line;
@@ -128,17 +128,17 @@ namespace KLib42 {
         return m_gen->m_interface;
     }
 
-    std::unique_ptr<Match> RuleNode::parse(const std::string& text) {
+    KUnique<Match> RuleNode::parse(const std::string& text) {
         m_gen->reset();
         this->m_gen->setText(text);
 
         auto m = this->match(0);
-        std::unique_ptr<Match> um;
+        KUnique<Match> um;
         um.reset(m);
 
         std::vector<KAny>& expStk = m_gen->m_expStk;
         using IT = std::vector<KAny>::iterator;
-        std::vector<uint32_t> opStk;
+        std::vector<KUSIZE> opStk;
 
         auto r = m->alter();
         if (!r) {
@@ -223,7 +223,7 @@ namespace KLib42 {
     //EMPTY
 
     bool MatchR::alter() {
-        VecT<MatchR*> vec;
+        std::vector<MatchR*> vec;
         MatchR* curM = this;
         auto* gen = m_ruleNode->m_gen;
         auto lookback = gen->m_lookback;
@@ -279,40 +279,32 @@ namespace KLib42 {
         }
     }
 
-    KAny* MatchR::capture(uint32_t i) {
+    KAny* MatchR::captureAny(KUSIZE i) {
         if (i >= m_ruleNode->m_gen->m_expStk.size()) {
             return nullptr;
         }
         return &m_ruleNode->m_gen->m_expStk.at(i);
     }
 
-    size_t MatchR::capture_size() {
+    size_t MatchR::captureSize() {
         return m_ruleNode->m_gen->m_expStk.size();
     };
 
-    std::string MatchR::errInfo() {
+    KShared<KError> MatchR::errInfo() {
         return m_ruleNode->m_gen->m_interface->errInfo();
     }
 
-    StrT MatchR::prefix() {
+    std::string MatchR::prefix() {
         const char* globalText = m_ruleNode->m_gen->m_cache;
-        return StrT(globalText, globalText + m_startPos);
+        return std::string(globalText, globalText + m_startPos);
     }
 
-    StrT MatchR::suffix() {
+    std::string MatchR::suffix() {
         const char* globalText = m_ruleNode->m_gen->m_cache;
-        return StrT(globalText + m_startPos+ m_length, globalText+ m_ruleNode->m_gen->length);
+        return std::string(globalText + m_startPos+ m_length, globalText+ m_ruleNode->m_gen->length);
     }
 
-    StrT MatchR::occupied_str() {
-        const char* globalText = m_ruleNode->m_gen->m_cache;
-        auto start = globalText + m_startPos;
-        auto stop = start + length();
-
-        return StrT(start, stop);
-    }
-
-    StrT MatchR::str() {
+    std::string MatchR::str() {
         const char* globalText = m_ruleNode->m_gen->m_cache;
         auto start = globalText + m_startPos;
         auto stop = start + m_length;
@@ -322,10 +314,10 @@ namespace KLib42 {
         if (m_ruleNode->m_gen->m_skipBlank) {
             auto* node = dynamic_cast<RuleCompound*>(this->m_ruleNode);
             if (node) {
-                return trim(StrT(start, stop));
+                return trim(std::string(start, stop));
             }
         }
-        return StrT(start, stop);
+        return std::string(start, stop);
     }
 
     void MatchR::release() {
@@ -373,7 +365,7 @@ namespace KLib42 {
     }
 
     struct MatchREmpty : public MatchR {
-        MatchREmpty(uint32_t start, RuleNode* rule) 
+        MatchREmpty(KUSIZE start, RuleNode* rule) 
             :MatchR(start, rule) {
         }
 
@@ -386,14 +378,14 @@ namespace KLib42 {
         };
     };
 
-    MatchR* RuleEmpty::match(uint32_t start) {
+    MatchR* RuleEmpty::match(KUSIZE start) {
         return new MatchREmpty(start, this);
     }
 
     //////////////////////////////////////////////////////////////////////////
     //STR    
     struct MatchRStr : public MatchR {
-        MatchRStr(uint32_t start, RuleNode* rule) 
+        MatchRStr(KUSIZE start, RuleNode* rule) 
             :MatchR(start, rule) {}
         
         StepInT stepIn() override {
@@ -431,7 +423,7 @@ namespace KLib42 {
         };
     };
 
-    MatchR* RuleStr::match(uint32_t start) {
+    MatchR* RuleStr::match(KUSIZE start) {
         return new MatchRStr(start, this);
     }
 
@@ -439,7 +431,7 @@ namespace KLib42 {
     // pred
 
     struct MatchRPred : public MatchR {
-        MatchRPred(uint32_t start, RuleNode* rule) 
+        MatchRPred(KUSIZE start, RuleNode* rule) 
             :MatchR(start, rule) {
         }
         
@@ -466,7 +458,7 @@ namespace KLib42 {
         }
     };
 
-    MatchR* RuleCustom::match(uint32_t start) {
+    MatchR* RuleCustom::match(KUSIZE start) {
         return new MatchRPred(start, this);
     }
 
@@ -476,7 +468,7 @@ namespace KLib42 {
         int m_curIdx;
         MatchR* m_curMatcher = nullptr;
 
-        MatchRAny(uint32_t start, RuleNode* rule) 
+        MatchRAny(KUSIZE start, RuleNode* rule) 
             :MatchR(start, rule), m_curIdx(-1) {
             nextNode();
         }
@@ -553,7 +545,7 @@ namespace KLib42 {
         };
     };
 
-    MatchR* RuleAny::match(uint32_t start) {
+    MatchR* RuleAny::match(KUSIZE start) {
         return new MatchRAny(start, this);
     }
 
@@ -561,13 +553,13 @@ namespace KLib42 {
     //ALL
 
     struct MatchRAll : public MatchR {
-        MatchRAll(uint32_t start, RuleNode* rule) 
+        MatchRAll(KUSIZE start, RuleNode* rule) 
             :MatchR(start, rule) {
             m_curStart = start;
             nextNode();
         }
         std::vector<MatchR*> childMatch;
-        uint32_t m_curStart;
+        KUSIZE m_curStart;
         ~MatchRAll() {
             /*for (auto m : childMatch) {
                 delete m;
@@ -677,7 +669,7 @@ namespace KLib42 {
         }
     };
 
-    MatchR* RuleAll::match(uint32_t start) {
+    MatchR* RuleAll::match(KUSIZE start) {
         return new MatchRAll(start, this);
     }
 
@@ -686,9 +678,9 @@ namespace KLib42 {
 
     struct MatchRUntill : public MatchR {
         MatchR* m_curMatcher = nullptr;
-        uint32_t m_maxLen = 0;
+        KUSIZE m_maxLen = 0;
         bool m_accept = false;
-        MatchRUntill(uint32_t start, RuleNode* rule)
+        MatchRUntill(KUSIZE start, RuleNode* rule)
             :MatchR(start, rule) {
             auto* parser = m_ruleNode->m_gen;
             m_maxLen = parser->length - m_startPos;
@@ -743,7 +735,7 @@ namespace KLib42 {
         };
     };
 
-    MatchR* RuleUntil::match(uint32_t start) {
+    MatchR* RuleUntil::match(KUSIZE start) {
         return new MatchRUntill(start, this);
     }
     
@@ -754,9 +746,9 @@ namespace KLib42 {
 
     struct MatchRTill : public MatchR {
         MatchR* m_curMatcher = nullptr;
-        uint32_t m_maxLen = 0;
+        KUSIZE m_maxLen = 0;
         bool m_accept = false;
-        MatchRTill(uint32_t start, RuleNode* rule)
+        MatchRTill(KUSIZE start, RuleNode* rule)
             :MatchR(start, rule) {
             auto* parser = m_ruleNode->m_gen;
             m_maxLen = parser->length - m_startPos;
@@ -811,7 +803,7 @@ namespace KLib42 {
         };
     };
 
-    MatchR* RuleTill::match(uint32_t start) {
+    MatchR* RuleTill::match(KUSIZE start) {
         return new MatchRTill(start, this);
     }
 
@@ -820,7 +812,7 @@ namespace KLib42 {
      struct MatchRNot : public MatchR {
         MatchR* m_curMatcher = nullptr;
         bool m_accept = false;
-        MatchRNot(uint32_t start, RuleNode* rule)
+        MatchRNot(KUSIZE start, RuleNode* rule)
             :MatchR(start, rule) {
         }
 
@@ -873,14 +865,14 @@ namespace KLib42 {
         };
     };
 
-    MatchR* RuleNot::match(uint32_t start) {
+    MatchR* RuleNot::match(KUSIZE start) {
         return new MatchRNot(start, this);
     }   
 
     //////////////////////////////////////////////////////////////////////////
     // char
     struct MatchROne : public MatchR {
-        MatchROne(uint32_t start, RuleNode* rule)
+        MatchROne(KUSIZE start, RuleNode* rule)
             :MatchR(start, rule) {
         }
 
@@ -906,7 +898,7 @@ namespace KLib42 {
         };
     };
 
-    MatchR* RuleOne::match(uint32_t start) {
+    MatchR* RuleOne::match(KUSIZE start) {
         return new MatchROne(start, this);
     }
 }
