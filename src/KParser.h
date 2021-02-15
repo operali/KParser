@@ -41,7 +41,7 @@ namespace KLib42 {
         // match Pattern1 | Pattern2... | PatternN
         Rule* any();
         // ! pattern
-        Rule* not(Rule* node);
+        Rule* not_(Rule* node);
         // one char
         Rule* one();
         // pattern*

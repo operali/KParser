@@ -164,7 +164,7 @@ namespace KLib42 {
 	template<typename T>
 	struct KWeakShared : public KRawShared<T> {
 	private:
-		KWeakShared(KCounter* _counter, T* _reference) :KRawShared(_counter, _reference) {
+		KWeakShared(KCounter* _counter, T* _reference) :KRawShared<T>(_counter, _reference) {
 			if(_counter)_counter->addWeak();
 		};
 		friend struct KShared<T>;
@@ -172,14 +172,14 @@ namespace KLib42 {
 	public:
 		KWeakShared(KWeakShared<T>&& other);
 		inline ~KWeakShared() {
-			if (_counter) {
-				_counter->rmWeak();
+			if (this->_counter) {
+				this->_counter->rmWeak();
 			}
 		}
 	};
 
 	template<typename T>
-	KWeakShared<T>::KWeakShared(KWeakShared&& other) :KRawShared(other._counter, other._reference) {
+	KWeakShared<T>::KWeakShared(KWeakShared&& other) :KRawShared<T>(other._counter, other._reference) {
 		other._counter = nullptr;
 	}
 
@@ -194,10 +194,10 @@ namespace KLib42 {
 		KShared clone();
 		KShared(KShared<T>&& other);
 		KShared(KShared& other);
-		KShared(T* _reference = nullptr) :KRawShared(nullptr, _reference) {
+		KShared(T* _reference = nullptr) :KRawShared<T>(nullptr, _reference) {
 			if (_reference) {
-				_counter = new KCounter();
-				_counter->share();
+				this->_counter = new KCounter();
+				this->_counter->share();
 			}
 		};
 		void release();
@@ -211,26 +211,26 @@ namespace KLib42 {
 
 	template<typename T>
 	void KShared<T>::share() {
-		if(_counter)_counter->share();
+		if(this->_counter)this->_counter->share();
 	}
 
 	template<typename T>
 	void KShared<T>::release() {
-		if (_counter && _counter->count != 0) {
-			if (!_counter->rmShare()) {
-				delete _reference;
+		if (this->_counter && this->_counter->count != 0) {
+			if (!this->_counter->rmShare()) {
+				delete this->_reference;
 			}
-			_counter = nullptr;
+			this->_counter = nullptr;
 		}
 	}
 
 	template<typename T>
 	void KShared<T>::reset(T* reference) {
 		release();
-		_reference = reference;
+		this->_reference = reference;
 		if (reference) {
-			_counter = new KCounter();
-			_counter->share();
+			this->_counter = new KCounter();
+			this->_counter->share();
 		}
 	}
 
@@ -262,7 +262,7 @@ namespace KLib42 {
 
 
 	template<typename T>
-	KShared<T>::KShared(KShared&& other) : KRawShared{other._counter,  other._reference} {
+	KShared<T>::KShared(KShared&& other) : KRawShared<T>{other._counter,  other._reference} {
 		other._counter = nullptr;
 		other._reference = nullptr;
 	}
@@ -271,7 +271,7 @@ namespace KLib42 {
 	template<typename T>
 	KShared<T>::KShared(KShared<T>& other):KRawShared<T>(other._counter, other._reference){
 		if (other._reference) {
-			_counter->share();
+			this->_counter->share();
 		}
 	}
 

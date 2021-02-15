@@ -147,7 +147,7 @@ namespace KLib42 {
 		size_t from() override;
 		size_t to() override;
 
-		std::string KRange::str() override;
+		std::string str() override;
 	};
 
 	KShared<IEnumerator<ILine>> KSource::lines() {

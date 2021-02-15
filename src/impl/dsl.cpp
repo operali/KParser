@@ -300,7 +300,7 @@ namespace KLib42 {
         r_any->eval([&](auto& m, auto b, auto e) {
             auto* node = new DSLAny(this);
             while (b != e) {
-                node->nodes.push_back(*(*b++).get<DSLNode*>());
+                node->nodes.push_back(*(*b++).template get<DSLNode*>());
             }
             if (node->nodes.size() == 1) {
                 DSLNode* n = node->nodes[0];
@@ -312,7 +312,7 @@ namespace KLib42 {
         r_all->eval([&](auto& m, auto b, auto e) {
             auto* node = new DSLAll(this);
             while (b != e) {
-                node->nodes.push_back(*(*b++).get<DSLNode*>());
+                node->nodes.push_back(*(*b++).template get<DSLNode*>());
             }
             if (node->nodes.size() == 1) {
                 DSLNode* n = node->nodes[0];
@@ -322,31 +322,31 @@ namespace KLib42 {
 
             });
         r_many->eval([&](auto& m, auto b, auto e) {
-            auto* node = new DSLMany(this, *(*b).get<DSLNode*>());
+            auto* node = new DSLMany(this, *(*b).template get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_many1->eval([&](auto& m, auto b, auto e) {
-            auto* node = new DSLMany1(this, *(*b).get<DSLNode*>());
+            auto* node = new DSLMany1(this, *(*b).template get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_list->eval([&](auto& m, auto b, auto e) {
-            auto* item = *(*b++).get<DSLNode*>();
-            auto* dem = *(*b++).get<DSLNode*>();
+            auto* item = *(*b++).template get<DSLNode*>();
+            auto* dem = *(*b++).template get<DSLNode*>();
             auto* node = new DSLList(this, item, dem);
             return (DSLNode*)node;
             });
         r_till->eval([&](auto& m, auto b, auto e) {
-            auto* item = *(*b++).get<DSLNode*>();
+            auto* item = *(*b++).template get<DSLNode*>();
             auto* node = new DSLTill(this, item);
             return (DSLNode*)node;
             });
         r_option->eval([&](auto& m, auto b, auto e) {
-            auto* node = new DSLOption(this, *(*b).get<DSLNode*>());
+            auto* node = new DSLOption(this, *(*b).template get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_rule->eval([&](auto& m, auto b, auto e) {
-            DSLID* id = (DSLID*)*(*b++).get<DSLNode*>();
-            DSLRule* r = new DSLRule(this, *(*b++).get<DSLNode*>());
+            DSLID* id = (DSLID*)*(*b++).template get<DSLNode*>();
+            DSLRule* r = new DSLRule(this, *(*b++).template get<DSLNode*>());
             r->name = id->name;
             r->ruleLine = m.str();
             return (DSLNode*)r;
@@ -354,7 +354,7 @@ namespace KLib42 {
         r_ruleList->eval([&](auto& m, auto b, auto e) {
             auto* node = new DSLRuleList(this);
             while (b != e) {
-                node->nodes.push_back((DSLRule*)*(*b++).get<DSLNode*>());
+                node->nodes.push_back((DSLRule*)*(*b++).template get<DSLNode*>());
             }
             return (DSLNode*)node;
             });

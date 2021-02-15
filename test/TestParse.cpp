@@ -1,6 +1,6 @@
 
 #include "gtest/gtest.h"
-#include "../src/kparser.h"
+#include "../src/KParser.h"
 #include "../src/impl/rule.h"
 #include <sstream>
 #include <exception>
@@ -370,7 +370,7 @@ TEST(FEATURE, optional) {
 TEST(FEATURE, NOT) {
     {
         KLib42::Parser p;
-        auto r = p.not(p.str("abc"));
+        auto r = p.not_(p.str("abc"));
         {
             auto m = r->parse("abc");
             ASSERT_EQ(m.get() == nullptr, true);
@@ -405,26 +405,26 @@ TEST(FEATURE, CHAR) {
             ASSERT_EQ(m.get() == nullptr, true);
         }
         {
-            auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
+            auto r = p.many(p.all(p.not_(p.str("abc")), p.one()));
             auto m = r->parse("abc");
             ASSERT_EQ(m.get() != nullptr, true);
             ASSERT_EQ(m->str(), "");
         }
         {
-            auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
+            auto r = p.many(p.all(p.not_(p.str("abc")), p.one()));
             auto m = r->parse("asdfasdfabc");
             ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(m->str(), "asdfasdf");
         };
 
         {
-            auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
+            auto r = p.many(p.all(p.not_(p.str("abc")), p.one()));
             auto m = r->parse("asdfasdfasdf");
             ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(m->str(), "asdfasdfasdf");
         };
         {
-            auto r = p.many(p.all(p.not(p.str("abc")), p.one()));
+            auto r = p.many(p.all(p.not_(p.str("abc")), p.one()));
             auto m = r->parse("asdfasdfabcasdf");
             ASSERT_EQ(m.get() != nullptr, true);
             EXPECT_EQ(m->str(), "asdfasdf");

@@ -48,7 +48,7 @@ namespace KLib42 {
         return new KLib42::RuleAny(impl);
     }
 
-    Rule* Parser::not(Rule* node) {
+    Rule* Parser::not_(Rule* node) {
         return new KLib42::RuleNot(impl, (RuleNode*)node);
     }
 

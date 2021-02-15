@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <tuple>
+
 namespace KLib42 {
     class KAny {
         /*template<typename T> struct TID { static void id(){} };
@@ -15,9 +16,7 @@ namespace KLib42 {
             virtual DataHolderBase* clone() = 0;
             template<typename T>
             inline size_t is() {
-                auto id1 = id();
-                auto id2 = TOF<T>();
-                return id1 == id2;
+                return id() == TOF<T>();
             }
         };
 
@@ -75,8 +74,8 @@ namespace KLib42 {
 
         template<typename T>
         KAny(T&& val) {
-            if (&typeid(val) != &typeid(nullptr_t)) {
-                this->val = new DataHolder<std::decay<T>::type>(std::forward<T>(val));
+            if (&typeid(val) != &typeid(std::nullptr_t)) {
+                this->val = new DataHolder<typename std::decay<T>::type>(std::forward<T>(val));
             }
             else {
                 this->val = nullptr;
@@ -85,8 +84,8 @@ namespace KLib42 {
 
         template<typename T>
         KAny(const T& val):val(new DataHolder<T>(val)) {
-            if (&typeid(val) != &typeid(nullptr_t)) {
-                this->val = new DataHolder<std::decay<T>::type>(std::forward<T>(val));
+            if (&typeid(val) != &typeid(std::nullptr_t)) {
+                this->val = new DataHolder<typename std::decay<T>::type>(std::forward<T>(val));
             }
             else {
                 this->val = nullptr;

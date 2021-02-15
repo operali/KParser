@@ -2,7 +2,7 @@
 #include "../src/KParser.h"
 #include "../src/impl/dsl.h"
 
-// #define X
+#define X
 
 #ifdef X
 TEST(DSL_BASIC, text) {
