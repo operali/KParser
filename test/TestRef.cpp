@@ -12,7 +12,7 @@ struct A {
     ~A() {
         xcount--;
     }
-    A(A&& k) {
+    A(A&& k) noexcept {
         xcount++;
     };
 };

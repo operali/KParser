@@ -15,7 +15,7 @@ namespace KLib42 {
 		inline KUnique(T* data = nullptr)
 			: _data(data) {};
 
-		KUnique(KUnique&& rhs):_data(rhs._data) {
+		KUnique(KUnique&& rhs) noexcept :_data(rhs._data) {
 			rhs._data = nullptr;
 		}
 
@@ -192,9 +192,9 @@ namespace KLib42 {
 	public:
 		KWeakShared<T> getWeak();
 		KShared clone();
-		KShared(KShared<T>&& other);
-		KShared(KShared& other);
-		KShared(T* _reference = nullptr) :KRawShared<T>(nullptr, _reference) {
+		KShared(KShared<T>&& other) noexcept;
+		KShared(KShared& other) noexcept;
+		KShared(T* _reference = nullptr) noexcept :KRawShared<T>(nullptr, _reference) {
 			if (_reference) {
 				this->_counter = new KCounter();
 				this->_counter->share();
@@ -262,14 +262,14 @@ namespace KLib42 {
 
 
 	template<typename T>
-	KShared<T>::KShared(KShared&& other) : KRawShared<T>{other._counter,  other._reference} {
+	KShared<T>::KShared(KShared&& other) noexcept: KRawShared<T>{other._counter,  other._reference} {
 		other._counter = nullptr;
 		other._reference = nullptr;
 	}
 
 
 	template<typename T>
-	KShared<T>::KShared(KShared<T>& other):KRawShared<T>(other._counter, other._reference){
+	KShared<T>::KShared(KShared<T>& other) noexcept :KRawShared<T>(other._counter, other._reference){
 		if (other._reference) {
 			this->_counter->share();
 		}

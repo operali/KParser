@@ -11,7 +11,7 @@
 //    KParser::Parser p;
 //    auto r1 = p.str("abc");
 //    auto r = p.till(r1);
-//    r1->eval([&](auto& m, auto b, auto e) {
+//    r1->eval([&](KLib42::Match& m, IT b, auto e) {
 //        return m.str();
 //        });
 //    auto m = r->parse("xxxabc");
@@ -483,7 +483,7 @@ TEST(FEATURE, until_1) {
 
 TEST(FEATURE, till) {
     {
-        // auto& all = KParser::KObject::debug();
+        // KLib42::Match& all = KParser::KObject::debug();
         EXPECT_EQ(KLib42::KObject::count, 0);
 
         KLib42::Parser p;
@@ -499,7 +499,7 @@ TEST(FEATURE, till) {
             EXPECT_EQ(count, 6);
         }
     }
-    // auto& all = KParser::KObject::debug();
+    // KLib42::Match& all = KParser::KObject::debug();
     EXPECT_EQ(KLib42::KObject::count, 0);
 }
 
@@ -509,7 +509,7 @@ TEST(FEATURE, till_1) {
         int count = 0;
         {
             auto r1 = p.str("*/");
-            r1->eval([&](auto& m, auto b, auto e) {
+            r1->eval([&](KLib42::Match& m, KLib42::IT b, KLib42::IT e) {
                 return m.str();
                 });
             auto r = p.till(r1);
@@ -518,7 +518,7 @@ TEST(FEATURE, till_1) {
             EXPECT_EQ(*m->capture<std::string>(0), "*/");
         }
     }
-    // auto& all = KParser::KObject::debug();
+    // KLib42::Match& all = KParser::KObject::debug();
     EXPECT_EQ(KLib42::KObject::count, 0);
 }
 
@@ -560,7 +560,7 @@ TEST(FEATURE, regex_1) {
             ASSERT_EQ(m->str(), "_1234_");
         }
     }
-    // auto& all = KParser::KObject::debug();
+    // KLib42::Match& all = KParser::KObject::debug();
     EXPECT_EQ(KLib42::KObject::count, 0);
 }
 
@@ -591,7 +591,7 @@ TEST(FEATURE, identify) {
             EXPECT_EQ(m->str(), "12");
         }
     }
-    // auto& all = KParser::KObject::debug();
+    // KLib42::Match& all = KParser::KObject::debug();
     EXPECT_EQ(KLib42::KObject::count, 0);
 }
 

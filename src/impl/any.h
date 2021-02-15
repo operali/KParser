@@ -55,7 +55,7 @@ namespace KLib42 {
             return val == nullptr;
         }
         
-        KAny(KAny&& rh): val(rh.val) {
+        KAny(KAny&& rh) noexcept : val(rh.val) {
             rh.val = nullptr;
         }
 
