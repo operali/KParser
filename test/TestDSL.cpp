@@ -2,9 +2,9 @@
 #include "../src/KParser.h"
 #include "../src/impl/dsl.h"
 
-#define X
+#define ENABLE_TEST
 
-#ifdef X
+#ifdef ENABLE_TEST
 TEST(DSL_BASIC, text) {
     KLib42::DSLContext ctx;
     {
@@ -361,7 +361,7 @@ TEST(DSL_BASIC, rule) {
     KLib42::DSLContext ctx;
     {
         auto m = ctx.r_rule->parse(R"(a = a '\/\/' /[1-9]*/ | b;  )");
-        auto err = ctx.m_parser.errInfo();
+        auto err = ctx.m_parser.getErrInfo();
         ASSERT_EQ(m.get() != nullptr, true);
         EXPECT_EQ(m->str(), R"(a = a '\/\/' /[1-9]*/ | b;)");
         KLib42::DSLNode** pN = m->capture<KLib42::DSLNode*>(0);
@@ -393,11 +393,26 @@ c = c | /d*/;)");
         KLib42::DSLRuleList* rlist = (KLib42::DSLRuleList*)*d;
         EXPECT_EQ(rlist->nodes.size(), 3);
     }
+
+    {
+        auto m = ctx.r_ruleList->parse(R"(a d = 3
+// comment 1
+// comment 2
+a = a a | b;
+/*second comments * / */b = a | b;
+c = c | /d*/;
+)");
+        ASSERT_EQ(m.get() == nullptr, true);
+        auto err = ctx.m_parser.getErrInfo();
+        ASSERT_EQ(!!err, true);
+        std::cerr << err->message() << std::endl;
+    }
 }
 
 TEST(DSL_BASIC, ruleList_parse) {
-    KLib42::DSLContext ctx;
+    
     {
+        KLib42::DSLContext ctx;
         ctx.prepareRules(R"(
 a = ID | NUM;
 b = a+ EOF;
@@ -433,7 +448,7 @@ b = a+ EOF;
             });
         auto r = ctx.build();
         if (!r) {
-            std::cerr << ctx.lastError << std::endl;
+            std::cerr << ctx.lastError->message() << std::endl;
         }
         else {
             ctx.parse("b", "11 22 aa bb");
@@ -443,18 +458,33 @@ b = a+ EOF;
         }
     }
     {
-        
+        KLib42::DSLContext ctx;
         ctx.prepareRules(R"(  a = a | b;
 b = a | b;
-dd
+dd xxtt
 c = re | /\/\//;
 )");
         auto r = ctx.build();
         ASSERT_EQ(r, false);
         if (!r) {
-            std::cerr << ctx.lastError << std::endl;
+            std::cerr << ctx.lastError->message() << std::endl;
         }
     }
+    {
+        EXPECT_EQ(KLib42::KObject::count, 0);
+        KLib42::DSLContext ctx;
+        ctx.prepareRules(R"(  a = ID;
+a = NUM;
+)");
+        auto r = ctx.build();
+        ASSERT_EQ(r, false);
+        if (!r) {
+            std::cerr << ctx.lastError->message() << std::endl;
+        }
+    }
+    
+    // auto& objs = KLib42::KObject::debug();
+    EXPECT_EQ(KLib42::KObject::count, 0);
 }
 
 TEST(DSL_BASIC, list) {
@@ -491,7 +521,7 @@ b = [a ','] EOF;
             });
         auto r = p.build();
         if (!r) {
-            std::cerr << p.getLastError()<< std::endl;
+            std::cerr << p.getLastError()->message() << std::endl;
             ASSERT_EQ(false, true);
         }
         else {
@@ -537,7 +567,7 @@ b = (...a)* EOF;
             });
         auto r = p.build();
         if (!r) {
-            std::cerr << p.getLastError() << std::endl;
+            std::cerr << p.getLastError()->message() << std::endl;
             ASSERT_EQ(false, true);
         }
         else {

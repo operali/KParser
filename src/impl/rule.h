@@ -2,6 +2,7 @@
 #include "common.h"
 #include "impl.h"
 #include <vector>
+#include <bitset>
 #include "any.h"
 
 namespace KLib42 {
@@ -19,7 +20,16 @@ namespace KLib42 {
     struct MatchR : public Match {
         KUSIZE m_startPos;
         KSIZE m_length;
+        std::bitset<8> m_flags;
 
+        enum class FLAG : uint8_t {
+            SELF_RELEASE = 0,
+        };
+
+        inline void setSelfRelease(bool st) {
+            m_flags.set((size_t)FLAG::SELF_RELEASE, st);
+        }
+        
         enum LEN : KSIZE {
             FAIL = -2,
             INIT = -1,
@@ -28,14 +38,17 @@ namespace KLib42 {
         
         RuleNode* m_ruleNode;
         MatchR(KUSIZE start, RuleNode* rule);
-        virtual ~MatchR() = default;
-
+        
         inline bool succ(){
             return m_length >= LEN::SUCC;
         }
         
-        inline KUSIZE length() override {
+        KUSIZE length() override {
             return (KUSIZE)m_length;
+        }
+
+        KUSIZE location() override {
+            return m_startPos;
         }
 
         inline void accept(KUSIZE sz) {
@@ -49,7 +62,7 @@ namespace KLib42 {
         KAny* captureAny(KUSIZE i) override;
         size_t captureSize() override;
         
-        KShared<KError> errInfo() final;
+        KShared<KError> getLastError() final;
 
         virtual StepInT stepIn() {
             throw std::exception();//TODO

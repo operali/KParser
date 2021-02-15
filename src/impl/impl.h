@@ -1,12 +1,9 @@
 #pragma once
 
 #include "../KParser.h"
-#include "rule.h"
+#include "./rule.h"
 #include "./error.h"
-
-// for memcpy
-#include <algorithm>
-
+#include "./text/text.h"
 
 namespace KLib42 {
     
@@ -18,23 +15,15 @@ namespace KLib42 {
         KUSIZE m_lookback;
         KUSIZE m_headMax;
         
-        char* m_cache;
+        const char* m_cache;
         KUSIZE length;
-        std::vector<RuleNode*> rules;
+        KText m_text;
 
-        /*struct ParseErr {
-            KUSIZE row = 0;
-            KUSIZE col = 0;
-            const char* lineMid = nullptr;
-            const char* lineLeft = nullptr;
-            const char* lineRight = nullptr;
-        };*/
+        std::vector<RuleNode*> rules;
 
         KShared<KError> parseErrInfo;
         
         std::vector<KAny> m_expStk;
-
-        std::vector<const char*> m_ll;
 
         void setText(const std::string& text);
 

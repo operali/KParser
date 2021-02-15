@@ -1,19 +1,19 @@
 #pragma once
-#include "../KParser.h"
+#include "./common.h"
 
 namespace KLib42 {
     struct IRange;
     struct DSLID;
 
     struct KParserError : public KError {
-        Parser* impl;
-        KParserError(Parser* impl) :impl(impl) {}
+        KShared<ISource> source;
+        KParserError(KShared<ISource> source) :source(source) {}
         virtual KShared<IRange> getRange() = 0;
     };
 
     struct SyntaxError : public KParserError {
         KUSIZE location;
-        SyntaxError(Parser* impl, KUSIZE location):KParserError(impl), location(location) {
+        SyntaxError(KShared<ISource> source, KUSIZE location):KParserError(source), location(location) {
         }
         
         KShared<IRange> getRange() override;
@@ -22,27 +22,27 @@ namespace KLib42 {
 
     struct IDError : public KParserError {
         DSLID* id;
-        IDError(Parser* impl, DSLID* id) :KParserError{ impl }, id(id) {}
+        IDError(KShared<ISource> source, DSLID* id) :KParserError{ source }, id(id) {}
 
         KShared<IRange> getRange() override;
     };
 
     struct RedefinedIDError : public IDError {
-        RedefinedIDError(Parser* impl, DSLID* id) :IDError(impl, id) {}
+        RedefinedIDError(KShared<ISource> source, DSLID* id) :IDError(source, id) {}
         KShared<IRange> getRange() override;
 
         std::string message() override;
     };
 
     struct UndefinedIDError : public IDError {
-        UndefinedIDError(Parser* impl, DSLID* id) :IDError(impl, id) {}
+        UndefinedIDError(KShared<ISource> source, DSLID* id) :IDError(source, id) {}
         KShared<IRange> getRange() override;
 
         std::string message() override;
     };
 
     struct RecursiveIDError : public IDError {
-        RecursiveIDError(Parser* impl, DSLID* id) :IDError(impl, id) {}
+        RecursiveIDError(KShared<ISource> source, DSLID* id) :IDError(source, id) {}
         KShared<IRange> getRange() override;
 
         std::string message() override;

@@ -5,23 +5,9 @@
 #include <sstream>
 #include <exception>
 
-#define X
+#define ENABLE_TEST
 
-//TEST(BASIC, TMP) {
-//    KParser::Parser p;
-//    auto r1 = p.str("abc");
-//    auto r = p.till(r1);
-//    r1->eval([&](KLib42::Match& m, IT b, auto e) {
-//        return m.str();
-//        });
-//    auto m = r->parse("xxxabc");
-//    if (m.get() != nullptr) {
-//        EXPECT_EQ(m->str(), "xxxabc");
-//        EXPECT_EQ(*(m->capture_s<std::string>(0)), "abc");
-//    }
-//}
-
-#ifdef X
+#ifdef ENABLE_TEST
 TEST(BASIC, remove_space) {
     {
         KLib42::Parser p;
@@ -518,7 +504,7 @@ TEST(FEATURE, till_1) {
             EXPECT_EQ(*m->capture<std::string>(0), "*/");
         }
     }
-    // KLib42::Match& all = KParser::KObject::debug();
+    // auto& all = KLib42::KObject::debug();
     EXPECT_EQ(KLib42::KObject::count, 0);
 }
 

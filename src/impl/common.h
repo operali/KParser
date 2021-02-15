@@ -1,18 +1,10 @@
 #pragma once
 
-#include <type_traits>
-#include <functional>
-#include <memory>
-#include <vector>
-#include <string>
-#include <algorithm>
-
+#include "./base.h"
 #include "./conf.h"
-#include "./any.h"
-#include "./ref.h"
+#include "./text/text.h"
 
 namespace KLib42 {
-
     struct KObject {
 #ifdef KOBJECT_DEBUG
         static std::vector<KObject*> all;
@@ -36,8 +28,10 @@ namespace KLib42 {
         }
     };
 
+
     struct KError : public KObject {
         virtual ~KError() {};
         virtual std::string message() = 0;
     };
 }
+

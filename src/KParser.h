@@ -1,11 +1,13 @@
 #pragma once
 #include "impl/common.h"
 
+
 namespace KLib42 {
     using IT = std::vector<KAny>::iterator;
     struct Match : private KObject {
         // length of this match
         virtual KUSIZE length() = 0;
+        virtual KUSIZE location() = 0;
         // text of this match
         virtual std::string str() = 0;
         virtual std::string prefix() = 0;
@@ -20,7 +22,7 @@ namespace KLib42 {
         }
 
         // fail in matching process
-        virtual KShared<KError> errInfo() = 0;
+        virtual KShared<KError> getLastError() = 0;
     };
 
     struct Rule;
@@ -30,7 +32,8 @@ namespace KLib42 {
         ParserImpl* impl;
     public:
         Parser(KUSIZE lookback = 42, bool skipBlanks = true);
-        KShared<KError> errInfo();
+        KShared<KError> getErrInfo();
+        KShared<ISource> getSource();
 
         // epsilon
         Rule* none();

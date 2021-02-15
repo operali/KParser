@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 
-// #define X
+#define ENABLE_TEST
 
-#ifdef X
+#ifdef ENABLE_TEST
 
 #include "../src/impl/text/text.h"
 

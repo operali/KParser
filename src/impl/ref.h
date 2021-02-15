@@ -1,7 +1,6 @@
-
 #pragma once
 #include<vector>
-#include<assert.h>
+
 namespace KLib42 {
 
 	// unique_ptr for simple using
@@ -10,7 +9,7 @@ namespace KLib42 {
 	{
 		T* _data;
 		KUnique(const KUnique&) = delete;
-		KUnique& operator= (const KUnique& rhs) = delete;
+		
 	public:
 		inline KUnique(T* data = nullptr)
 			: _data(data) {};
@@ -19,7 +18,12 @@ namespace KLib42 {
 			rhs._data = nullptr;
 		}
 
-		
+		KUnique& operator= (KUnique& rhs) {
+			_data = rhs._data;
+			rhs._data = nullptr;
+			return *this;
+		}
+
 		inline ~KUnique() {
 			_destruct();
 		}

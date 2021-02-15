@@ -7,9 +7,9 @@ namespace KLib42 {
 
 	struct KTextImpl {
 		char* _buff;
-		KSIZE _len = -1;
+		int _len = -1;
 
-		std::vector<KSIZE> m_ll;
+		std::vector<int> m_ll;
 
 		void setText(const std::string& text) {
 			reset();
@@ -35,6 +35,8 @@ namespace KLib42 {
 				_buff = nullptr;
 				_len = -1;
 			}
+			m_ll.clear();
+			m_ll.reserve(64);
 		}
 
 		inline ~KTextImpl() {
@@ -58,11 +60,11 @@ namespace KLib42 {
 			return impl->_buff;
 		};
 
-		KUSIZE len() override {
+		size_t len() override {
 			return impl->_len;
 		};
 		KShared<IEnumerator<ILine>> lines() override;
-		KUSIZE lineCount() override;
+		size_t lineCount() override;
 		
 		KShared<ILine> getLine(size_t index) override;
 		KShared<ILocation> getLocation(size_t index) override;
@@ -70,22 +72,22 @@ namespace KLib42 {
 
 	struct KLine : public ILine {
 		KTextImpl* impl;
-		KUSIZE _idx;
-		KUSIZE index() override {
+		size_t _idx;
+		size_t index() override {
 			return _idx;
 		}
 		std::string str() override;
 		KShared<IRange> toRange() override;
-		KLine(KTextImpl* impl, KUSIZE idx): impl(impl), _idx(idx){}
+		KLine(KTextImpl* impl, size_t idx): impl(impl), _idx(idx){}
 		~KLine() override= default;
 	};
 
 	struct KLocation : public ILocation {
 		KTextImpl* impl;
-		KUSIZE _idx;
-		KLocation(KTextImpl* impl, KUSIZE _idx):impl(impl),_idx(_idx) {}
+		size_t _idx;
+		KLocation(KTextImpl* impl, size_t _idx):impl(impl),_idx(_idx) {}
 		~KLocation() override = default;
-		KUSIZE index() override {
+		size_t index() override {
 			return _idx;
 		}
 		loc location() override {
@@ -93,16 +95,19 @@ namespace KLib42 {
 			auto it = std::lower_bound(m_ll.begin(), m_ll.end(), _idx);
 			auto row = it - m_ll.begin();
 			auto left = (it == m_ll.begin()) ? 0 : *(it - 1) + 1;
-			auto col = _idx - (KUSIZE)left;
-			return loc{ (KUSIZE)row, col };
+			auto right = (it == m_ll.end()) ? impl->_len : *it;
+			auto col = _idx - (size_t)left;
+			return loc{ (size_t)row, col, (size_t)left, (size_t)right, _idx };
 		}
 
 		KShared<ILine> getLine() override {
 			auto m_ll = impl->m_ll;
 			auto it = std::lower_bound(m_ll.begin(), m_ll.end(), _idx);
 			auto row = it - m_ll.begin();
-			return KShared<ILine>(new KLine{ impl, (KUSIZE)row });
+			return KShared<ILine>(new KLine{ impl, (size_t)row });
 		};
+		
+		KShared<IRange> getRange() override;
 	};
 
 	KShared<ISource> KText::getSource() {
@@ -111,8 +116,8 @@ namespace KLib42 {
 
 	struct Lines : public IEnumerator<ILine> {
 		KTextImpl* impl;
-		KUSIZE index;
-		Lines(KTextImpl* impl, KUSIZE index) :impl(impl), index(0) {};
+		size_t index;
+		Lines(KTextImpl* impl, size_t index) :impl(impl), index(0) {};
 		inline ~Lines() override {};
 		bool hasNext() override {
 			return index != impl->m_ll.size();
@@ -136,10 +141,10 @@ namespace KLib42 {
 
 	struct KRange : public IRange {
 		KTextImpl* impl;
-		KUSIZE left = 0;
-		KUSIZE right = 0;
+		size_t left = 0;
+		size_t right = 0;
 
-		KRange(KTextImpl* impl, KUSIZE left, KUSIZE right):impl(impl), left(left), right(right) {
+		KRange(KTextImpl* impl, size_t left, size_t right):impl(impl), left(left), right(right) {
 		}
 
 		~KRange() = default;
@@ -154,33 +159,33 @@ namespace KLib42 {
 		return KShared<IEnumerator<ILine>>(new Lines{ impl, 0 });
 	}
 
-	KUSIZE KSource::lineCount() {
+	size_t KSource::lineCount() {
 		return this->impl->m_ll.size();
 	}
 	
 	KShared<ILine> KSource::getLine(size_t index) {
 		if (index >= this->impl->m_ll.size()) {
-			throw std::exception();
+			return KShared<ILine>();
 		}
-		return KShared<ILine>(new KLine{ impl, (KUSIZE)index });
+		return KShared<ILine>(new KLine{ impl, (size_t)index });
 	}
 
 	KShared<ILocation> KSource::getLocation(size_t index) {
 		if (index >= this->impl->_len) {
 			throw std::exception();
 		}
-		return KShared<ILocation>(new KLocation{ impl, (KUSIZE)index });
+		return KShared<ILocation>(new KLocation{ impl, (size_t)index });
 	}
 
 	KShared<IRange> KLine::toRange() {
 		auto m_ll = impl->m_ll;
 		auto locIdx = m_ll.at(_idx);
 		if (_idx == 0) {
-			return KShared<IRange>(new KRange{ impl, 0, (KUSIZE)locIdx });
+			return KShared<IRange>(new KRange{ impl, 0, (size_t)locIdx });
 		}
 		else {
 			auto left = m_ll.at(_idx-1);
-			return KShared<IRange>(new KRange{ impl, (KUSIZE)left+1, (KUSIZE)locIdx });
+			return KShared<IRange>(new KRange{ impl, (size_t)left+1, (size_t)locIdx });
 		}
 	};
 
@@ -203,4 +208,10 @@ namespace KLib42 {
 		auto right = c + r->to();
 		return std::string(left, right);
 	}
+
+	KShared<IRange> KLocation::getRange() {
+		return KShared<IRange>(new KRange{ impl, _idx, _idx });
+	}
 }
+
+

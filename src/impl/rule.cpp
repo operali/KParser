@@ -15,7 +15,7 @@ namespace KLib42 {
     };
 
     MatchR::MatchR(KUSIZE start, RuleNode* rule) 
-        :m_startPos(start), m_ruleNode(rule), m_length(LEN::INIT) {
+        :m_startPos(start), m_ruleNode(rule), m_length(LEN::INIT), m_flags(0) {
     }
 
     using LINES = std::vector<LINE>;
@@ -133,6 +133,7 @@ namespace KLib42 {
         this->m_gen->setText(text);
 
         auto m = this->match(0);
+        m->setSelfRelease(true);
         KUnique<Match> um;
         um.reset(m);
 
@@ -187,7 +188,7 @@ namespace KLib42 {
                     expStk.emplace_back(std::move(res));
                 }
                 opStk.pop_back();
-                delete mr;
+                // delete mr;
             }
         });
         if (f) {
@@ -290,8 +291,8 @@ namespace KLib42 {
         return m_ruleNode->m_gen->m_expStk.size();
     };
 
-    KShared<KError> MatchR::errInfo() {
-        return m_ruleNode->m_gen->m_interface->errInfo();
+    KShared<KError> MatchR::getLastError() {
+        return m_ruleNode->m_gen->m_interface->getErrInfo();
     }
 
     std::string MatchR::prefix() {
@@ -474,6 +475,9 @@ namespace KLib42 {
         }
 
         ~MatchRAny() {
+            if (m_flags.test((size_t)MatchR::FLAG::SELF_RELEASE)) {
+                this->release();
+            }
             /*if (m_curMatcher) {
                 delete m_curMatcher;
                 m_curMatcher = nullptr;
@@ -561,6 +565,9 @@ namespace KLib42 {
         std::vector<MatchR*> childMatch;
         KUSIZE m_curStart;
         ~MatchRAll() {
+            if (m_flags.test((size_t)MatchR::FLAG::SELF_RELEASE)) {
+                this->release();
+            }
             /*for (auto m : childMatch) {
                 delete m;
             }
@@ -686,6 +693,11 @@ namespace KLib42 {
             m_maxLen = parser->length - m_startPos;
         }
 
+        ~MatchRUntill() {
+            if (m_flags.test((size_t)MatchR::FLAG::SELF_RELEASE)) {
+                this->release();
+            }
+        }
         void release() override {
             MatchR::release();
             m_curMatcher = nullptr;
@@ -753,6 +765,12 @@ namespace KLib42 {
             auto* parser = m_ruleNode->m_gen;
             m_maxLen = parser->length - m_startPos;
         }
+        
+        ~MatchRTill() {
+            if (m_flags.test((size_t)MatchR::FLAG::SELF_RELEASE)) {
+                this->release();
+            }
+        }
 
          void release() override {
              MatchR::release();
@@ -814,6 +832,12 @@ namespace KLib42 {
         bool m_accept = false;
         MatchRNot(KUSIZE start, RuleNode* rule)
             :MatchR(start, rule) {
+        }
+
+        ~MatchRNot() {
+            if (m_flags.test((size_t)MatchR::FLAG::SELF_RELEASE)) {
+                this->release();
+            }
         }
 
         void release() override {

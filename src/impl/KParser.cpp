@@ -19,7 +19,7 @@ namespace KLib42 {
         delete impl;
     }
 
-    KShared<KError> Parser::errInfo() {
+    KShared<KError> Parser::getErrInfo() {
         return impl->parseErrInfo.clone();
         /*std::stringstream ss;
         ss << "parse fail at (line:column)" << err.row << ":" << err.col << std::endl;
@@ -27,6 +27,10 @@ namespace KLib42 {
             << "^^^"
             << std::string(err.lineMid, err.lineRight) << std::endl;
         return ss.str();*/
+    }
+
+    KShared<ISource> Parser::getSource() {
+        return impl->m_text.getSource();
     }
 
     Parser::Parser(KUSIZE lookback, bool skipBlanks) :impl(new ParserImpl(this, lookback, skipBlanks)) {

@@ -1,9 +1,9 @@
 #include "gtest/gtest.h"
 #include "../src/impl/common.h"
 
-#define X
+#define ENABLE_TEST
 
-#ifdef X
+#ifdef ENABLE_TEST
 static int xcount = 0;
 struct A {
     A() {
