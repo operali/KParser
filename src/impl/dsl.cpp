@@ -2,7 +2,7 @@
 #include "common.h"
 #include "dsl.h"
 #include "util.h"
-#include "KParser.h"
+#include "../KParser.h"
 
 namespace KLib42 {
 

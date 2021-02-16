@@ -12,6 +12,6 @@ fi
 cd centos
 cmake ../../
 make -j16
-./MyParser
+# ./MyParser
 # cd ../../
 

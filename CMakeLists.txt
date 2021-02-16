@@ -20,16 +20,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
 ENDIF()
 
-file(GLOB_RECURSE SOURCE
-  ./src/*.h
-  ./src/*.cpp
-  ./test/*.cpp
-)
 
+add_subdirectory(src)
+add_subdirectory(test)
 add_subdirectory(third_party/gtest)
+add_subdirectory(example)
 
-add_executable(${TARGET} ${SOURCE})
-
-target_include_directories(${TARGET} PUBLIC "src")
-target_include_directories(${TARGET} PUBLIC "third_party/gtest")
-target_link_libraries(${TARGET} PUBLIC gtest gtest_main)
