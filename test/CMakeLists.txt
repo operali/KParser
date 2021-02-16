@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
-PROJECT(libkparser)
+set(TARGET test)
+PROJECT(${TARGET})
 
 file(GLOB_RECURSE SOURCE
   ./*.cpp

@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
-PROJECT(example)
+set(TARGET example)
+PROJECT(${TARGET})
 
 file(GLOB_RECURSE SOURCE
   ./*.cpp
 )
 
-add_executable(example ${SOURCE})
-target_link_libraries(example PUBLIC libkparser)
+add_executable(${TARGET} ${SOURCE})
+
+target_link_libraries(${TARGET} PUBLIC libkparser)

@@ -1,10 +1,10 @@
 #include "gtest/gtest.h"
 #include "../src/KParser.h"
 #include "../src/impl/dsl.h"
+#include "./conf.h"
 
-#define ENABLE_TEST
+#ifdef enable_test_dsl
 
-#ifdef ENABLE_TEST
 TEST(DSL_BASIC, text) {
     KLib42::DSLContext ctx;
     {

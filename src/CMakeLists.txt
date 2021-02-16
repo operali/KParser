@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
-PROJECT(libkparser)
+set(TARGET libkparser)
+PROJECT(${TARGET})
 
 file(GLOB_RECURSE SOURCE
   ./*.cpp
 )
-
-add_library(libkparser STATIC ${SOURCE})
+add_library(${TARGET} STATIC ${SOURCE})

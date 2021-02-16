@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
-#define ENABLE_TEST
+#include "./conf.h"
 
-#ifdef ENABLE_TEST
+#ifdef enable_test_util
 
 #endif

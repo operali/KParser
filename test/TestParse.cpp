@@ -4,10 +4,10 @@
 #include "../src/impl/rule.h"
 #include <sstream>
 #include <exception>
+#include "./conf.h"
 
-#define ENABLE_TEST
+#ifdef enable_test_parse
 
-#ifdef ENABLE_TEST
 TEST(BASIC, remove_space) {
     {
         KLib42::Parser p;
