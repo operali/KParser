@@ -2,77 +2,6 @@
 #include<vector>
 
 namespace KLib42 {
-
-	// unique_ptr for simple using
-	template<typename T>
-	struct KUnique
-	{
-		T* _data;
-		KUnique(const KUnique&) = delete;
-		
-	public:
-		inline KUnique(T* data = nullptr)
-			: _data(data) {};
-
-		KUnique(KUnique&& rhs) noexcept :_data(rhs._data) {
-			rhs._data = nullptr;
-		}
-
-		KUnique& operator= (KUnique& rhs) {
-			_data = rhs._data;
-			rhs._data = nullptr;
-			return *this;
-		}
-
-		inline ~KUnique() {
-			_destruct();
-		}
-
-		inline void reset(T* pData) {
-			_destruct();
-			_data = pData;
-		}
-
-		inline T* release() {
-			T* pTemp = _data;
-			_data = nullptr;
-			return pTemp;
-		}
-
-		inline T* get()
-		{
-			return _data;
-		}
-
-		inline operator bool() const
-		{
-			return _data != nullptr;
-		}
-
-		inline T& operator * ()
-		{
-			return *_data;
-		}
-
-		inline T* operator -> ()
-		{
-			return _data;
-		}
-		
-	private:
-		inline void _destruct()
-		{
-			if (nullptr == _data) return;
-			delete _data;
-			_data = nullptr;
-		}
-	};
-
-	template<typename T>
-	inline KUnique<T> makeUnique(T&& obj) {
-		return KUnique<T>(new T(std::move(obj)));
-	}
-
 	struct KCounter;
     template<typename T>
     struct KShared;
@@ -279,11 +208,87 @@ namespace KLib42 {
 		}
 	}
 
-	template <typename T>
-	struct IEnumerator {
-		virtual bool hasNext() = 0;
-		virtual KShared<T> next() = 0;
-		virtual std::vector<KShared<T>> toArray() = 0;
-		virtual ~IEnumerator() = default;
+	// unique_ptr for simple using
+	template<typename T>
+	struct KUnique
+	{
+		T* _data;
+	public:
+		inline KUnique(T* data = nullptr)
+			: _data(data) {};
+
+		KUnique(KUnique&& rhs) noexcept :_data(rhs._data) {
+			rhs._data = nullptr;
+		}
+
+		KUnique(KUnique& rhs) noexcept : _data(rhs._data) {
+			rhs._data = nullptr;
+		}
+
+		KUnique& operator= (KUnique&& rhs) {
+			_data = rhs._data;
+			rhs._data = nullptr;
+			return *this;
+		}
+
+		inline ~KUnique() {
+			_destruct();
+		}
+
+		inline void reset(T* pData) {
+			_destruct();
+			_data = pData;
+		}
+
+		inline T* release() {
+			T* pTemp = _data;
+			_data = nullptr;
+			return pTemp;
+		}
+
+		inline T* get()
+		{
+			return _data;
+		}
+
+		KShared<T> toShared();
+
+		inline operator bool() const
+		{
+			return _data != nullptr;
+		}
+
+		inline T& operator * ()
+		{
+			return *_data;
+		}
+
+		inline T* operator -> ()
+		{
+			return _data;
+		}
+
+	private:
+		inline void _destruct()
+		{
+			if (nullptr == _data) return;
+			delete _data;
+			_data = nullptr;
+		}
 	};
+
+
+
+	template<typename T>
+	KShared<T> KUnique<T>::toShared() {
+		auto r = KShared<T>(_data);
+		_data = nullptr;
+		return r;
+	}
+
+	template<typename T>
+	inline KUnique<T> makeUnique(T&& obj) {
+		return KUnique<T>(new T(std::move(obj)));
+	}
+
 }

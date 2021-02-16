@@ -17,7 +17,7 @@ namespace KLib42 {
         
         const char* m_cache;
         KUSIZE length;
-        KText m_text;
+        KShared<ISource> m_text;
 
         std::vector<RuleNode*> rules;
 

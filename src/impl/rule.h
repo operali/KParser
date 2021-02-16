@@ -10,25 +10,23 @@ namespace KLib42 {
     struct RuleNode;
     
     struct MatchR;
+    MatchR* const TRUE = (MatchR*)0x1;
+    MatchR* const FALSE = (MatchR*)0x2;
     struct StepInT {
         MatchR* mr;
-        bool res;
-        StepInT(bool res):mr(nullptr), res(res) {}
-        StepInT(MatchR* mr):mr(mr), res(false) {}
+        StepInT(bool res):mr(res? TRUE : FALSE) {}
+        StepInT(MatchR* mr):mr(mr) {}
+        inline bool isBoolean() {
+            return mr == TRUE || mr == FALSE;
+        }
+        inline bool booleanValue() {
+            return mr == TRUE;
+        }
     };
 
     struct MatchR : public Match {
         KUSIZE m_startPos;
         KSIZE m_length;
-        std::bitset<8> m_flags;
-
-        enum class FLAG : uint8_t {
-            SELF_RELEASE = 0,
-        };
-
-        inline void setSelfRelease(bool st) {
-            m_flags.set((size_t)FLAG::SELF_RELEASE, st);
-        }
         
         enum LEN : KSIZE {
             FAIL = -2,
@@ -80,6 +78,7 @@ namespace KLib42 {
     };
     struct RuleNode : public Rule {
         ParserImpl* m_gen;
+
         RuleNode(ParserImpl* gen);
         virtual ~RuleNode() = default;
         template <typename T>

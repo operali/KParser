@@ -30,7 +30,7 @@ namespace KLib42 {
     }
 
     KShared<ISource> Parser::getSource() {
-        return impl->m_text.getSource();
+        return impl->m_text;
     }
 
     Parser::Parser(KUSIZE lookback, bool skipBlanks) :impl(new ParserImpl(this, lookback, skipBlanks)) {

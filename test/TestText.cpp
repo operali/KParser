@@ -6,77 +6,52 @@
 
 #include "../src/impl/text/text.h"
 
-TEST(TEXT, first) {
-    KLib42::KText text;
-    {
-        text.setText("\n\nabcd\n12345");
-        auto s = text.getSource();
-        auto lines = s->lines();
-        {
-            ASSERT_EQ(lines->hasNext(), true);
-            auto l = lines->next();
-            EXPECT_EQ(l->str(), "");
-            auto r = l->toRange();
-            EXPECT_EQ(r->from(), 0);
-            EXPECT_EQ(r->to(), 0);
-        }
-
-        {
-            ASSERT_EQ(lines->hasNext(), true);
-            auto l = lines->next();
-            EXPECT_EQ(l->str(), "");
-            auto r = l->toRange();
-            EXPECT_EQ(r->from(), 1);
-            EXPECT_EQ(r->to(), 1);
-        }
-
-        {
-            ASSERT_EQ(lines->hasNext(), true);
-            auto l = lines->next();
-            EXPECT_EQ(l->str(), "abcd");
-        }
-
-        
-        {
-            EXPECT_EQ(lines->hasNext(), true);
-            auto l = lines->next();
-            EXPECT_EQ(l->str(), "12345");
-        }
-        
-        {
-            EXPECT_EQ(lines->hasNext(), false);
-            try {
-                auto l1 = lines->next();
-                FAIL() << "Expected std::out_of_range";
-            }
-            catch (std::exception const& err) {
-                SUCCEED();
-            }
-            catch (...) {
-                FAIL() << "Expected std::out_of_range";
-            }
-        }
-        {
-            auto lines = s->lines()->toArray();
-            EXPECT_EQ(lines.size(), 4);
-            EXPECT_EQ(lines[0]->str(), "");
-            EXPECT_EQ(lines[1]->str(), "");
-            EXPECT_EQ(lines[2]->str(), "abcd");
-            EXPECT_EQ(lines[3]->str(), "12345");
-        }
-    }
-
-  
-    
-}
 
 TEST(TEXT, second) {
-    KLib42::KText text;
+    using namespace KLib42;
     {
-        text.setText("abcd\n12345\n!@#$%");
-        auto s = text.getSource();
+        KShared<ISource> s(new KSource());
+        {
+            EXPECT_EQ(s->lineCount(), 1);
+            EXPECT_EQ(s->len(), 0);
+        }
+        {
+            s->setText("abcd\n1234\n!@#$%");
+            EXPECT_EQ(s->lineCount(), 3);
+            EXPECT_EQ(s->len(), 15);
+            auto c0 = s->getLocation(0);
+            ASSERT_EQ(c0->getRawSource(), s.operator->());
+            EXPECT_EQ(c0->index(), 0);
 
+            auto cna = s->getLocation(100);
+            EXPECT_EQ(!!cna, false);
+
+            auto line = s->getLine(0);
+            EXPECT_EQ(line->str(), "abcd");
+            line = line->next();
+            EXPECT_EQ(line->str(), "1234");
+            line = line->next();
+            EXPECT_EQ(line->str(), "!@#$%");
+            line = line->next();
+            EXPECT_EQ(!!line, false);
+
+            auto range = s->getRange(10, 15);
+            EXPECT_EQ(range->str(), "!@#$%");
+            ASSERT_EQ(range->getRawSource(), s.operator->());
+            auto r = range->range();
+            EXPECT_EQ(r.first, 10);
+            EXPECT_EQ(r.second, 15);
+            auto loc1 = s->getLocation(r.first);
+            auto loc2 = s->getLocation(r.second);
+            EXPECT_EQ(loc1->index(), 10);
+            EXPECT_EQ(loc2->index(), 15);
+            auto l1 = loc1->getLine();
+            auto l2 = loc2->getLine();
+            EXPECT_EQ(l1->index(), l2->index());
+            EXPECT_EQ(l1->str(), "!@#$%");
+        }
     }
 }
+
 
 #endif

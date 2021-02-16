@@ -2,7 +2,7 @@
 
 namespace KLib42 {
     ParserImpl::ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank)
-        :m_interface(parser), m_skipBlank(skipBlank), m_lookback(lookback), m_headMax(0), m_cache(nullptr), length(0) {
+        :m_interface(parser), m_skipBlank(skipBlank), m_lookback(lookback), m_headMax(0), m_cache(nullptr), length(0), m_text(new KSource()){
     }
 
     ParserImpl::~ParserImpl() {
@@ -13,7 +13,7 @@ namespace KLib42 {
     }
 
     void ParserImpl::reset() {
-        m_text.setText("");
+        m_text->setText("");
         m_cache = "";
         length = 0;
         m_headMax = 0;
@@ -24,10 +24,9 @@ namespace KLib42 {
 
 
     void ParserImpl::setText(const std::string& text) {
-        m_text.setText(text);
-        auto s = m_text.getSource();
-        m_cache = s->buff();
-        length = s->len();
+        m_text->setText(text);
+        m_cache = m_text->raw();
+        length = m_text->len();
     }
 
     void ParserImpl::genParseError() {

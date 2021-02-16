@@ -3,7 +3,7 @@
 #include "./dsl.h"
 
 namespace KLib42 {
-    KShared<IRange> SyntaxError::getRange() {
+    KUnique<IRange> SyntaxError::getRange() {
         auto loc = source->getLocation(location);
         return loc->getRange();
     }
@@ -12,7 +12,8 @@ namespace KLib42 {
         std::stringstream ss;
         auto iloc = source->getLocation(location);
         auto loc = iloc->location();
-        ss << "fail to parse at (" << loc.row << ":" << loc.col << ")" << std::endl;
+        ss << "location(" << loc.row << "," << loc.col << ")";
+        ss<< ":syntax error"<< std::endl;
         if (loc.row != 0) {
             auto lno = loc.row - 1;
             auto iline = source->getLine(lno);
@@ -21,7 +22,7 @@ namespace KLib42 {
             }
         }
         
-        auto buff = source->buff();
+        auto buff = source->raw();
         auto left = buff + loc.left;
         auto mid = buff + loc.idx;
         auto right = buff + loc.right;
@@ -39,22 +40,26 @@ namespace KLib42 {
 return ss.str();
     };
 
-    KShared<IRange> IDError::getRange() {
-        return KShared<IRange>{};
+    KUnique<IRange> IDError::getRange() {
+        return KUnique<IRange>{};
     }
 
 
-    KShared<IRange> RedefinedIDError::getRange() {
-        return KShared<IRange>{};
+    KUnique<IRange> RedefinedIDError::getRange() {
+        return KUnique<IRange>{};
     }
 
     std::string RedefinedIDError::message() {
         std::stringstream ss;
-        ss << "redefined id of " << this->id->name << std::endl;
-        auto locLeft = this->id->matcher->location();
-        auto locRight = locLeft + this->id->matcher->length();
+
+        auto range = this->id->range->range();
+        auto locLeft = range.first;
+        auto locRight = range.second;
         auto ilocLeft = this->source->getLocation(locLeft);
         auto loc = ilocLeft->location();
+        ss << "location(" << loc.row << "," << loc.col << ")";
+        ss << "redefined id of " << this->id->name << std::endl;
+
         if (loc.row != 0) {
             auto lno = loc.row - 1;
             auto iline = source->getLine(lno);
@@ -63,7 +68,7 @@ return ss.str();
             }
         }
 
-        auto buff = source->buff();
+        auto buff = source->raw();
         auto left = buff + loc.left;
         auto mid = buff + loc.idx;
         auto mid1 = buff + locRight;
@@ -84,17 +89,20 @@ return ss.str();
         return ss.str();
     };
 
-    KShared<IRange> UndefinedIDError::getRange() {
-        return KShared<IRange>{};
+    KUnique<IRange> UndefinedIDError::getRange() {
+        return KUnique<IRange>{};
     }
 
     std::string UndefinedIDError::message() {
         std::stringstream ss;
-        ss << "undefined id of " << this->id->name << std::endl;
-        auto locLeft = this->id->matcher->location();
-        auto locRight = locLeft + this->id->matcher->length();
+        auto range = this->id->range->range();
+        auto locLeft = range.first;
+        auto locRight = range.second;
         auto ilocLeft = this->source->getLocation(locLeft);
         auto loc = ilocLeft->location();
+        ss << "location(" << loc.row << "," << loc.col << ")";
+        ss << "undefined id of " << this->id->name << std::endl;
+
         if (loc.row != 0) {
             auto lno = loc.row - 1;
             auto iline = source->getLine(lno);
@@ -103,7 +111,7 @@ return ss.str();
             }
         }
 
-        auto buff = source->buff();
+        auto buff = source->raw();
         auto left = buff + loc.left;
         auto mid = buff + loc.idx;
         auto mid1 = buff + locRight;
@@ -124,17 +132,20 @@ return ss.str();
         return ss.str();
     };
 
-    KShared<IRange> RecursiveIDError::getRange() {
-        return KShared<IRange>{};
+    KUnique<IRange> RecursiveIDError::getRange() {
+        return KUnique<IRange>{};
     }
 
     std::string RecursiveIDError::message() {
         std::stringstream ss;
-        ss << "recursive id defination of " << this->id->name << std::endl;
-        auto locLeft = this->id->matcher->location();
-        auto locRight = locLeft + this->id->matcher->length();
+        auto range = this->id->range->range();
+        auto locLeft = range.first;
+        auto locRight = range.second;
         auto ilocLeft = this->source->getLocation(locLeft);
         auto loc = ilocLeft->location();
+        ss << "location (" << loc.row << ", " << loc.col << ")";
+        ss << "recursive id defination of " << this->id->name << std::endl;
+
         if (loc.row != 0) {
             auto lno = loc.row - 1;
             auto iline = source->getLine(lno);
@@ -143,7 +154,7 @@ return ss.str();
             }
         }
 
-        auto buff = source->buff();
+        auto buff = source->raw();
         auto left = buff + loc.left;
         auto mid = buff + loc.idx;
         auto mid1 = buff + locRight;
