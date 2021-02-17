@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "../src/KParser.h"
+#include "../src/kparser.h"
 #include "../src/impl/dsl.h"
 #include "./conf.h"
 
@@ -420,7 +420,7 @@ b = a+ EOF;
         int numVal = 0;
         std::string strVal= "";
         int count = 0;
-        ctx.prepareEvaluation("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
+        ctx.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
             int* pNum = arg->get<int>();
             if (pNum) {
                 int num = *pNum;
@@ -440,7 +440,7 @@ b = a+ EOF;
             }
             
         });
-        ctx.prepareEvaluation("b", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
+        ctx.prepareCapture("b", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
             for (; arg != noarg; ++arg) {
                 count++;
             }
@@ -497,7 +497,7 @@ TEST(DSL_BASIC, list) {
 a = ID | NUM;
 b = [a ','] EOF;
 )");
-        p.prepareEvaluation("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
+        p.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
             int* pNum = arg->get<int>();
             if (pNum) {
                 int num = *pNum;
@@ -543,7 +543,7 @@ TEST(DSL, till) {
 a = ID | NUM;
 b = (...a)* EOF;
 )");
-        p.prepareEvaluation("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
+        p.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
             int* pNum = arg->get<int>();
             if (pNum) {
                 int num = *pNum;

@@ -142,7 +142,7 @@ namespace KLib42 {
 
         DSLContext();
         void prepareRules(std::string str);
-        void prepareEvaluation(const std::string& evtName, std::function<KAny(Match& m, IT arg, IT noarg)> handle);
+        void prepareCapture(const std::string& evtName, std::function<KAny(Match& m, IT arg, IT noarg)> handle);
         bool build();
         KUnique<Match> parse(const std::string& ruleName, const std::string& str);
     };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../KParser.h"
+#include "../kparser.h"
 #include "./rule.h"
 #include "./error.h"
 #include "./text/text.h"

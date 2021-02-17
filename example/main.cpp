@@ -7,7 +7,7 @@
 #endif
 
 #include <iostream>
-#include "../src/KParser.h"
+#include "../src/kparser.h"
 
 void example() {
     printf("demo");
@@ -17,7 +17,7 @@ void example() {
 a = ID | NUM;
 b = (...a)* EOF;
 )");
-    p.prepareEvaluation("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
+    p.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
         int* pNum = arg->get<int>();
         if (pNum) {
             int num = *pNum;

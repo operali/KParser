@@ -2,7 +2,7 @@
 #include "common.h"
 #include "dsl.h"
 #include "util.h"
-#include "../KParser.h"
+#include "../kparser.h"
 
 namespace KLib42 {
 
@@ -178,7 +178,7 @@ namespace KLib42 {
         }
     }
 
-    void DSLContext::prepareEvaluation(const std::string& evtName, std::function<KAny(KLib42::Match & m, KLib42::IT arg, KLib42::IT noarg)> handle) {
+    void DSLContext::prepareCapture(const std::string& evtName, std::function<KAny(KLib42::Match & m, KLib42::IT arg, KLib42::IT noarg)> handle) {
         handleMap[evtName] = handle;
     }
 

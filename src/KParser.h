@@ -95,7 +95,7 @@ namespace KLib42 {
     struct EasyParserImpl;
     struct  EasyParser  {
         void prepareRules(const char* strRule);
-        void prepareEvaluation(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)> eval);
+        void prepareCapture(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)> eval);
         bool build();
         KUnique<Match> parse(const char* ruleName, const std::string& toParse);
         KShared<KError> getLastError();

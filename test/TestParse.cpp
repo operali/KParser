@@ -1,6 +1,6 @@
 
 #include "gtest/gtest.h"
-#include "../src/KParser.h"
+#include "../src/kparser.h"
 #include "../src/impl/rule.h"
 #include <sstream>
 #include <exception>
@@ -724,6 +724,7 @@ TEST(PRESSURE, length___) {
     // 20201230 (debug: 1287 ms, release:290)
     // 20201231 (debug: 1292 ms, release:194)
     // 20210101 (debug: 1187 ms, release:145)
+    // 20210217 (debug: 1439 ms, release:160)
     EXPECT_EQ(KLib42::KObject::count, 0);
     {
         auto text = "abc";
