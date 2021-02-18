@@ -39,16 +39,13 @@ namespace KLib42 {
 		}
 
 		inline ~KSourceImpl() {
-			release();
+			delete[] _buff;
 		}
 
 		KSourceImpl() {
 			setText("");
 		}
 	};
-
-
-	
 
 	KSource::KSource() {
 		pImpl = new KSourceImpl();
