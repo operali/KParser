@@ -10,28 +10,42 @@
 #include "../src/kparser.h"
 
 void example() {
-    KLib42::EasyParser p;
+    printf("demo");
+	KLib42::EasyParser p;
     std::string strval = "";
     p.prepareRules(R"(
-op1 = '+' | '-';
-op2 = '*' | '/';
-exp1 = [term op1];
-exp2 = [exp1 op2];
-exp = exp2;
-term = NUM | '(' exp ')';
+a = ID | NUM;
+b = (...a)* EOF;
 )");
-    p.prepareCapture("exp", [&](auto& m, auto argB, auto argE) {
-        std::cout << "exp" << std::endl;
-        return nullptr;
-    });
+    p.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
+        int* pNum = arg->get<int>();
+        if (pNum) {
+            int num = *pNum;
+            std::cout << "number of" << num << std::endl;
+            return nullptr;
+        }
+        else {
+            std::string* pid = arg->get<std::string>();
+            if (pid) {
+                auto id = *pid;
+                std::cout << "string of" << id << std::endl;
+                return nullptr;
+            }
+            else {
+                return nullptr;
+            }
+
+        }
+        });
     auto r = p.build();
     if (!r) {
         std::cerr << p.getLastError()->message() << std::endl;
     }
     else {
         char* k = new char;
-        p.parse("exp", "1+1");
+        p.parse("b", "11, 22 ,aa, bb");
     }
+
 }
 
 

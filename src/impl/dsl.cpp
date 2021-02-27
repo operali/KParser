@@ -136,7 +136,7 @@ namespace KLib42 {
     bool DSLAny::build(KLib42::Parser& p) {
         for (auto& c : nodes) {
             if (!c->rule) {
-                std::cerr << "invalid rule of " << c->range->str() << std::endl;
+                std::cerr << "invalid rule of " << rule->toString() << std::endl;
                 return false;
             }
             rule->add(c->rule);
