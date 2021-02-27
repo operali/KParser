@@ -47,7 +47,7 @@ namespace KLib42 {
 		return it->second;
 	}
 
-	KProperty* KProperty::addByNameRaw(const std::string& name, KProperty* prop) {
+	KProperty* KProperty::setByNameRaw(const std::string& name, KProperty* prop) {
 		assert(isObject(), "KProperty::addByName must be object");
 		auto& vals = static_cast<PropNodeObjectImpl*>(pImpl)->values;
 		// note, didnot check exist
@@ -62,7 +62,7 @@ namespace KLib42 {
 		return vals.at(idx);
 	}
 
-	KProperty* KProperty::addRaw(KProperty* val) {
+	KProperty* KProperty::setRaw(KProperty* val) {
 		assert(isArray(), "KProperty::add must be object");
 
 		auto& vals = static_cast<PropNodeArrayImpl*>(pImpl)->values;
@@ -81,6 +81,52 @@ namespace KLib42 {
 		assert(isElement(), "KProperty::getPropAny must be property");
 		auto prop = static_cast<PropNodePropImpl*>(pImpl);
 		return &prop->value;
+	}
+
+	KProperty* KProperty::getByPathRaw(const std::string& path) {
+		char* pstr = const_cast<char*>(path.c_str());
+		const char* dem = "/";
+		const char* tok = strtok(pstr, dem);
+		KProperty* curP = this;
+		do{
+			if (!curP->isObject()) {
+				return nullptr;
+			}
+			curP = curP->getByNameRaw(tok);
+			if (curP == nullptr) {
+				return nullptr;
+			}
+			tok = strtok(nullptr, dem);
+		} while (tok != nullptr);
+		return curP;
+	}
+
+	KProperty* KProperty::setByPathRaw(KDocument& doc, const std::string& path, KProperty* p) {
+		char* pstr = const_cast<char*>(path.c_str());
+		const char* dem = "/";
+		KProperty* curP = this;
+		
+		const char* tok = strtok(pstr, dem);
+		std::string pathTok = tok;
+
+		tok = strtok(nullptr, dem);
+		while(true) {
+			if (tok == nullptr) {
+				curP->setByNameRaw(pathTok, p);
+				return p;
+			}
+			if (!curP->isObject()) {
+				return nullptr;
+			}
+			auto* lastP = curP;
+			curP = curP->getByNameRaw(pathTok);
+			if (curP == nullptr) {
+				curP = doc.createObject();
+				lastP->setByNameRaw(pathTok, curP);
+			}
+			pathTok = tok;
+			tok = strtok(nullptr, dem);
+		};
 	}
 
 	void KProperty::setAny(KAny&& val) {

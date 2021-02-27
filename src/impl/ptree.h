@@ -45,19 +45,34 @@ namespace KLib42 {
             return _type == ETYPE::object;
         }
         KProperty* getByNameRaw(const std::string& name);
-        KProperty* addByNameRaw(const std::string& name, KProperty* val);
-        
         
         inline bool isArray() {
             return _type == ETYPE::array;
         }
         int KProperty::arraySize();
         KProperty* getByIndexRaw(size_t idx);
-        KProperty* addRaw(KProperty* val);
-
+        KProperty* setRaw(KProperty* val);
+        KProperty* setByNameRaw(const std::string& name, KProperty* val);
         inline bool isElement() {
             return _type == ETYPE::element;
         }
+
+        KProperty* getByPathRaw(const std::string& path);
+        KProperty* setByPathRaw(KDocument& doc, const std::string& path, KProperty* p);
+
+        template<typename T>
+        T* getByPath(const std::string& path) {
+            auto* p = getByPathRaw(path);
+            return p->get<T>();
+        }
+
+        template<typename T>
+        KProperty* setByPath(KDocument& doc, const std::string& path, T&& v) {
+            auto* elem = doc.createElement();
+            elem->set(std::move(v));
+            return setByPathRaw(doc, path, elem);
+        }
+
 
         KAny* getPropAny();
         template<typename T>
@@ -67,7 +82,8 @@ namespace KLib42 {
             if (!r) {
                 return nullptr;
             }
-            else {
+            else 
+            {
                 return r->get<T>();
             }
         }
@@ -90,7 +106,7 @@ namespace KLib42 {
         KProperty* add(KDocument& doc, T&& v) {
             auto* elem = doc.createElement();
             elem->set(v);
-            return addRaw(elem);
+            return setRaw(elem);
         }
 
         template<typename T>
@@ -100,16 +116,20 @@ namespace KLib42 {
         }
         
         template<typename T>
-        void setByName(const std::string& name, T&& val) {
-            p->setRaw<T>(name, val);
-        }
+        KProperty* addByName(KDocument& doc, const std::string& name, T&& val);
     };
 
     template<typename T>
     KProperty* KDocument::createElement(T&& v) {
         auto* elem = createElement();
-        elem->set<T>(std::move(v));
+        elem->set(std::move(v));
         return elem;
+    }
+
+    template<typename T>
+    KProperty* KProperty::addByName(KDocument& doc, const std::string& name, T&& val) {
+        auto* elem = doc.createElement(val);
+        return setByNameRaw(name, elem);
     }
 }
 

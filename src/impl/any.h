@@ -1,8 +1,28 @@
 #pragma once
 #include <algorithm>
 #include <tuple>
+#include <sstream>
 
+// NOTE: array type is not supported
 namespace KLib42 {
+    template<typename T>
+    inline std::string to_string(T& v) {
+        std::stringstream ss;
+        if constexpr(std::is_pointer_v<T>) {
+            ss << typeid(T).name() << ":" << reinterpret_cast<size_t>(v);
+        }
+        else {
+            ss << v;
+        }
+        
+        return ss.str();
+    }
+
+    template<>
+    inline std::string to_string(std::string& v) {
+        return v;
+    }
+
     class KAny {
         /*template<typename T> struct TID { static void id(){} };
         template<typename T> static size_t TOF() { return reinterpret_cast<size_t>(TID<T>::id); }
@@ -13,7 +33,10 @@ namespace KLib42 {
         struct DataHolderBase {
             virtual ~DataHolderBase() {}
             virtual size_t id() = 0;
+            // TODO, expremental
+            virtual std::string toString() = 0;
             virtual DataHolderBase* clone() = 0;
+            
             template<typename T>
             inline size_t is() {
                 return id() == TOF<T>();
@@ -26,7 +49,10 @@ namespace KLib42 {
             size_t id() override {
                 return TOF<T>();
             }
-            
+            // TODO, expremental
+            std::string toString() override {
+                return to_string(get());
+            }
             T& get() {
                 return std::get<0>(*this);
             }
@@ -104,6 +130,13 @@ namespace KLib42 {
                 return val->is<T>();
             }
             return false;
+        }
+
+        inline std::string toString() {
+            if (val == nullptr) {
+                return "nullptr";
+            }
+            return val->toString();
         }
 
         template<typename T> 

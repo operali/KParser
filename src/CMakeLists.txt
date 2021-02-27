@@ -4,6 +4,7 @@ PROJECT(${TARGET})
 
 file(GLOB_RECURSE SOURCE
   ./*.h
+  ./*.hpp
   ./*.cpp
 )
 add_library(${TARGET} STATIC ${SOURCE})

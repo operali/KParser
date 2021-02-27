@@ -6,6 +6,7 @@
 
 namespace KLib42 {
     struct DSLNode;
+
     struct DSLFactory {
         std::vector<DSLNode*> nodes;
         ~DSLFactory();
@@ -146,4 +147,13 @@ namespace KLib42 {
         bool build();
         KUnique<Match> parse(const std::string& ruleName, const std::string& str);
     };
+
+    template<>
+    inline std::string to_string(DSLNode*& v) {
+        std::stringstream ss;
+        ss << "dsl_node(";
+        ss << reinterpret_cast<size_t>(v);
+        ss << ")";
+        return ss.str();
+    }
 }
