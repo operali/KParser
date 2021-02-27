@@ -1,3 +1,6 @@
+// author: operali
+// desc: interface
+
 #pragma once
 #include "impl/common.h"
 

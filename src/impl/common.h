@@ -1,3 +1,7 @@
+// author: operali
+// desc: object release detecting, turn on KOBJECT_DEBUG to see what is left unreleased
+
+
 #pragma once
 
 #include "./base.h"

@@ -1,3 +1,6 @@
+// author: operali
+// desc: Domain special language of ENBF
+
 #include <iostream>
 #include "common.h"
 #include "dsl.h"
@@ -24,10 +27,13 @@ namespace KLib42 {
                 });
         }
         else if (name == "NUM") {
-            rule = p.integer_();
+            rule = p.float_();
             rule->eval([&](Match& m, IT b, IT e) {
                 auto s = m.str();
-                return int(std::atoi(s.c_str()));
+                double ret;
+                int len;
+                parseFloat(s.c_str(), s.length(), ret, len);
+                return ret;
                 });
         }
         else if (name == "NONE") {

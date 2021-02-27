@@ -428,9 +428,9 @@ b = a+ EOF;
         std::string strVal= "";
         int count = 0;
         ctx.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg)->KLib42::KAny {
-            int* pNum = arg->get<int>();
+            double* pNum = arg->get<double>();
             if (pNum) {
-                int num = *pNum;
+                double num = *pNum;
                 std::cout << "number: " << num << std::endl;
                 numVal += num;
                 return num;
@@ -498,16 +498,16 @@ TEST(DSL_BASIC, list) {
     KLib42::EasyParser p;
     
     {
-        int numval = 0;
+        double numval = 0;
         std::string strval = "";
         p.prepareRules(R"(
 a = ID | NUM;
 b = [a ','] EOF;
 )");
         p.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
-            int* pNum = arg->get<int>();
+            double* pNum = arg->get<double>();
             if (pNum) {
-                int num = *pNum;
+                double num = *pNum;
                 std::cout << "number of" << num << std::endl;
                 numval += num;
                 return nullptr;
@@ -544,16 +544,16 @@ TEST(DSL, till) {
     KLib42::EasyParser p;
 
     {
-        int numval = 0;
+        double numval = 0;
         std::string strval = "";
         p.prepareRules(R"(
 a = ID | NUM;
 b = (...a)* EOF;
 )");
         p.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
-            int* pNum = arg->get<int>();
+            double* pNum = arg->get<double>();
             if (pNum) {
-                int num = *pNum;
+                double num = *pNum;
                 std::cout << "number of" << num << std::endl;
                 numval += num;
                 return nullptr;

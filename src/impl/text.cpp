@@ -1,3 +1,6 @@
+// author: operali
+// desc: structral TEXT object
+
 #include <vector>
 #include <string>
 #include <algorithm>

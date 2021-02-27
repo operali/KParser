@@ -1,3 +1,6 @@
+// author: operali
+// desc: smart pointers
+
 #pragma once
 #include<vector>
 
@@ -53,8 +56,8 @@ namespace KLib42 {
 		T* _reference;
 		KRawShared(KCounter* _counter, T* _reference) :_counter(_counter), _reference(_reference) {};
 		KRawShared(KWeakShared<T>&) = delete;
-		T* get();
 	public:
+		T* get();
 		friend struct KShared<T>;
 		friend struct KWeakShared<T>;
 		inline T* operator->() {

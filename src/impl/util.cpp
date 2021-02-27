@@ -1,6 +1,10 @@
+// author: operali
+// desc: utility functions
+#include <climits>
 #include <algorithm>
 #include <string>
 #include <iostream>
+#include <cstdlib>
 #include "util.h"
 
 namespace KLib42 {
@@ -39,7 +43,7 @@ namespace KLib42 {
             return ('\r');
             break;
         case 't':
-            return ('\v');
+            return ('\t');
             break;
         case 'v':
             return ('\v');
@@ -49,6 +53,9 @@ namespace KLib42 {
     }
 
     bool parseCSTR(const char* buff, size_t len, std::string& ret, int& rlen) {
+        if (len == 0) {
+            return false;
+        }
         enum class State : int8_t {
             left_p,
             read_ch,
@@ -190,6 +197,9 @@ namespace KLib42 {
     }
 
     bool parseRegex(const char* buff, size_t len, int& rlen) {
+        if (len == 0) {
+            return false;
+        }
         int i = 0;
         enum class State : int8_t {
             left_p,
@@ -237,14 +247,112 @@ namespace KLib42 {
         return true;
     }
 
-    bool parseInt(const char* buff, size_t len, int64_t& ret, int& rlen) {
-        // first +-
-        // enum class 
+    // TODO, NAN, overflow
+    bool parseInteger(const char* begin, size_t len, int64_t& rret, int& rlen) {
+        if (len == 0) {
+            return false;
+        }
+        int sign = 1;
+        int ret = 0.0;
+        const char* chIter = begin;
+        const char* end = begin + len;
+        char ch = *chIter;
+        int numCount = 0;
+        if (ch == '-') {
+            sign = -1;
+            chIter++;
+        }
+        else if (ch == '+') {
+            chIter++;
+        }
+        if (chIter == end) {
+            return false;
+        }
+
+        do {
+            ch = *chIter;
+            int n = ch - '0';
+            if (n > 9 || n < 0) {
+                break;
+            }
+            numCount++;
+            ret = ret * 10 + n;
+        } while (++chIter != end);
+        rlen = chIter - begin;
+        if (numCount == 0) {
+            return false;
+        }
+        rret = (sign == 1) ? ret : -ret;
         return true;
     }
 
-    bool parseFloat(const char* buff, size_t len, double& ret, int& rlen) {
-        // first +-
+    // TODO, exponent, NAN, overflow
+    bool parseFloat(const char* begin, size_t len, double& rret, int& rlen) {
+        if (len == 0) {
+            return false;
+        }
+        int sign = 1;
+        int ret = 0.0;
+        const char* chIter = begin;
+        const char* end = begin + len;
+        char ch = *chIter;
+        int numCount = 0;
+        if (ch == '-') {
+            sign = -1;
+            chIter++;
+        } else if (ch == '+') {
+            chIter++;
+        }
+        if (chIter == end) {
+            return false;
+        }
+        
+        double fracPos = 0;
+        do{
+            ch = *chIter;
+            int n = ch - '0';
+            if (n > 9 || n < 0) {
+                if (ch == '.') {
+                    fracPos = 1;
+                    continue;
+                }
+                break;
+            }
+            numCount++;
+            ret = ret * 10 + n;
+            if (fracPos > 0) {
+                fracPos *= 10;
+            }
+        } while (++chIter != end);
+        rlen = chIter - begin;
+        if (numCount == 0) {
+            return false;
+        }
+        fracPos = (fracPos == 0) ? 1 : fracPos;
+        rret = (sign == 1) ? ret / fracPos : -ret / fracPos;
+        return true;
+    }
+
+
+    bool parseIdentifier(const char* begin, size_t len, int& rlen) {
+        if (len == 0) {
+            return false;
+        }
+        // (_a-zA-Z)[a-zA-Z0-9]*
+        const char* chIter = begin;
+        const char* end = begin + len;
+        char ch = *chIter;
+        bool check = ((ch == '_') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'));
+        if (!check) {
+            return false;
+        }
+        chIter++;
+        while(chIter != end && check) {
+            ch = *chIter;
+            check = ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || (ch == '_'));
+            chIter++;
+        } 
+        rlen = chIter-begin;
         return true;
     }
 }

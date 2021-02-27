@@ -1,3 +1,5 @@
+// author: operali
+// desc: construct rules to parse
 
 #include <algorithm>
 #include <iostream>

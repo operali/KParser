@@ -1,3 +1,9 @@
+// author: operali
+// desc: light-weight implement of std::any, free from exception of any_cast, and feature of to string / copy / move from other any
+// NOTE: some type case like array type is not supported for simple!
+// TODO: doc / unknown type print / type name print 
+
+
 #pragma once
 #include <algorithm>
 #include <tuple>

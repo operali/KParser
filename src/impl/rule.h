@@ -1,3 +1,6 @@
+// author: operali
+// desc: construct rules to parse
+
 #pragma once
 #include "common.h"
 #include "impl.h"

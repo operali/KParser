@@ -1,3 +1,5 @@
+// author: operali
+// desc: structral TEXT object
 
 #pragma once
 #include "./ref.h"

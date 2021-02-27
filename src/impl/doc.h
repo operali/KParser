@@ -1,3 +1,6 @@
+// author: operali
+// desc: document for JSON like struct
+
 #pragma once
 #include <memory>
 #include <string>

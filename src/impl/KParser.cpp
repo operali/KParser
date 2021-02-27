@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include <cstdarg>
+#include "util.h"
 #include "impl.h"
 #include <regex>
 #include "dsl.h"
@@ -179,16 +180,33 @@ namespace KLib42 {
     }
 
     Rule* Parser::integer_() {
-        return regex("^[-+]?\\d+");
+        return custom([=](const char* b, const char* e)->const char* {
+            int64_t ret;
+            int len;
+            if (parseInteger(b, e - b, ret, len)) {
+                return b + len;
+            }
+            else {
+                return nullptr;
+            }
+            });
     }
 
     Rule* Parser::float_() {
-        return regex("^[-+]?\\d*\\.?\\d+");
+        return custom([=](const char* b, const char* e)->const char* {
+            double ret;
+            int len;
+            if (parseFloat(b, e - b, ret, len)) {
+                return b + len;
+            } else {
+                return nullptr;
+            }
+            });
     }
 
     Rule* Parser::blank() {
         return custom([=](const char* b, const char* e)->const char* {
-            for (; std::isspace(*b) && b != e; ++b) {
+            for (; k_isspace(*b) && b != e; ++b) {
 
             }
             return b;
@@ -197,7 +215,7 @@ namespace KLib42 {
 
     Rule* Parser::noblank() {
         return custom([=](const char* b, const char* e)->const char* {
-            for (; (!std::isspace(*b)) && b != e; ++b) {
+            for (; (!k_isspace(*b)) && b != e; ++b) {
 
             }
             return b;

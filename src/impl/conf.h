@@ -1,3 +1,6 @@
+// author: operali
+// desc: compile configurations
+
 #pragma once
 
 #include <string>

@@ -1,3 +1,6 @@
+// author: operali
+// desc: Domain special language of ENBF
+
 #pragma once
 
 #include <vector>

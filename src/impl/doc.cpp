@@ -1,3 +1,6 @@
+// author: operali
+// desc: document for JSON like struct
+
 #include <cassert>
 #include "./doc.h"
 
