@@ -1,7 +1,7 @@
 #include "./error.h"
 #include <sstream>
 #include "./dsl.h"
-
+#include <iomanip>
 namespace KLib42 {
     KUnique<IRange> SyntaxError::getRange() {
         auto loc = source->getLocation(location);
@@ -27,8 +27,9 @@ namespace KLib42 {
         auto mid = buff + loc.idx;
         auto right = buff + loc.right;
         ss << loc.row << "| " << std::string(left, mid)
-        << "^^^"
+        // << "^^^"
         << std::string(mid, right) << std::endl;
+        ss << std::setw(mid - left+4) << "^" << std::endl;
 
         if (loc.row+1 != source->lineCount()) {
             auto lno = loc.row + 1;
@@ -74,11 +75,11 @@ return ss.str();
         auto mid1 = buff + locRight;
         auto right = buff + loc.right;
         ss << loc.row << "| " << std::string(left, mid)
-            << "^^^"
+            //<< "^^^"
             << std::string(mid, mid1)
-            << "^^^"
+            //<< "^^^"
             << std::string(mid1, right) << std::endl;
-
+        ss << std::setw(mid - left + 4) << "^" << std::setw(mid1 - mid) << "^" << std::endl;
         if (loc.row + 1 != source->lineCount()) {
             auto lno = loc.row + 1;
             auto iline = source->getLine(lno);
@@ -117,10 +118,11 @@ return ss.str();
         auto mid1 = buff + locRight;
         auto right = buff + loc.right;
         ss << loc.row << "| " << std::string(left, mid)
-            << "^^^"
+            //<< "^^^"
             << std::string(mid, mid1)
-            << "^^^"
+            //<< "^^^"
             << std::string(mid1, right) << std::endl;
+        ss << std::setw(mid - left + 4) << "^" << std::setw(mid1 - mid) << "^" << std::endl;
 
         if (loc.row + 1 != source->lineCount()) {
             auto lno = loc.row + 1;
@@ -160,10 +162,11 @@ return ss.str();
         auto mid1 = buff + locRight;
         auto right = buff + loc.right;
         ss << loc.row << "| " << std::string(left, mid)
-            << "^^^"
+            //<< "^^^"
             << std::string(mid, mid1)
-            << "^^^"
+            //<< "^^^"
             << std::string(mid1, right) << std::endl;
+        ss << std::setw(mid - left + 4) << "^" << std::setw(mid1 - mid) << "^" << std::endl;
 
         if (loc.row + 1 != source->lineCount()) {
             auto lno = loc.row + 1;

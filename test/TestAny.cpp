@@ -9,19 +9,31 @@ using namespace KLib42;
 TEST(ANY, t1) {
 	
 	{
-		KAny v = 123;
+		KAny v = (int)123;
+		EXPECT_EQ(v.is<nullptr_t>(), false);
+		EXPECT_EQ(v.is<int>(), true);
+		EXPECT_EQ(v.is<std::string>(), false);
 		EXPECT_EQ(v.toString(), "123");
 	}
 	
 
 	{
-		// NOTE: 
 		KAny v = std::string("abc");
+		EXPECT_EQ(v.is<nullptr_t>(), false);
+		EXPECT_EQ(v.is<int>(), false);
+		EXPECT_EQ(v.is<std::string>(), true);
 		EXPECT_EQ(v.toString(), "abc");
 	}
 
 	{
 		KAny v;
+		EXPECT_EQ(v.is<nullptr_t>(), true);
+		EXPECT_EQ(v.toString(), "nullptr");
+	}
+
+	{
+		KAny v = nullptr;
+		EXPECT_EQ(v.is<nullptr_t>(), true);
 		EXPECT_EQ(v.toString(), "nullptr");
 	}
 

@@ -6,8 +6,10 @@
 
 #include "./conf.h"
 
-#define enable_test_tmp
+#ifdef enable_test_tmp
 
 TEST(TEXT, TMP1) {
 	
 }
+
+#endif
