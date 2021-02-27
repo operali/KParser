@@ -4,7 +4,7 @@
 
 #ifdef enable_test_text
 
-#include "../src/impl/text/text.h"
+#include "../src/impl/text.h"
 
 
 TEST(TEXT, second) {

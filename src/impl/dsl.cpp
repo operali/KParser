@@ -252,22 +252,22 @@ namespace KLib42 {
 
         r_id = p.regex(R"(^[a-zA-Z_][a-zA-Z0-9_]*)");
         r_text = p.custom([&](const char* begin, const char* end)->const char* {
-            int rsize = 0;
+            int len = 0;
             std::string r;
-            auto res = parseCSTR(begin, end - begin, r, rsize);
+            auto res = parseCSTR(begin, end - begin, r, len);
             if (!res) {
                 return nullptr;
             }
-            return begin + rsize;
+            return begin + len;
             });
 
         r_regex = p.custom([&](const char* begin, const char* end)->const char* {
             int len = 0;
-            bool r = parseRegex(begin, end - begin, len);
-            if (r) {
-                return begin + len;
+            bool res = parseRegex(begin, end - begin, len);
+            if (!res) {
+                return nullptr;
             }
-            return nullptr;
+            return begin + len;
             });
 
         r_item = p.any();

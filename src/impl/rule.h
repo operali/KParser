@@ -71,7 +71,7 @@ namespace KLib42 {
         };
 
         virtual bool alter();
-        virtual void visit(std::function<void(Match& m, bool capture)> visitor);
+        virtual void visit(std::function<void(Match& m, bool isSink)> visitor);
         virtual MatchR* visitStep();
 
         virtual void release();
@@ -92,8 +92,8 @@ namespace KLib42 {
 
         KUnique<Match> parse(const std::string& text) override;
 
-        RuleNode* visit(std::function<void(Match&, bool)> act) override;
-        RuleNode* eval(std::function<KAny(Match& m, IT arg, IT noarg)> eval) override;
+        RuleNode* visit(std::function<void(Match&, bool)>&& act) override;
+        RuleNode* eval(std::function<KAny(Match& m, IT arg, IT noarg)>&& eval) override;
         void appendChild(Rule* r) override;
         std::string toString() override;
         Parser* host() override;

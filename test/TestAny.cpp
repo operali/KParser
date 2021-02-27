@@ -26,7 +26,6 @@ TEST(ANY, t1) {
 	}
 
 	{
-		
 		char* k = new char;
 		KAny v = k;
 		std::cout << v.toString() << std::endl;

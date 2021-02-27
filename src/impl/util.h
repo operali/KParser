@@ -8,4 +8,8 @@ namespace KLib42 {
 
     bool parseRegex(const char* buff, size_t len, int& rlen);
 
+    bool parseInt(const char* buff, size_t len, int64_t& ret, int& rlen);
+
+    bool parseFloat(const char* buff, size_t len, double& ret, int& rlen);
+
 }

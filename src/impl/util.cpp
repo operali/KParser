@@ -236,4 +236,15 @@ namespace KLib42 {
         }
         return true;
     }
+
+    bool parseInt(const char* buff, size_t len, int64_t& ret, int& rlen) {
+        // first +-
+        // enum class 
+        return true;
+    }
+
+    bool parseFloat(const char* buff, size_t len, double& ret, int& rlen) {
+        // first +-
+        return true;
+    }
 }

@@ -11,6 +11,9 @@ namespace KLib42 {
         if constexpr(std::is_pointer_v<T>) {
             ss << typeid(T).name() << ":" << reinterpret_cast<size_t>(v);
         }
+        else if constexpr (std::is_null_pointer_v<T>) {
+            ss << "nullptr" << std::endl;
+        }
         else {
             ss << v;
         }
@@ -128,6 +131,14 @@ namespace KLib42 {
         bool is() {
             if (val != nullptr) {
                 return val->is<T>();
+            }
+            return false;
+        }
+
+        template<>
+        bool is<nullptr_t>() {
+            if (val == nullptr) {
+                return true;
             }
             return false;
         }

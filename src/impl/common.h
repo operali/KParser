@@ -2,7 +2,7 @@
 
 #include "./base.h"
 #include "./conf.h"
-#include "./text/text.h"
+#include "./text.h"
 
 namespace KLib42 {
     struct KObject {

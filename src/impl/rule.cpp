@@ -90,12 +90,12 @@ namespace KLib42 {
         gen->rules.push_back(this);
     }
 
-    RuleNode* RuleNode::visit(std::function<void(Match&, bool)> act) {
+    RuleNode* RuleNode::visit(std::function<void(Match&, bool)>&& act) {
         m_visitHandle = act;
         return this;
     };
 
-    RuleNode* RuleNode::eval(std::function<KAny(Match& m, IT arg, IT noarg)> eval){
+    RuleNode* RuleNode::eval(std::function<KAny(Match& m, IT arg, IT noarg)>&& eval){
         m_evalHandle = eval;
         return this;
     }
@@ -171,20 +171,20 @@ namespace KLib42 {
             if (is_begin) {
                 opStk.push_back(expStk.size());
             } else {
-                auto eval = ((MatchR*)&m)->m_ruleNode->m_evalHandle;
+                auto eval = mr->m_ruleNode->m_evalHandle;
                 if (eval) {
-                    KAny res;
                     auto from = opStk.back();
                     IT b = expStk.begin() + from;
                     try {
-                        KAny v(eval(*mr, b, expStk.end()));
-                        res.swap(v);
+                        auto k = eval(*mr, b, expStk.end());
+                        expStk.erase(b, expStk.end());
+                        if (!k.is<nullptr_t>()) {
+                            expStk.emplace_back(std::move(k));
+                        }
                     }
                     catch (std::exception& e) {
                         std::cerr << e.what() << std::endl;
                     }
-                    expStk.erase(b, expStk.end());
-                    expStk.emplace_back(std::move(res));
                 }
                 opStk.pop_back();
                 delete mr;
@@ -321,14 +321,14 @@ namespace KLib42 {
     }
 
     void MatchR::release() {
-        visit([](KLib42::Match& m, bool capture) {
-            if (!capture) {
+        visit([](KLib42::Match& m, bool isSink) {
+            if (!isSink) {
                 delete& m;
             }
             });
     }
 
-    void MatchR::visit(std::function<void(Match& m, bool capture)> visitor) {
+    void MatchR::visit(std::function<void(Match& m, bool isSink)> visitor) {
         std::vector<MatchR*> matchers;
         MatchR* curM = this;
         for (; true;) {

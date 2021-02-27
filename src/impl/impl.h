@@ -3,7 +3,7 @@
 #include "../kparser.h"
 #include "./rule.h"
 #include "./error.h"
-#include "./text/text.h"
+#include "./text.h"
 
 namespace KLib42 {
     

@@ -11,28 +11,34 @@ TEST(DSL_BASIC, text) {
         auto m = ctx.r_text->parse("");
         ASSERT_EQ(m.get() == nullptr, true);
     }
+
     {
         auto m = ctx.r_text->parse("'");
         ASSERT_EQ(m.get() == nullptr, true);
     }
+
     {
         auto m = ctx.r_text->parse("\"");
         ASSERT_EQ(m.get() == nullptr, true);
     }
+
     {
         auto m = ctx.r_text->parse(" ' ");
         ASSERT_EQ(m.get() == nullptr, true);
     }
+
     {
         auto m = ctx.r_text->parse("\"\"");
         ASSERT_EQ(m.get() != nullptr, true);
         EXPECT_EQ(m->str(), "\"\"");
     }
+
     {
         auto m = ctx.r_text->parse("''");
         ASSERT_EQ(m.get() != nullptr, true);
         EXPECT_EQ(m->str(), "''");
     }
+
     {
         auto m = ctx.r_text->parse("\"asdf\"");
         ASSERT_EQ(m.get() != nullptr, true);
@@ -50,6 +56,7 @@ TEST(DSL_BASIC, text) {
         ASSERT_EQ(id != nullptr, true);
         ASSERT_EQ(((KLib42::DSLText*)(*id))->name, "a1a");
     }
+
     {
         auto m = ctx.r_text->parse(R"("\977aa")");
         ASSERT_EQ(m.get() == nullptr, false);
@@ -420,13 +427,13 @@ b = a+ EOF;
         int numVal = 0;
         std::string strVal= "";
         int count = 0;
-        ctx.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
+        ctx.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg)->KLib42::KAny {
             int* pNum = arg->get<int>();
             if (pNum) {
                 int num = *pNum;
                 std::cout << "number: " << num << std::endl;
                 numVal += num;
-                return nullptr;
+                return num;
             }
             else {
                 auto* pid = arg->get<std::string>();
@@ -434,7 +441,7 @@ b = a+ EOF;
                     auto id = *pid;
                     strVal += id;
                     std::cout << "string: " << id << std::endl;
-                    return nullptr;
+                    return id;
                 }
                 return nullptr;
             }

@@ -227,7 +227,7 @@ namespace KLib42 {
         return impl->build();
     }
 
-    void EasyParser::prepareCapture(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)> eval) {
+    void EasyParser::prepareCapture(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)>&& eval) {
         impl->prepareCapture(ruleName, eval);
     }
 

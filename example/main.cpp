@@ -7,35 +7,88 @@
 #endif
 
 #include <iostream>
+#include <string>
 #include "../src/kparser.h"
+
+struct EVAL {
+    std::vector<char> ops;
+    std::vector<float> oprs;
+    void eval() {
+        auto c = ops.back();
+        ops.pop_back();
+
+        auto opr1 = oprs.back();
+        auto opr2 = oprs.back();
+        
+        if (c == '+') {
+            auto res = opr1 + opr2;
+            oprs.push_back(res);
+        }
+        if (c == '-') {
+            auto res =  opr2 - opr1;
+            oprs.push_back(res);
+        }
+        if (c == '*') {
+            auto res = opr1 * opr2;
+            oprs.push_back(res);
+        }
+        if (c == '/') {
+            auto res = opr2 / opr1;
+            oprs.push_back(res);
+        }
+    }
+
+};
+
 
 void example() {
     printf("demo");
 	KLib42::EasyParser p;
-    std::string strval = "";
+    std::string strval = ""; 
+    EVAL ev;
     p.prepareRules(R"(
-a = ID | NUM;
-b = (...a)* EOF;
+op1 = '+' | '-';
+op2 = '*' | '/';
+operation1 = operation2 op1 operation1 | operation2;
+operation2 = term op2 operation2 | term;
+term = '(' term ')' | NUM;
 )");
-    p.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
-        int* pNum = arg->get<int>();
-        if (pNum) {
-            int num = *pNum;
-            std::cout << "number of" << num << std::endl;
-            return nullptr;
-        }
-        else {
-            std::string* pid = arg->get<std::string>();
-            if (pid) {
-                auto id = *pid;
-                std::cout << "string of" << id << std::endl;
-                return nullptr;
+    
+    p.prepareCapture("op1", [&](KLib42::Match& m, auto b, auto e) {
+        char c = m.str()[0];
+        ev.ops.push_back(c);
+        return c;
+        });
+    p.prepareCapture("op2", [&](KLib42::Match& m, auto b, auto e) {
+        char c = m.str()[0];
+        ev.ops.push_back(c);
+        return c;
+        });
+    p.prepareCapture("operation1", [&](KLib42::Match& m, auto b, auto e) {
+        while (b != e) {
+            auto& v = (*b);
+            int* opr = (*b++).get<int>();
+            if (opr) {
+                ev.oprs.push_back(*opr);
             }
             else {
-                return nullptr;
+                ev.eval();
             }
-
+        }        
+        return nullptr;
+    });
+    p.prepareCapture("operation2", [&](KLib42::Match& m, KLib42::IT b, KLib42::IT e) {
+        while (b != e) {
+            auto& v = (*b);
+            int* opr = (*b++).get<int>();
+            if (opr) {
+                ev.oprs.push_back(*opr);
+            }
+            else {
+                ev.eval();
+            }
         }
+        return nullptr;
         });
     auto r = p.build();
     if (!r) {
@@ -43,7 +96,13 @@ b = (...a)* EOF;
     }
     else {
         char* k = new char;
-        p.parse("b", "11, 22 ,aa, bb");
+        auto m = p.parse("operation1", "1+1");
+        if (!m) {
+            std::cerr << p.getLastError()->message();
+        }
+        else {
+            std::cout << ev.oprs.back();
+        }
     }
 
 }

@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include "./impl.h"
-
+#include "./doc.h"
 namespace KLib42 {
     struct DSLNode;
 
@@ -125,6 +125,12 @@ namespace KLib42 {
         KShared<KError> lastError;
         std::unordered_map <std::string, DSLNode*> idMap;
         std::unordered_map <std::string, std::function<KAny(Match& m, IT arg, IT noarg)>> handleMap;
+
+        // debug
+        KDocument m_doc;
+        std::unordered_map <std::string, DSLNode*> idMap_;
+        // end debug
+
         Rule* r_comment;
         Rule* r_id;
         Rule* r_text; // `id`
@@ -140,6 +146,8 @@ namespace KLib42 {
         Rule* r_any; // seq(p.all , "|");
         Rule* r_all; // p.many1(item);
         Rule* r_ruleList; // 
+
+        void DSLContext_();
 
         DSLContext();
         void prepareRules(std::string str);

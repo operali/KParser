@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cassert>
 
 #include "./any.h"
 #include "./ref.h"
