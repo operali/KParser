@@ -1,3 +1,5 @@
+// author: operali
+
 #include "gtest/gtest.h"
 #include "./conf.h"
 #include "../src/impl/terminal.h"
@@ -182,6 +184,20 @@ TEST(UTIL, parseIdentifier) {
 		bool r = KLib42::parseIdentifier(str, strlen(str), retL);
 		ASSERT_EQ(r, true);
 		EXPECT_EQ(retL, 1);
+	}
+	{
+		const char* str = "a,b";
+		int retL = 0;
+		bool r = KLib42::parseIdentifier(str, strlen(str), retL);
+		ASSERT_EQ(r, true);
+		EXPECT_EQ(retL, 1);
+	}
+	{
+		const char* str = "aa,";
+		int retL = 0;
+		bool r = KLib42::parseIdentifier(str, strlen(str), retL);
+		ASSERT_EQ(r, true);
+		EXPECT_EQ(retL, 2);
 	}
 }
 #endif

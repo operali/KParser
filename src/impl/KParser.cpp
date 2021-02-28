@@ -176,7 +176,16 @@ namespace KLib42 {
     }
 
     Rule* Parser::identifier() {
-        return regex("^[a-zA-Z_][a-zA-Z0-9_]*");
+        return custom([=](const char* b, const char* e)->const char* {
+            int64_t ret;
+            int len;
+            if (parseIdentifier(b, e - b, len)) {
+                return b + len;
+            }
+            else {
+                return nullptr;
+            }
+            });
     }
 
     Rule* Parser::integer_() {

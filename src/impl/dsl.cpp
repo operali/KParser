@@ -22,8 +22,7 @@ namespace KLib42 {
         if (name == "ID") {
             rule = p.identifier();
             rule->eval([&](Match& m, IT b, IT e) {
-                auto s = m.str();
-                return std::string(s);
+                return m.str();
                 });
         }
         else if (name == "NUM") {
@@ -142,7 +141,7 @@ namespace KLib42 {
     bool DSLAny::build(KLib42::Parser& p) {
         for (auto& c : nodes) {
             if (!c->rule) {
-                std::cerr << "invalid rule of " << rule->toString() << std::endl;
+                std::cerr << "invalid rule of " << c->range->str() << std::endl;
                 return false;
             }
             rule->add(c->rule);

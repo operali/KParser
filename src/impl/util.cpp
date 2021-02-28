@@ -1,10 +1,10 @@
 // author: operali
 // desc: utility functions
-#include <climits>
+
 #include <algorithm>
 #include <string>
 #include <iostream>
-#include <cstdlib>
+
 #include "util.h"
 
 namespace KLib42 {
@@ -342,14 +342,17 @@ namespace KLib42 {
         const char* chIter = begin;
         const char* end = begin + len;
         char ch = *chIter;
-        bool check = ((ch == '_') || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'));
+        bool check = ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')|| (ch == '_') );
         if (!check) {
             return false;
         }
         chIter++;
-        while(chIter != end && check) {
+        while(chIter != end) {
             ch = *chIter;
             check = ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || (ch == '_'));
+            if (!check) {
+                break;
+            }
             chIter++;
         } 
         rlen = chIter-begin;
