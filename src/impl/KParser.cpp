@@ -19,7 +19,7 @@ namespace KLib42 {
         delete impl;
     }
 
-    void Parser::setSkippedRule(PredT&& r) {
+    void Parser::setSkippedRule(CustomT&& r) {
         impl->m_skipRule = r;
     }
 
@@ -45,10 +45,10 @@ namespace KLib42 {
         return impl->m_text;
     }
 
-    Parser::Parser(KUSIZE lookback, bool skipBlanks, PredT skipRule) :impl(new ParserImpl(this, lookback, skipBlanks, skipRule)) {
+    Parser::Parser(KUSIZE lookback, bool skipBlanks, CustomT skipRule) :impl(new ParserImpl(this, lookback, skipBlanks, skipRule)) {
     }
 
-    Rule* Parser::custom(PredT p) {
+    Rule* Parser::custom(CustomT p) {
         return new RuleCustom(impl, p);
     }
 
@@ -265,8 +265,12 @@ namespace KLib42 {
         impl->prepareRules(strRule);
     }
 
-    void EasyParser::prepareSkippedRule(PredT&& pred) {
-        impl->prepareCommentRule(std::move(pred));
+    void EasyParser::prepareConstant(const std::string& idName, CustomT&& p){
+        impl->prepareConstant(idName, std::move(p));
+    }
+
+    void EasyParser::prepareSkippedRule(CustomT&& pred) {
+        impl->prepareSkippedRule(std::move(pred));
     }
 
     bool EasyParser::build() {
@@ -274,7 +278,7 @@ namespace KLib42 {
     }
 
     void EasyParser::prepareCapture(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)>&& eval) {
-        impl->prepareCapture(ruleName, eval);
+        impl->prepareCapture(ruleName, std::move(eval));
     }
 
     KUnique<Match> EasyParser::parse(const char* ruleName, const std::string& toParse) {

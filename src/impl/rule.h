@@ -124,8 +124,8 @@ namespace KLib42 {
     };
 
     struct RuleCustom : public RuleNode {
-        PredT pred;
-        RuleCustom(ParserImpl* gen, PredT pred) :RuleNode(gen), pred(pred) {
+        CustomT pred;
+        RuleCustom(ParserImpl* gen, CustomT pred) :RuleNode(gen), pred(pred) {
         }
         MatchR* match(KUSIZE start) final;
     };

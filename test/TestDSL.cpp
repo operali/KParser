@@ -584,6 +584,37 @@ b = (...a)* EOF;
 
 TEST(DSL, event) {
     KLib42::EasyParser p;
+    {
+        p.prepareConstant("TOB", [](const char* b, const char* e) {
+            while (*b++ != 'x') {}
+            return b;
+            });
+
+        p.prepareRules(R"(
+ROOT = TOB TOB;
+)");
+        p.prepareCapture("TOB", [&](auto& m, auto b, auto e) {
+            return m.str();
+            });
+        bool b = p.build();
+        if (!b) {
+            std::cout << p.getLastError()->message();
+            ASSERT_EQ(1, 0);
+        }
+        auto m = p.parse("ROOT", " 1234x abcx s");
+        ASSERT_EQ(!!m, true);
+        ASSERT_EQ(m->captureSize(), 2);
+        auto s1 = m->capture<std::string>(0);
+        auto s2 = m->capture<std::string>(1);
+        
+        EXPECT_EQ(*s1, "1234x");
+        EXPECT_EQ(*s2, "abcx");
+    }
+}
+
+
+TEST(DSL, xevent) {
+    KLib42::EasyParser p;
 
     {
         double numval = 0;

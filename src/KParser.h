@@ -27,14 +27,15 @@ namespace KLib42 {
 
     struct Rule;
     struct ParserImpl;
-    using PredT = std::function<const char* (const char* begin, const char* end)>;
+    using CustomT = std::function<const char* (const char* begin, const char* end)>;
+    using CaptureT = std::function<KAny(Match& m, IT arg, IT noarg)>;
     class Parser : private KObject {
         ParserImpl* impl;
     public:
-        Parser(KUSIZE lookback = 42, bool skipBlanks = true, PredT skipRule = nullptr);
+        Parser(KUSIZE lookback = 42, bool skipBlanks = true, CustomT skipRule = nullptr);
 
         // some rules like comments can be skipped
-        void setSkippedRule(PredT&& r);
+        void setSkippedRule(CustomT&& r);
         KShared<KError> getLastError();
         void enableTrace(bool trace);
         std::string getDebugInfo();
@@ -87,7 +88,7 @@ namespace KLib42 {
         Rule* blank();
         Rule* noblank();
         // user rule
-        Rule* custom(PredT p);
+        Rule* custom(CustomT p);
         // match Pattern1 or Pattern2... or PatternN
         template<typename ...TS>
         Rule* any(TS ...nodes);
@@ -102,7 +103,8 @@ namespace KLib42 {
     struct EasyParserImpl;
     struct  EasyParser  {
         void prepareRules(const char* strRule);
-        void prepareSkippedRule(PredT&& pred);
+        void prepareConstant(const std::string& idName, CustomT&& p);
+        void prepareSkippedRule(CustomT&& pred);
         void prepareCapture(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)>&& eval);
         bool build();
         KUnique<Match> parse(const char* ruleName, const std::string& toParse);

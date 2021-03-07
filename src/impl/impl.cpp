@@ -1,7 +1,7 @@
 #include "impl.h"
 
 namespace KLib42 {
-    ParserImpl::ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank, PredT skipRule)
+    ParserImpl::ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank, CustomT skipRule)
         :m_interface(parser), m_skipBlank(skipBlank), m_lookback(lookback), m_headMax(0), m_cache(nullptr), length(0), m_text(new KSource()), m_skipRule(skipRule), m_trace(false){
     }
 

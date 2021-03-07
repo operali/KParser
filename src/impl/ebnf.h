@@ -128,12 +128,11 @@ namespace KLib42 {
         std::string m_strRule;
         
         std::unordered_map <std::string, DSLNode*> idMap;
-        std::unordered_map <std::string, std::function<KAny(Match& m, IT arg, IT noarg)>> handleMap;
+        std::unordered_map <std::string, CaptureT> handleMap;
 
         // debug
         KShared<KError> lastError;
         KDocument m_doc;
-        std::unordered_map <std::string, DSLNode*> idMap_;
         // end debug
     public:
         
@@ -155,9 +154,9 @@ namespace KLib42 {
         DSLContext();
         KShared<KError> getLastError();
         void prepareRules(const std::string& str);
-        void prepareCommentRule(PredT&& p);
-        void prepareAppendConstantRule(const std::string& idName, PredT&& p);
-        void prepareCapture(const std::string& evtName, std::function<KAny(Match& m, IT arg, IT noarg)> handle);
+        void prepareSkippedRule(CustomT&& p);
+        void prepareConstant(const std::string& idName, CustomT&& p);
+        void prepareCapture(const std::string& evtName, CaptureT&& handle);
         bool build();
         KUnique<Match> parse(const std::string& ruleName, const std::string& str);
     };

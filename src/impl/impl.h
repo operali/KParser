@@ -15,7 +15,7 @@ namespace KLib42 {
         Parser* m_interface;
         // config
         bool m_skipBlank;
-        PredT m_skipRule;
+        CustomT m_skipRule;
         KUSIZE m_lookback;
         KUSIZE m_headMax;
         bool m_trace;
@@ -39,7 +39,7 @@ namespace KLib42 {
         void setRuleName(RuleNode* node, const std::string& name);
         RuleInfo* getRuleInfo(RuleNode* node);
 
-        ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank, PredT skipRule);
+        ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank, CustomT skipRule);
         ~ParserImpl();
     };
 

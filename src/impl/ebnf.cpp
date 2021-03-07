@@ -176,7 +176,7 @@ namespace KLib42 {
         }
     }
 
-    void DSLContext::prepareCapture(const std::string& evtName, std::function<KAny(KLib42::Match & m, KLib42::IT arg, KLib42::IT noarg)> handle) {
+    void DSLContext::prepareCapture(const std::string& evtName, CaptureT&& handle) {
         handleMap[evtName] = handle;
     }
 
@@ -400,12 +400,14 @@ namespace KLib42 {
         m_strRule = strRuleList;
     }
 
-    void DSLContext::prepareCommentRule(PredT&& p) {
+    void DSLContext::prepareSkippedRule(CustomT&& p) {
         m_parser.setSkippedRule(std::move(p));
     }
 
-    void DSLContext::prepareAppendConstantRule(const std::string& idName, PredT&& p) {
-
+    void DSLContext::prepareConstant(const std::string& idName, CustomT&& p) {
+        auto* id = new DSLID{ this, nullptr, idName , true };
+        id->rule = m_parser.custom(p);
+        idMap.emplace(std::make_pair(idName, id));
     }
 
     bool DSLContext::build() {
