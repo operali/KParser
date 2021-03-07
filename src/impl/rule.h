@@ -84,11 +84,7 @@ namespace KLib42 {
 
         RuleNode(ParserImpl* gen);
         virtual ~RuleNode() = default;
-        template <typename T>
-        inline T* as() {
-            return dynamic_cast<T*>(this);
-        }
-
+        
         virtual MatchR* match(KUSIZE start) = 0;
         std::function<void(Match& m, bool on)> m_visitHandle;
         std::function<KAny(Match& m, IT arg, IT noarg)> m_evalHandle;
@@ -100,6 +96,7 @@ namespace KLib42 {
         void appendChild(Rule* r) override;
         std::string toString() override;
         Parser* host() override;
+        void setName(const std::string& name);
     };
 
     struct RuleEmpty : public RuleNode{

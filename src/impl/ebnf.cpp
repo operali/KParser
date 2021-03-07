@@ -3,9 +3,10 @@
 
 #include <iostream>
 #include "common.h"
-#include "ebnf.h"
-#include "util.h"
 #include "../kparser.h"
+#include "./ebnf.h"
+#include "./util.h"
+#include "./impl.h"
 
 namespace KLib42 {
 
@@ -184,7 +185,7 @@ namespace KLib42 {
         if (it != idMap.end()) {
             auto m = it->second->rule->parse(str);
             if (m.get() == nullptr) {
-                lastError = m_parser.getErrInfo();
+                lastError = m_parser.getLastError();
             }
             return m;
         }
@@ -205,7 +206,7 @@ namespace KLib42 {
         idMap.emplace(std::make_pair("NONE", new DSLID{ this, nullptr, "NONE", true }));
         idMap.emplace(std::make_pair("EOF", new DSLID{ this,nullptr, "EOF", true }));
 
-        auto commentRule1 = p.custom([=](const char* b, const char* e)->const char* {
+        auto commentRule1 = [=](const char* b, const char* e)->const char* {
             if (*b++ != '/' || b == e) {
                 return nullptr;
             }
@@ -229,8 +230,12 @@ namespace KLib42 {
                 }
             }
             return b;
-            });
-        auto commentRule2 = p.custom([=](const char* b, const char* e)->const char* {
+            };
+        auto commentRule2 = [=](const char* b, const char* e)->const char* {
+            auto r = commentRule1(b, e);
+            if(r){
+                return r;
+            }
             if (*b++ != '/' || b == e) {
                 return nullptr;
             }
@@ -244,10 +249,10 @@ namespace KLib42 {
                 }
             }
             return b;
-            });
-        r_comment = p.any(commentRule1, commentRule2);
+            };
+        p.setSkippedRule(commentRule2);
 
-        r_id = p.regex(R"(^[a-zA-Z_][a-zA-Z0-9_]*)");
+        r_id = p.identifier();
         r_text = p.custom([&](const char* begin, const char* end)->const char* {
             int len = 0;
             std::string r;
@@ -287,7 +292,7 @@ namespace KLib42 {
         r_till = p.all("...", r_item);
         r_list = p.all("[", r_item, r_item, "]");
         r_expr->add(r_till, r_many, r_many1, r_option, r_list, r_event, r_item);
-        r_rule = p.all(p.many(r_comment), r_id, "=", r_any, ";", p.many(r_comment));
+        r_rule = p.all(r_id, "=", r_any, ";");
         r_ruleList = p.all(p.many1(r_rule), p.eof());
 
         r_id->eval([&](Match& m, IT b, IT e) {
@@ -383,14 +388,30 @@ namespace KLib42 {
             });
     }
 
-    void DSLContext::prepareRules(std::string strRuleList) {
+    KShared<KError> DSLContext::getLastError() {
+        auto err = m_parser.getLastError();
+        if (err) {
+            return err;
+        }
+        return lastError.clone();
+    }
+
+    void DSLContext::prepareRules(const std::string& strRuleList) {
         m_strRule = strRuleList;
+    }
+
+    void DSLContext::prepareCommentRule(PredT&& p) {
+        m_parser.setSkippedRule(std::move(p));
+    }
+
+    void DSLContext::prepareAppendConstantRule(const std::string& idName, PredT&& p) {
+
     }
 
     bool DSLContext::build() {
         auto m = r_ruleList->parse(m_strRule);
         if (!m) {
-            lastError = m_parser.getErrInfo();
+            lastError = m_parser.getLastError();
             std::cerr << lastError << std::endl;
             return false;
         }

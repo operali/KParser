@@ -757,10 +757,10 @@ TEST(example, s_exp) {
 }
 
 TEST(PRESSURE, length___) {
-    // 20201230 (debug: 1287 ms, release:290)
-    // 20201231 (debug: 1292 ms, release:194)
-    // 20210101 (debug: 1187 ms, release:145)
-    // 20210217 (debug: 1439 ms, release:160)
+    // 30 (debug: 1287 ms, release:290)
+    // 31 (debug: 1292 ms, release:194)
+    // 01 (debug: 1187 ms, release:145)
+    // 17 (debug: 1439 ms, release:160)
     EXPECT_EQ(KLib42::KObject::count, 0);
     {
         auto text = "abc";

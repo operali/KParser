@@ -123,18 +123,20 @@ namespace KLib42 {
     };
 
     struct DSLContext : DSLFactory {
-        std::string m_strRule;
         Parser m_parser;
-        KShared<KError> lastError;
+    private:
+        std::string m_strRule;
+        
         std::unordered_map <std::string, DSLNode*> idMap;
         std::unordered_map <std::string, std::function<KAny(Match& m, IT arg, IT noarg)>> handleMap;
 
         // debug
+        KShared<KError> lastError;
         KDocument m_doc;
         std::unordered_map <std::string, DSLNode*> idMap_;
         // end debug
-
-        Rule* r_comment;
+    public:
+        
         Rule* r_id;
         Rule* r_text; // `id`
         Rule* r_regex; // r`id`
@@ -150,10 +152,11 @@ namespace KLib42 {
         Rule* r_all; // p.many1(item);
         Rule* r_ruleList; // 
 
-        void DSLContext_();
-
         DSLContext();
-        void prepareRules(std::string str);
+        KShared<KError> getLastError();
+        void prepareRules(const std::string& str);
+        void prepareCommentRule(PredT&& p);
+        void prepareAppendConstantRule(const std::string& idName, PredT&& p);
         void prepareCapture(const std::string& evtName, std::function<KAny(Match& m, IT arg, IT noarg)> handle);
         bool build();
         KUnique<Match> parse(const std::string& ruleName, const std::string& str);

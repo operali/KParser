@@ -15,12 +15,15 @@ namespace KLib42 {
 #ifdef KOBJECT_DEBUG
     std::vector<KObject*> KObject::all;
 #endif
-
     Parser::~Parser() {
         delete impl;
     }
 
-    KShared<KError> Parser::getErrInfo() {
+    void Parser::setSkippedRule(PredT&& r) {
+        impl->m_skipRule = r;
+    }
+
+    KShared<KError> Parser::getLastError() {
         return impl->parseErrInfo.clone();
         /*std::stringstream ss;
         ss << "parse fail at (line:column)" << err.row << ":" << err.col << std::endl;
@@ -30,11 +33,19 @@ namespace KLib42 {
         return ss.str();*/
     }
 
+    void Parser::enableTrace(bool trace) {
+        impl->m_trace = trace;
+    }
+
+    std::string Parser::getDebugInfo() {
+        return impl->m_ss.str();
+    }
+
     KShared<ISource> Parser::getSource() {
         return impl->m_text;
     }
 
-    Parser::Parser(KUSIZE lookback, bool skipBlanks) :impl(new ParserImpl(this, lookback, skipBlanks)) {
+    Parser::Parser(KUSIZE lookback, bool skipBlanks, PredT skipRule) :impl(new ParserImpl(this, lookback, skipBlanks, skipRule)) {
     }
 
     Rule* Parser::custom(PredT p) {
@@ -254,6 +265,10 @@ namespace KLib42 {
         impl->prepareRules(strRule);
     }
 
+    void EasyParser::prepareSkippedRule(PredT&& pred) {
+        impl->prepareCommentRule(std::move(pred));
+    }
+
     bool EasyParser::build() {
         return impl->build();
     }
@@ -266,7 +281,7 @@ namespace KLib42 {
         return impl->parse(ruleName, toParse);
     }
     KShared<KError> EasyParser::getLastError() {
-        return impl->lastError;
+        return impl->getLastError();
     };
 
 };

@@ -35,7 +35,7 @@ term = '(' operation1 ')' | NUM;
                 return left - right;
             } else if (op == '*') {
                 return left * right;
-            } else if (op == '/') {
+            } else { // if (op == '/') {
                 return left / right;
             }
         }
@@ -56,12 +56,10 @@ term = '(' operation1 ')' | NUM;
         auto m = p.parse("operation1", exp);
         if (!m) {
             std::cerr << p.getLastError()->message();
-        }
-        else {
-            std::cout << "result: " << *m->capture<int>(0);
+        } else {
+            std::cout << "result: " << *m->capture<double>(0);
         }
     }
-
 }
 
 

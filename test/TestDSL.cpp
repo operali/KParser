@@ -370,7 +370,7 @@ TEST(DSL_BASIC, rule) {
     KLib42::DSLContext ctx;
     {
         auto m = ctx.r_rule->parse(R"(a = a '\/\/' /[1-9]*/ | b;  )");
-        auto err = ctx.m_parser.getErrInfo();
+        auto err = ctx.getLastError();
         ASSERT_EQ(m.get() != nullptr, true);
         EXPECT_EQ(m->str(), R"(a = a '\/\/' /[1-9]*/ | b;)");
         KLib42::DSLNode** pN = m->capture<KLib42::DSLNode*>(0);
@@ -404,15 +404,10 @@ c = c | /d*/;)");
     }
 
     {
-        auto m = ctx.r_ruleList->parse(R"(a d = 3
-// comment 1
-// comment 2
-a = a a | b;
-/*second comments * / */b = a | b;
-c = c | /d*/;
+        auto m = ctx.r_ruleList->parse(R"(c = c | b^/d*/
 )");
         ASSERT_EQ(m.get() == nullptr, true);
-        auto err = ctx.m_parser.getErrInfo();
+        auto err = ctx.m_parser.getLastError();
         ASSERT_EQ(!!err, true);
         std::cerr << err->message() << std::endl;
     }
@@ -457,7 +452,7 @@ b = a+ EOF;
             });
         auto r = ctx.build();
         if (!r) {
-            std::cerr << ctx.lastError->message() << std::endl;
+            std::cerr << ctx.getLastError() << std::endl;
         }
         else {
             ctx.parse("b", "11 22 aa bb");
@@ -476,7 +471,7 @@ c = re | /\/\//;
         auto r = ctx.build();
         ASSERT_EQ(r, false);
         if (!r) {
-            std::cerr << ctx.lastError->message() << std::endl;
+            std::cerr << ctx.getLastError() << std::endl;
         }
     }
     {
@@ -488,7 +483,7 @@ a = NUM;
         auto r = ctx.build();
         ASSERT_EQ(r, false);
         if (!r) {
-            std::cerr << ctx.lastError->message() << std::endl;
+            std::cerr << ctx.getLastError() << std::endl;
         }
     }
     

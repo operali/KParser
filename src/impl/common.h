@@ -10,6 +10,7 @@
 
 namespace KLib42 {
     struct KObject {
+        static KUSIZE count;
 #ifdef KOBJECT_DEBUG
         static std::vector<KObject*> all;
         inline static std::vector<KObject*>& debug() {
@@ -17,7 +18,7 @@ namespace KLib42 {
         }
 #endif
 
-        static KUSIZE count;
+        
         KObject() {
 #ifdef KOBJECT_DEBUG
             all.push_back(this);

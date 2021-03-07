@@ -2,6 +2,7 @@
 // desc: structral TEXT object
 
 #pragma once
+#include <string>
 #include "./ref.h"
 namespace KLib42 {
     struct ISource;

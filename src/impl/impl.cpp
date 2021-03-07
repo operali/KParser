@@ -1,8 +1,8 @@
 #include "impl.h"
 
 namespace KLib42 {
-    ParserImpl::ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank)
-        :m_interface(parser), m_skipBlank(skipBlank), m_lookback(lookback), m_headMax(0), m_cache(nullptr), length(0), m_text(new KSource()){
+    ParserImpl::ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank, PredT skipRule)
+        :m_interface(parser), m_skipBlank(skipBlank), m_lookback(lookback), m_headMax(0), m_cache(nullptr), length(0), m_text(new KSource()), m_skipRule(skipRule), m_trace(false){
     }
 
     ParserImpl::~ParserImpl() {
@@ -20,6 +20,9 @@ namespace KLib42 {
         
         m_expStk.resize(64);
         m_expStk.clear();
+
+        m_ss.clear();
+        parseErrInfo.reset(nullptr);
     }
 
 
@@ -32,5 +35,23 @@ namespace KLib42 {
     void ParserImpl::genParseError() {
         const char* errLoc = m_cache + m_headMax;
         parseErrInfo.reset(new SyntaxError(m_interface->getSource(), m_headMax ));
+    }
+
+    void ParserImpl::setRuleName(RuleNode* node, const std::string& name) {
+        auto it = m_ruleInfoMap.find(node);
+        if (it != m_ruleInfoMap.end()) {
+            it->second->name = name;
+        }
+        else {
+            m_ruleInfoMap.insert(m_ruleInfoMap.end(), std::make_pair(node, new RuleInfo(name)));
+        }
+    }
+
+    RuleInfo* ParserImpl::getRuleInfo(RuleNode* node) {
+        auto it = m_ruleInfoMap.find(node);
+        if (it != m_ruleInfoMap.end()) {
+            return it->second;
+        }
+        return nullptr;
     }
 }

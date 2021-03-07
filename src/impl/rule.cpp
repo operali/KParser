@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <iomanip>
+
 #include "util.h"
 #include "impl.h"
 
@@ -40,14 +42,14 @@ namespace KLib42 {
             return;
         }
         r.push_back(line);
-        auto allN = n->as<RuleAll>();
+        auto* allN = dynamic_cast<RuleAll*>(n);
         if (allN) {
             for (auto c : allN->children) {
                 collectRuleInfo(c, r, iden + 1);
             }
         }
         else {
-            auto anyN = n->as<RuleAny>();
+            auto anyN = dynamic_cast<RuleAny*>(n);
             if (anyN) {
                 for (auto c : anyN->children) {
                     collectRuleInfo(c, r, iden + 1);
@@ -57,30 +59,30 @@ namespace KLib42 {
     }
 
     static std::string printRuleLine(RuleNode* n) {
-        auto n1 = n->as<RuleAll>();
+        auto n1 = dynamic_cast<RuleAll*>(n);
         if (n1) {
             return "All";
         }
         {
-            auto n1 = n->as<RuleAny>();
+            auto n1 = dynamic_cast<RuleAny*>(n);
             if (n1) {
                 return "Any";
             }
         }
         {
-            auto n1 = n->as<RuleStr>();
+            auto n1 = dynamic_cast<RuleStr*>(n);
             if (n1) {
                 return "Str(" +std::string(n1->buff, n1->buff + n1->len) + ")";
             }
         }
         {
-            auto n1 = n->as<RuleEmpty>();
+            auto n1 = dynamic_cast<RuleEmpty*>(n);
             if (n1) {
                 return "Empty";
             }
         }
         {
-            auto n1 = n->as<RuleCustom>();
+            auto n1 = dynamic_cast<RuleCustom*>(n);
             if (n1) {
                 return "Custom";
             }
@@ -128,6 +130,10 @@ namespace KLib42 {
 
     Parser* RuleNode::host() {
         return m_gen->m_interface;
+    }
+
+    void RuleNode::setName(const std::string& name) {
+        m_gen->setRuleName(this, name);
     }
 
     KUnique<Match> RuleNode::parse(const std::string& text) {
@@ -231,7 +237,22 @@ namespace KLib42 {
         auto lookback = gen->m_lookback;
         auto& headMax = gen->m_headMax;
         auto* text = gen->m_cache;
-                
+        bool trace = gen->m_trace;
+
+        int outputMargin = 0;
+
+        if (trace) {
+            auto* ruleNode = curM->m_ruleNode;
+            auto* parser = ruleNode->m_gen;
+            auto* info = parser->getRuleInfo(ruleNode);
+            if (info) {
+                for (size_t i = 0; i < outputMargin; ++i) {
+                    parser->m_ss << " ";
+                }
+                parser->m_ss << "on_rule: " << info->name << std::endl;
+            }
+            outputMargin++;
+        }
         while (true) {
             auto st = curM->stepIn();
             if (st.isBoolean()) {
@@ -250,6 +271,19 @@ namespace KLib42 {
                     curM = vec.back();
                     vec.pop_back();
                     if (succ) {
+                        if (trace) {
+                            auto* ruleNode = lastM->m_ruleNode;
+                            auto* parser = ruleNode->m_gen;
+                            auto* info = parser->getRuleInfo(ruleNode);
+                            if (info) {
+                                for (size_t i = 0; i < outputMargin; ++i) {
+                                    parser->m_ss << " ";
+                                }
+                                parser->m_ss << "succ" << std::endl;
+                            }
+                            outputMargin--;
+                        }
+
                         auto headLength = lastM->m_startPos + lastM->length();
                         if (headLength > headMax) {
                             headMax = headLength;
@@ -257,6 +291,19 @@ namespace KLib42 {
                         curM->stepOut(lastM);
                     }
                     else {
+                        if(trace) {
+                            auto* ruleNode = lastM->m_ruleNode;
+                            auto* parser = ruleNode->m_gen;
+                            auto* info = parser->getRuleInfo(ruleNode);
+                            if (info) {
+                                for (size_t i = 0; i < outputMargin; ++i) {
+                                    parser->m_ss << " ";
+                                }
+                                parser->m_ss << "fail" << std::endl;
+                            }
+                            outputMargin--;
+                        }
+
                         if ((int)headMax - (int)lastM->m_startPos> (int)lookback) {
                             auto* node = dynamic_cast<RuleCompound*>(lastM->m_ruleNode);
                             if (node) {
@@ -277,6 +324,18 @@ namespace KLib42 {
                 MatchR* matcher = st.mr;
                 vec.push_back(curM);
                 curM = matcher;
+                if(trace) {
+                    auto* ruleNode = curM->m_ruleNode;
+                    auto* parser = ruleNode->m_gen;
+                    auto* info = parser->getRuleInfo(ruleNode);
+                    if (info) {
+                        for (size_t i = 0; i < outputMargin; ++i) {
+                            parser->m_ss << " ";
+                        }
+                        parser->m_ss << "on_rule: " << info->name << std::endl;
+                    }
+                    outputMargin++;
+                }
             }
         }
     }
@@ -293,7 +352,7 @@ namespace KLib42 {
     };
 
     KShared<KError> MatchR::getLastError() {
-        return m_ruleNode->m_gen->m_interface->getErrInfo();
+        return m_ruleNode->m_gen->m_interface->getLastError();
     }
 
     std::string MatchR::prefix() {
@@ -442,12 +501,12 @@ namespace KLib42 {
                 return StepInT{false};
             }
             auto parser = m_ruleNode->m_gen;
-            auto ptext = parser->m_cache;
+            auto pBegin = parser->m_cache;
             auto len = parser->length;
             auto predNode = (RuleCustom*)m_ruleNode;
             auto pred = predNode->pred;
-            auto start = ptext + m_startPos;
-            auto last = ptext + len;
+            auto start = pBegin + m_startPos;
+            auto last = pBegin + len;
             const char* end = pred(start, last);
             if (end != nullptr) {
                 m_length = end - start;
@@ -587,23 +646,33 @@ namespace KLib42 {
         }
 
         bool nextNode() {
-            if (this->m_ruleNode->m_gen->m_skipBlank) {
-                auto parser = m_ruleNode->m_gen;
-                auto ptext = parser->m_cache;
-                auto textLen = parser->length;
-                const char* cptr = ptext + m_curStart;
-                while (true) {
-                    if (m_curStart > textLen) {
-                        break;
-                    }
-                    if (m_curStart == textLen) {
-                        break;
-                    }
-                    if (!isspace(*cptr)) {
+            auto* parser = this->m_ruleNode->m_gen;
+            auto pBegin = parser->m_cache;
+            auto textLen = parser->length;
+            auto pEnd = pBegin + textLen;
+            const char* cptr = pBegin + m_curStart;
+            while (true) {
+                bool change = false;
+                while (cptr != pEnd) {
+                    if (!k_isspace(*cptr)) {
                         break;
                     }
                     cptr++;
-                    m_curStart = cptr - ptext;
+                    change = true;
+                }
+                auto skipRule = parser->m_skipRule;
+                if (skipRule) {
+                    auto* p = skipRule(cptr, pEnd);
+                    if (p) {
+                        cptr = p;
+                        change = true;
+                    }
+                }
+                if (change) {
+                    m_curStart = cptr - pBegin;
+                }
+                else {
+                    break;
                 }
             }
             auto len = childMatch.size();
@@ -758,11 +827,8 @@ namespace KLib42 {
         return new MatchRUntill(start, this);
     }
     
-
-
     //////////////////////////////////////////////////////////////////////////
     //till
-
     struct MatchRTill : public MatchR {
         MatchR* m_curMatcher = nullptr;
         KUSIZE m_maxLen = 0;

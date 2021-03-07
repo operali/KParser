@@ -34,8 +34,13 @@ namespace KLib42 {
     class Parser : private KObject {
         ParserImpl* impl;
     public:
-        Parser(KUSIZE lookback = 42, bool skipBlanks = true);
-        KShared<KError> getErrInfo();
+        Parser(KUSIZE lookback = 42, bool skipBlanks = true, PredT skipRule = nullptr);
+
+        // some rules like comments can be skipped
+        void setSkippedRule(PredT&& r);
+        KShared<KError> getLastError();
+        void enableTrace(bool trace);
+        std::string getDebugInfo();
         KShared<ISource> getSource();
 
         // epsilon
@@ -100,6 +105,7 @@ namespace KLib42 {
     struct EasyParserImpl;
     struct  EasyParser  {
         void prepareRules(const char* strRule);
+        void prepareSkippedRule(PredT&& pred);
         void prepareCapture(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)>&& eval);
         bool build();
         KUnique<Match> parse(const char* ruleName, const std::string& toParse);
@@ -118,6 +124,7 @@ namespace KLib42 {
         virtual std::string toString() = 0;
         virtual void appendChild(Rule* r) = 0;
         virtual Parser* host() = 0;
+        virtual void setName(const std::string& name) = 0;
 
         template<typename T, typename ...TS>
         void add(T node, TS ...nodes) {
