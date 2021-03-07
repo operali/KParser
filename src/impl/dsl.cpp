@@ -141,7 +141,7 @@ namespace KLib42 {
     bool DSLAny::build(KLib42::Parser& p) {
         for (auto& c : nodes) {
             if (!c->rule) {
-                std::cerr << "invalid rule of " << c->range->str() << std::endl;
+                std::cerr << "invalid rule of " << rule->toString() << std::endl;
                 return false;
             }
             rule->add(c->rule);
@@ -165,14 +165,6 @@ namespace KLib42 {
 
     bool DSLRule::build(KLib42::Parser& p) {
         this->rule = node->rule;
-        DSLContext* ctx = static_cast<DSLContext*>(builder);
-        auto it = ctx->handleMap.find(this->name);
-        if (it != ctx->handleMap.end()) {
-            auto handle = it->second;
-            this->rule->eval([=](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg)->KAny {
-                return handle(m, arg, noarg);
-                });
-        }
         return true;
     }
 
@@ -280,17 +272,23 @@ namespace KLib42 {
         auto* r_expr = p.any();
         r_all = p.many1(r_expr);
         r_any = p.list(r_all, "|");
+        auto evtName = p.identifier();
+        evtName->eval([](auto& m, IT b, IT e) {
+            return m.str();
+            });
+        auto evt = p.optional(p.all("@", evtName));
         r_group = p.all("(", r_any, ")");
         r_item->add(r_regex, r_text, r_id, r_group);
         r_option = p.all(r_item, "?");
         r_many = p.all(r_item, "*");
         r_many1 = p.all(r_item, "+");
+        auto r_event = p.all(r_item, evt);
+
         r_till = p.all("...", r_item);
         r_list = p.all("[", r_item, r_item, "]");
-        r_expr->add(r_till, r_many, r_many1, r_option, r_list, r_item);
+        r_expr->add(r_till, r_many, r_many1, r_option, r_list, r_event, r_item);
         r_rule = p.all(p.many(r_comment), r_id, "=", r_any, ";", p.many(r_comment));
         r_ruleList = p.all(p.many1(r_rule), p.eof());
-
 
         r_id->eval([&](Match& m, IT b, IT e) {
             return (DSLNode*)new DSLID(this, getRange(p, m), m.str() );
@@ -320,6 +318,19 @@ namespace KLib42 {
             return (DSLNode*)node;
 
             });
+        
+
+        r_event->eval([&](Match& m, IT b, IT e) {
+            auto* node = *((b++)-> get<DSLNode*>());
+            if (b != e) {
+                auto* name = b->get<std::string>();
+                if (name) {
+                    idMap.emplace(std::make_pair(*name, node));
+                }
+            }
+            return node; 
+            }
+        );
         r_all->eval([&](Match& m, IT b, IT e) {
             auto* node = new DSLAll(this, getRange(p, m));
             while (b != e) {
@@ -610,6 +621,20 @@ namespace KLib42 {
             if (!succ) {
                 return false;
             }
+
+            // bind eval
+            for (auto& p : idMap) {
+                auto name = p.first;
+                auto it = handleMap.find(name);
+                if (it != handleMap.end()) {
+                    auto handle = it->second;
+                    auto* node = p.second;
+                    node->rule->eval([=](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg)->KAny {
+                        return handle(m, arg, noarg);
+                        });
+                }
+            }
+
             return true;
         }
     }
