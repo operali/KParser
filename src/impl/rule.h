@@ -63,8 +63,6 @@ namespace KLib42 {
         KAny* captureAny(KUSIZE i) override;
         size_t captureSize() override;
         
-        KShared<KError> getLastError() final;
-
         virtual StepInT stepIn() {
             throw std::exception();//TODO
         };

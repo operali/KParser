@@ -23,9 +23,6 @@ namespace KLib42 {
         inline T* capture(KUSIZE i) {
             return captureAny(i)->get<T>();
         }
-
-        // fail in matching process
-        virtual KShared<KError> getLastError() = 0;
     };
 
     struct Rule;

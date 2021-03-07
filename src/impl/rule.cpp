@@ -351,10 +351,6 @@ namespace KLib42 {
         return m_ruleNode->m_gen->m_expStk.size();
     };
 
-    KShared<KError> MatchR::getLastError() {
-        return m_ruleNode->m_gen->m_interface->getLastError();
-    }
-
     std::string MatchR::prefix() {
         const char* globalText = m_ruleNode->m_gen->m_cache;
         return std::string(globalText, globalText + m_startPos);
