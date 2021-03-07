@@ -133,7 +133,7 @@ namespace KLib42 {
             size_t index = 0;
             KFrame(KProperty* p) :p(p), st(EVISIT::sink), index(0) {}
         };
-        void visit(std::function<void(std::vector<KFrame>& h, KFrame& frame)> handle);
+        void visit(std::function<void(std::vector<KFrame>& h, KFrame& frame)>&& handle);
         std::string toJson();
     };
 

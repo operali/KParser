@@ -1,10 +1,11 @@
 // author: operali
 // desc: structral error
+#include <sstream>
+#include <iomanip>
 
 #include "./error.h"
-#include <sstream>
-#include "./dsl.h"
-#include <iomanip>
+#include "./ebnf.h"
+
 namespace KLib42 {
 
     std::string genErrorMessage(const std::string& desc, ISource* source, std::pair<size_t, size_t> range) {

@@ -3,12 +3,12 @@
 #include <iostream>
 // for memcpy
 #include <algorithm>
-
-#include <cstdarg>
-#include "util.h"
-#include "impl.h"
 #include <regex>
-#include "dsl.h"
+
+#include "./util.h"
+#include "./impl.h"
+
+#include "./ebnf.h"
 
 namespace KLib42 {
     KUSIZE KObject::count = 0;
@@ -43,6 +43,11 @@ namespace KLib42 {
 
     Rule* Parser::none() {
         return new KLib42::RuleEmpty(impl);
+    }
+
+    // match nothing, but cut branch
+    Rule* Parser::cut() {
+        return new KLib42::RuleCut(impl);
     }
 
     Rule* Parser::all() {
@@ -177,7 +182,6 @@ namespace KLib42 {
 
     Rule* Parser::identifier() {
         return custom([=](const char* b, const char* e)->const char* {
-            int64_t ret;
             int len;
             if (parseIdentifier(b, e - b, len)) {
                 return b + len;

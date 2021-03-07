@@ -222,7 +222,7 @@ namespace KLib42 {
     }
 
     //////////////////////////////////////////////////////////////////////////
-    //EMPTY
+    //alter
 
     bool MatchR::alter() {
         std::vector<MatchR*> vec;
@@ -544,6 +544,31 @@ namespace KLib42 {
         return new MatchRAny(start, this);
     }
 
+
+    //////////////////////////////////////////////////////////////////////////
+    // cut
+    struct MatchRCut : public MatchR {
+        MatchRCut(KUSIZE start, RuleNode* rule)
+            :MatchR(start, rule) {
+        }
+
+        MatchR* visitStep() override {
+            return nullptr;
+        }
+
+        StepInT stepIn() override {
+            if (m_length == LEN::SUCC) {
+                return StepInT(false);
+            }
+            m_length = LEN::SUCC;
+            return StepInT(true);
+        };
+    };
+
+    MatchR* RuleCut::match(KUSIZE start) {
+        return new MatchRCut(start, this);
+    }
+
     //////////////////////////////////////////////////////////////////////////
     //ALL
 
@@ -588,7 +613,7 @@ namespace KLib42 {
             }
             auto node = thisNode->children[len];
             auto matcher = node->match(this->m_curStart);
-
+            
             childMatch.push_back(matcher);
             return true;
         }
@@ -599,6 +624,12 @@ namespace KLib42 {
                 return false;
             }
             auto m = childMatch.back();
+            struct MatchRCut* curNode = dynamic_cast<struct MatchRCut*>(m);
+            if (curNode) {
+                this->release();
+                return false;
+            }
+
             m->visit([](Match& child, bool capture) {
                 if (!capture) {
                     delete& child;
@@ -864,13 +895,7 @@ namespace KLib42 {
             :MatchR(start, rule) {
         }
 
-        bool visited = false;
         MatchR* visitStep() override {
-            if (visited) {
-                visited = false;
-                return nullptr;
-            }
-            visited = true;
             return nullptr;
         }
 

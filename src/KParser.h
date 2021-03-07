@@ -46,6 +46,8 @@ namespace KLib42 {
         Rule* all();
         // match Pattern1 | Pattern2... | PatternN
         Rule* any();
+        // match nothing, but cut branch
+        Rule* cut();
         // ! pattern
         Rule* not_(Rule* node);
         // one char

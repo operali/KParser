@@ -2,7 +2,7 @@
 
 #include "gtest/gtest.h"
 #include "../src/kparser.h"
-#include "../src/impl/dsl.h"
+#include "../src/impl/ebnf.h"
 #include "./conf.h"
 
 #ifdef enable_test_dsl
@@ -553,6 +553,51 @@ a = ID | NUM;
 b = (...a)* EOF;
 )");
         p.prepareCapture("a", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
+            double* pNum = arg->get<double>();
+            if (pNum) {
+                double num = *pNum;
+                std::cout << "number of" << num << std::endl;
+                numval += num;
+                return nullptr;
+            }
+            else {
+                std::string* pid = arg->get<std::string>();
+                if (pid) {
+                    auto id = *pid;
+                    strval += id;
+                    std::cout << "string of" << id << std::endl;
+                    return nullptr;
+                }
+                else {
+                    return nullptr;
+                }
+
+            }
+            });
+        auto r = p.build();
+        if (!r) {
+            std::cerr << p.getLastError()->message() << std::endl;
+            ASSERT_EQ(false, true);
+        }
+        else {
+            p.parse("b", "11, 22 ,aa, bb");
+            EXPECT_EQ(numval, 33);
+            EXPECT_EQ(strval, "aabb");
+        }
+    }
+}
+
+TEST(DSL, event) {
+    KLib42::EasyParser p;
+
+    {
+        double numval = 0;
+        std::string strval = "";
+        p.prepareRules(R"(
+a = ID | NUM;
+b = (...(a@abc))* EOF;
+)");
+        p.prepareCapture("abc", [&](KLib42::Match& m, KLib42::IT arg, KLib42::IT noarg) {
             double* pNum = arg->get<double>();
             if (pNum) {
                 double num = *pNum;

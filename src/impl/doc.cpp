@@ -189,7 +189,7 @@ namespace KLib42 {
 		return p;
 	}
 
-	void KProperty::visit(std::function<void(std::vector<KFrame>&, KFrame&)> handle) {
+	void KProperty::visit(std::function<void(std::vector<KFrame>& h, KFrame& frame)>&& handle) {
 		/** curP, state { sink, iter, float } **/
 		std::vector<KFrame> vec;
 		KFrame curF(this);
@@ -313,5 +313,4 @@ namespace KLib42 {
 		});
 		return ss.str();
 	}
-
 } 

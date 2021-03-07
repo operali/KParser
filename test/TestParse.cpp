@@ -193,6 +193,41 @@ TEST(BASIC, branch_all_any) {
     EXPECT_EQ(KLib42::KObject::count, 0);
 }
 
+TEST(BASIC, branch_all_cut) {
+    EXPECT_EQ(KLib42::KObject::count, 0);
+    {
+        // asdf123
+        // asdf|asd, f123
+        KLib42::Parser p;
+        auto k = (KLib42::RuleNode*)p.any(
+            "asdf",
+            "asd"
+        );
+        auto k1 = p.str("f123");
+        auto r = (KLib42::RuleNode*)p.all(
+            k, k1
+        );
+        auto m = r->parse("asdf123");
+        std::string v = m->str();
+        EXPECT_EQ(v, "asdf123");
+    }
+    {
+        // asdf123
+        // asdf|asd, f123
+        KLib42::Parser p;
+        auto k = (KLib42::RuleNode*)p.any(
+            "asdf",
+            "asd"
+        );
+        auto k1 = p.str("f123");
+        auto r = (KLib42::RuleNode*)p.all(
+            k, p.cut(), k1
+        );
+        auto m = r->parse("asdf123");
+        EXPECT_EQ(!!m, false);
+    }
+    EXPECT_EQ(KLib42::KObject::count, 0);
+}
 
 
 TEST(IMPLEMENT, match) {

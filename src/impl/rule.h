@@ -143,6 +143,11 @@ namespace KLib42 {
         RuleCompound(ParserImpl* gen) :RuleNode(gen) {}
     };
 
+    struct RuleCut : public RuleNode {
+        RuleCut(ParserImpl* gen) :RuleNode(gen) {};
+        MatchR* match(KUSIZE start) final;
+    };
+
     struct RuleAll : public RuleCompound {
         RuleAll(ParserImpl* gen) :RuleCompound(gen) {};
         MatchR* match(KUSIZE start) final;
@@ -174,5 +179,4 @@ namespace KLib42 {
     struct RuleOne : public RuleNode {
         RuleOne(ParserImpl* gen) :RuleNode(gen) {};
         MatchR* match(KUSIZE start) final;
-    };
-}
+    };}
