@@ -403,7 +403,14 @@ namespace KLib42 {
                 auto infoId = serr->rule->getInfo();
                 if (infoId != -1) {
                     auto loc = m_ruleParser.getSource()->getLocation(infoId);
-                    std::cerr << loc->getLine()->str();
+                    auto l = loc->location();
+                    std::cerr << "expect(" << l.row << ":" << l.col << ")" << std::endl;
+                    std::cerr << l.row << " | " << loc->getLine()->str() << std::endl;
+                    std::cerr << "    ";
+                    for (auto i = 0; i < l.col; ++i) {
+                        std::cerr << " ";
+                    }
+                    std::cerr << "^" << std::endl;
                 }
             }
             return err1;

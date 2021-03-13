@@ -14,6 +14,9 @@ namespace KLib42 {
         for (auto r : rules) {
             delete r;
         }
+        for (auto& p : m_ruleInfoMap) {
+            delete p.second;
+        }
         reset();
     }
 
@@ -29,10 +32,10 @@ namespace KLib42 {
         m_ss.clear();
         m_parseErrInfo.reset(nullptr);
 
-        for (auto& p : m_ruleInfoMap) {
+        /*for (auto& p : m_ruleInfoMap) {
             delete p.second;
         }
-        m_ruleInfoMap.clear();
+        m_ruleInfoMap.clear();*/
     }
 
     void ParserImpl::setText(const std::string& text) {
