@@ -10,7 +10,6 @@
 namespace KLib42 {
 
     struct DSLNode {
-        DSLNode* parent;
         KUnique<IRange> range;
         DSLNode(KUnique<IRange> range);
 
@@ -23,11 +22,18 @@ namespace KLib42 {
         virtual bool build(Parser& p) { return true; }
     };
 
+    // only preset after build, others will be replacing with its rule node defination
     struct DSLID : public DSLNode {
         std::string name;
         bool isPreset;
         DSLID(KUnique<IRange> range, std::string name, bool isPreset = false) :DSLNode(range), name(name), isPreset(isPreset) {
         };
+    };
+
+    struct DSLCUT : public DSLNode {
+        DSLCUT(KUnique<IRange> range) :DSLNode(range) {
+        };
+        bool build(Parser& p) override;
     };
 
     struct DSLText : public DSLNode {
@@ -133,6 +139,7 @@ namespace KLib42 {
     public:
         
         Rule* r_id;
+        Rule* r_cut;
         Rule* r_text; // `id`
         Rule* r_regex; // r`id`
         Rule* r_item; //  id, tex, re

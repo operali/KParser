@@ -237,6 +237,7 @@ namespace KLib42 {
     bool MatchR::alter() {
         std::vector<MatchR*> vec;
         MatchR* curM = this;
+        curM->m_ruleNode->m_state.pushPos(this->m_startPos);
         auto* gen = m_ruleNode->m_gen;
         auto lookback = gen->m_lookback;
         auto* text = gen->m_cache;
@@ -259,6 +260,8 @@ namespace KLib42 {
         while (true) {
             auto st = curM->stepIn();
             if (st.isBoolean()) {
+                // TODO, left recursive parsing?
+                curM->m_ruleNode->m_state.popPos();
                 auto succ = st.booleanValue();
                 if (curM == this) {
                     if (succ) {
@@ -330,21 +333,31 @@ namespace KLib42 {
             }
             else {
                 MatchR* matcher = st.mr;
-                vec.push_back(curM);
-                curM = matcher;
-                if(trace) {
-                    auto* ruleNode = curM->m_ruleNode;
-                    auto* parser = ruleNode->m_gen;
+                // TODO, left recursive parsing
+                if (matcher->m_ruleNode->m_state.getPos() == matcher->m_startPos) {
+                    /*matcher->release();
+                    delete matcher;*/
+                    curM->stepOut(nullptr);
+                } else {
+                    // TODO, left recursive parsing
+                    matcher->m_ruleNode->m_state.pushPos(matcher->m_startPos);
+                    vec.push_back(curM);
+                    curM = matcher;
+                    if (trace) {
+                        auto* ruleNode = curM->m_ruleNode;
+                        auto* parser = ruleNode->m_gen;
 
-                    auto& info = ruleNode->getInfo();
-                    if (!info.empty()) {
-                        for (size_t i = 0; i < outputMargin; ++i) {
-                            parser->m_ss << " ";
+                        auto& info = ruleNode->getInfo();
+                        if (!info.empty()) {
+                            for (size_t i = 0; i < outputMargin; ++i) {
+                                parser->m_ss << " ";
+                            }
+                            parser->m_ss << "on_rule: " << info.toString() << std::endl;
                         }
-                        parser->m_ss << "on_rule: " << info.toString() << std::endl;
+                        outputMargin++;
                     }
-                    outputMargin++;
                 }
+                
             }
         }
     }

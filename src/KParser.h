@@ -45,11 +45,11 @@ namespace KLib42 {
         
         // epsilon
         Rule* none();
-        // match to string excatly
+        // match string excatly
         Rule* str(std::string&& str);
-        // match Pattern1 + Pattern2... + PatternN
+        // match Pattern1 then Pattern2... then PatternN
         Rule* all();
-        // match Pattern1 | Pattern2... | PatternN
+        // match Pattern1 or Pattern2... or PatternN
         Rule* any();
         // match nothing, but cut branch
         Rule* cut();

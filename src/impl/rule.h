@@ -13,9 +13,9 @@ namespace KLib42 {
     struct RuleNode;
     
     struct MatchR;
-    MatchR* const TRUE = (MatchR*)0x1;
-    MatchR* const FALSE = (MatchR*)0x2;
     struct StepInT {
+        MatchR* const TRUE = (MatchR*)0x1;
+        MatchR* const FALSE = (MatchR*)0x2;
         MatchR* mr;
         StepInT(bool res):mr(res? TRUE : FALSE) {}
         StepInT(MatchR* mr):mr(mr) {}
@@ -77,9 +77,32 @@ namespace KLib42 {
 
         virtual void release();
     };
+
+    struct RuleState {
+        std::vector<int> _pos;
+        int getPos() {
+            if (_pos.empty()) {
+                return -1;
+            }
+            else {
+                return _pos.back();
+            }
+        }
+
+        void pushPos(int pos) {
+            _pos.push_back(pos);
+        }
+
+        void popPos() {
+            _pos.pop_back();
+        }
+    };
+
     struct RuleNode : public Rule {
         ParserImpl* m_gen;
-        KAny m_info;
+        
+        RuleState m_state;
+
         RuleNode(ParserImpl* gen);
         virtual ~RuleNode() = default;
         
@@ -94,6 +117,8 @@ namespace KLib42 {
         void appendChild(Rule* r) override;
         std::string toString() override;
         Parser* host() override;
+
+        KAny m_info;
         void setInfo(KAny info) override;
         KAny& getInfo() override;
     };
@@ -175,4 +200,5 @@ namespace KLib42 {
     struct RuleOne : public RuleNode {
         RuleOne(ParserImpl* gen) :RuleNode(gen) {};
         MatchR* match(KUSIZE start) final;
-    };}
+    };
+}

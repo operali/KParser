@@ -18,10 +18,16 @@ namespace KLib42 {
         handle(true, this);
     }
 
+    bool DSLCUT::build(Parser& p) {
+        rule = p.cut();
+        return true;
+    };
+
     void DSLText::prepare(KLib42::Parser& p) {
         rule = p.str(std::string(name));
     }
 
+    
     void DSLRegex::prepare(KLib42::Parser& p) {
         rule = p.regex(name);
     }
@@ -253,6 +259,7 @@ namespace KLib42 {
         p.setSkippedRule(commentRule2);
 
         r_id = p.identifier();
+        r_cut = p.str("!");
         r_text = p.custom([&](const char* begin, const char* end)->const char* {
             int len = 0;
             std::string r;
@@ -283,7 +290,7 @@ namespace KLib42 {
             });
         auto evt = p.optional(p.all("@", evtName));
         r_group = p.all("(", r_any, ")");
-        r_item->add(r_regex, r_text, r_id, r_group);
+        r_item->add(r_regex, r_text, r_id, r_group, r_cut);
         r_option = p.all(r_item, "?");
         r_many = p.all(r_item, "*");
         r_many1 = p.all(r_item, "+");
@@ -298,11 +305,17 @@ namespace KLib42 {
         r_id->eval([&](Match& m, IT b, IT e) {
             return (DSLNode*)create<DSLID>(getRange(p, m), m.str());
             });
+
+        r_cut->eval([&](Match& m, IT b, IT e) {
+            return (DSLNode*)create<DSLCUT>(getRange(p, m));
+            });
+
         r_regex->eval([&](Match& m, IT b, IT e) {
             std::string s = m.str();
             s = s.substr(1, s.length() - 2);
             return (DSLNode*)create<DSLRegex>(getRange(p, m), s);
             });
+
         r_text->eval([&](Match& m, IT b, IT e) {
             auto s = m.str();
             std::string r;
@@ -321,9 +334,7 @@ namespace KLib42 {
                 return n;
             }
             return (DSLNode*)node;
-
             });
-
 
         r_event->eval([&](Match& m, IT b, IT e) {
             auto* node = *((b++)->get<DSLNode*>());
