@@ -7,6 +7,7 @@
 namespace KLib42 {
     struct IRange;
     struct DSLID;
+    struct Rule;
 
     struct KParserError : public KError {
         KShared<ISource> source;
@@ -16,7 +17,8 @@ namespace KLib42 {
 
     struct SyntaxError : public KParserError {
         KUSIZE location;
-        SyntaxError(KShared<ISource> source, KUSIZE location):KParserError(source), location(location) {
+        Rule* rule;
+        SyntaxError(KShared<ISource> source, Rule* r, KUSIZE location):KParserError(source), rule(r), location(location) {
         }
         
         std::pair<size_t, size_t> getRange() override;

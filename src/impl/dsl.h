@@ -8,17 +8,11 @@
 #include "./impl.h"
 #include "./doc.h"
 namespace KLib42 {
-    struct DSLNode;
-
-    struct DSLFactory {
-        std::vector<DSLNode*> nodes;
-        ~DSLFactory();
-    };
 
     struct DSLNode {
-        DSLFactory* builder;
+        DSLNode* parent;
         KUnique<IRange> range;
-        DSLNode(DSLFactory* builder, KUnique<IRange> range);
+        DSLNode(KUnique<IRange> range);
 
         virtual ~DSLNode() {}
         bool visiting = false;
@@ -32,7 +26,7 @@ namespace KLib42 {
     struct DSLID : public DSLNode {
         std::string name;
         bool isPreset;
-        DSLID(DSLFactory* builder, KUnique<IRange> range, std::string name, bool isPreset = false) :DSLNode(builder, range), name(name), isPreset(isPreset) {
+        DSLID(KUnique<IRange> range, std::string name, bool isPreset = false) :DSLNode(range), name(name), isPreset(isPreset) {
 
         };
 
@@ -41,31 +35,31 @@ namespace KLib42 {
 
     struct DSLText : public DSLNode {
         std::string name;
-        DSLText(DSLFactory* builder, KUnique<IRange> range, std::string name) :DSLNode(builder, range), name(name) {};
+        DSLText(KUnique<IRange> range, std::string name) :DSLNode(range), name(name) {};
         void prepare(Parser& p) override;
     };
 
 
     struct DSLRegex : public DSLNode {
         std::string name;
-        DSLRegex(DSLFactory* builder, KUnique<IRange> range, std::string name) :DSLNode(builder, range), name(name) {};
+        DSLRegex(KUnique<IRange> range, std::string name) :DSLNode(range), name(name) {};
         void prepare(Parser& p) override;
     };
 
     struct DSLWrap : public DSLNode {
         DSLNode* node;
-        DSLWrap(DSLFactory* builder, KUnique<IRange> range, DSLNode* node) :DSLNode(builder, range), node(node) {};
+        DSLWrap(KUnique<IRange> range, DSLNode* node) :DSLNode(range), node(node) {};
         void visit(std::function<void(bool sink, DSLNode* node)> handle) override;
     };
 
     struct DSLMany : public DSLWrap {
-        DSLMany(DSLFactory* builder, KUnique<IRange> range, DSLNode* node) :DSLWrap(builder, range, node) {};
+        DSLMany(KUnique<IRange> range, DSLNode* node) :DSLWrap(range, node) {};
 
         bool build(Parser& p) override;
     };
 
     struct DSLMany1 : public DSLWrap {
-        DSLMany1(DSLFactory* builder, KUnique<IRange> range, DSLNode* node) :DSLWrap(builder, range, node) {};
+        DSLMany1(KUnique<IRange> range, DSLNode* node) :DSLWrap(range, node) {};
 
         bool build(Parser& p) override;
     };
@@ -73,38 +67,38 @@ namespace KLib42 {
     struct DSLList : public DSLNode {
         DSLNode* node;
         DSLNode* dem;
-        DSLList(DSLFactory* builder, KUnique<IRange> range, DSLNode* node, DSLNode* dem) :DSLNode(builder, range), node(node), dem(dem) {};
+        DSLList(KUnique<IRange> range, DSLNode* node, DSLNode* dem) :DSLNode(range), node(node), dem(dem) {};
 
         void visit(std::function<void(bool sink, DSLNode* node)> handle) override;
         bool build(Parser& p) override;
     };
 
     struct DSLTill : public DSLWrap {
-        DSLTill(DSLFactory* builder, KUnique<IRange> range, DSLNode* node) :DSLWrap(builder, range, node) {};
+        DSLTill(KUnique<IRange> range, DSLNode* node) :DSLWrap(range, node) {};
         bool build(Parser& p) override;
     };
 
     struct DSLOption : public DSLWrap {
-        DSLOption(DSLFactory* builder, KUnique<IRange> range, DSLNode* node) :DSLWrap(builder, range, node) {};
+        DSLOption(KUnique<IRange> range, DSLNode* node) :DSLWrap(range, node) {};
         bool build(Parser& p) override;
     };
 
     struct DSLChildren : public DSLNode {
         std::vector<DSLNode*> nodes;
-        DSLChildren(DSLFactory* builder, KUnique<IRange> range) :DSLNode(builder, range) {};
+        DSLChildren(KUnique<IRange> range) :DSLNode(range) {};
 
         void visit(std::function<void(bool sink, DSLNode* node)> handle) override;
     };
 
     struct DSLAny : public DSLChildren {
-        DSLAny(DSLFactory* builder, KUnique<IRange> range) :DSLChildren(builder, range) {
+        DSLAny(KUnique<IRange> range) :DSLChildren(range) {
         };
         void prepare(Parser& p) override;
         bool build(Parser& p) override;
     };
 
     struct DSLAll : public DSLChildren {
-        DSLAll(DSLFactory* builder, KUnique<IRange> range) :DSLChildren(builder, range) {};
+        DSLAll(KUnique<IRange> range) :DSLChildren(range) {};
         void prepare(Parser& p) override;
         bool build(Parser& p) override;
     };
@@ -113,28 +107,34 @@ namespace KLib42 {
         std::string name;
         DSLID* id;
         std::string ruleLine;
-        DSLRule(DSLFactory* builder, KUnique<IRange> range, DSLNode* node) :DSLWrap(builder, range, node) {
+        DSLRule(KUnique<IRange> range, DSLNode* node) :DSLWrap(range, node) {
         }
         bool build(Parser& p) override;
     };
 
     struct DSLRuleList : public DSLChildren {
-        DSLRuleList(DSLFactory* builder, KUnique<IRange> range) :DSLChildren(builder, range) {};
+        DSLRuleList(KUnique<IRange> range) :DSLChildren(range) {};
     };
 
-    struct DSLContext : DSLFactory {
+    using dsl_t = std::function<DSLNode* ()>;
+    struct DSLContext {
+        // TODO, private
+        Parser m_ruleParser;
+        Parser m_userParser;
+        std::vector<DSLNode*> m_nodes;
+        
+    private:
         std::string m_strRule;
-        Parser m_parser;
-        KShared<KError> lastError;
+        
         std::unordered_map <std::string, DSLNode*> idMap;
-        std::unordered_map <std::string, std::function<KAny(Match& m, IT arg, IT noarg)>> handleMap;
+        std::unordered_map <std::string, CaptureT> handleMap;
 
         // debug
+        KShared<KError> checkRuleError;
         KDocument m_doc;
-        std::unordered_map <std::string, DSLNode*> idMap_;
         // end debug
-
-        Rule* r_comment;
+    public:
+        
         Rule* r_id;
         Rule* r_text; // `id`
         Rule* r_regex; // r`id`
@@ -150,11 +150,21 @@ namespace KLib42 {
         Rule* r_all; // p.many1(item);
         Rule* r_ruleList; // 
 
-        void DSLContext_();
-
         DSLContext();
-        void prepareRules(std::string str);
-        void prepareCapture(const std::string& evtName, std::function<KAny(Match& m, IT arg, IT noarg)> handle);
+        ~DSLContext();
+
+        template<typename T, typename ...TS>
+        T* create(TS... args) {
+            T* node = new T(args...);
+            m_nodes.push_back(node);
+            return node;
+        }
+
+        KShared<KError> getLastError();
+        void prepareRules(const std::string& str);
+        void prepareSkippedRule(CustomT&& p);
+        void prepareConstant(const std::string& idName, CustomT&& p);
+        void prepareCapture(const std::string& evtName, CaptureT&& handle);
         bool build();
         KUnique<Match> parse(const std::string& ruleName, const std::string& str);
     };

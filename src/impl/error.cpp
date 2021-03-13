@@ -4,7 +4,7 @@
 #include <iomanip>
 
 #include "./error.h"
-#include "./ebnf.h"
+#include "./dsl.h"
 
 namespace KLib42 {
 

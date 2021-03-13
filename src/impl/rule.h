@@ -95,6 +95,8 @@ namespace KLib42 {
         std::string toString() override;
         Parser* host() override;
         void setName(const std::string& name);
+        void setInfo(int64_t infoId);
+        int64_t getInfo();
     };
 
     struct RuleEmpty : public RuleNode{

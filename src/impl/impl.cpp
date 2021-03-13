@@ -2,7 +2,12 @@
 
 namespace KLib42 {
     ParserImpl::ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank, CustomT skipRule)
-        :m_interface(parser), m_skipBlank(skipBlank), m_lookback(lookback), m_headMax(0), m_cache(nullptr), length(0), m_text(new KSource()), m_skipRule(skipRule), m_trace(false){
+        :m_interface(parser), 
+        m_skipBlank(skipBlank), 
+        m_lookback(lookback), 
+        m_headRule(nullptr),
+        m_headMax(0), 
+        m_cache(nullptr), length(0), m_text(new KSource()), m_skipRule(skipRule), m_trace(false){
     }
 
     ParserImpl::~ParserImpl() {
@@ -22,9 +27,13 @@ namespace KLib42 {
         m_expStk.clear();
 
         m_ss.clear();
-        parseErrInfo.reset(nullptr);
-    }
+        m_parseErrInfo.reset(nullptr);
 
+        for (auto& p : m_ruleInfoMap) {
+            delete p.second;
+        }
+        m_ruleInfoMap.clear();
+    }
 
     void ParserImpl::setText(const std::string& text) {
         m_text->setText(text);
@@ -34,7 +43,7 @@ namespace KLib42 {
 
     void ParserImpl::genParseError() {
         const char* errLoc = m_cache + m_headMax;
-        parseErrInfo.reset(new SyntaxError(m_interface->getSource(), m_headMax ));
+        m_parseErrInfo.reset(new SyntaxError(m_interface->getSource(), m_headRule, m_headMax ));
     }
 
     void ParserImpl::setRuleName(RuleNode* node, const std::string& name) {
@@ -43,7 +52,17 @@ namespace KLib42 {
             it->second->name = name;
         }
         else {
-            m_ruleInfoMap.insert(m_ruleInfoMap.end(), std::make_pair(node, new RuleInfo(name)));
+            m_ruleInfoMap.insert(m_ruleInfoMap.end(), std::make_pair(node, new RuleInfo(name, 0)));
+        }
+    }
+
+    void ParserImpl::setRuleInfo(RuleNode* node, uint64_t srcId) {
+        auto it = m_ruleInfoMap.find(node);
+        if (it != m_ruleInfoMap.end()) {
+            it->second->srcId = srcId;
+        }
+        else {
+            m_ruleInfoMap.insert(m_ruleInfoMap.end(), std::make_pair(node, new RuleInfo(std::string(), srcId)));
         }
     }
 

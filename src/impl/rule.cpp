@@ -136,6 +136,15 @@ namespace KLib42 {
         m_gen->setRuleName(this, name);
     }
 
+    void RuleNode::setInfo(int64_t infoId) {
+        m_gen->setRuleInfo(this, infoId);
+    }
+
+    int64_t RuleNode::getInfo() {
+        auto* info = m_gen->getRuleInfo(this);
+        return info?info->srcId:-1;
+    }
+
     KUnique<Match> RuleNode::parse(const std::string& text) {
         m_gen->reset();
         this->m_gen->setText(text);
@@ -235,7 +244,6 @@ namespace KLib42 {
         MatchR* curM = this;
         auto* gen = m_ruleNode->m_gen;
         auto lookback = gen->m_lookback;
-        auto& headMax = gen->m_headMax;
         auto* text = gen->m_cache;
         bool trace = gen->m_trace;
 
@@ -285,8 +293,9 @@ namespace KLib42 {
                         }
 
                         auto headLength = lastM->m_startPos + lastM->length();
-                        if (headLength > headMax) {
-                            headMax = headLength;
+                        if (headLength > gen->m_headMax) {
+                            gen->m_headMax = headLength;
+                            gen->m_headRule = lastM->m_ruleNode;
                         }
                         curM->stepOut(lastM);
                     }
@@ -304,14 +313,14 @@ namespace KLib42 {
                             outputMargin--;
                         }
 
-                        if ((int)headMax - (int)lastM->m_startPos> (int)lookback) {
+                        if ((int)gen->m_headMax - (int)lastM->m_startPos> (int)lookback) {
                             auto* node = dynamic_cast<RuleCompound*>(lastM->m_ruleNode);
                             if (node) {
                                 // clear all temporary matcher
                                 for (int i = vec.size() - 1; i > -1; --i) {
                                     vec[i]->release();
                                 }
-                                std::cerr << "lookback more than max length of " << headMax << " chars, abandon\n";
+                                std::cerr << "lookback more than max length of " << gen->m_headMax << " chars, abandon\n";
                                 gen->genParseError();
                                 return false;
                             }

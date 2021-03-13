@@ -2,7 +2,7 @@
 
 #include "gtest/gtest.h"
 #include "../src/kparser.h"
-#include "../src/impl/ebnf.h"
+#include "../src/impl/dsl.h"
 #include "./conf.h"
 
 #ifdef enable_test_dsl
@@ -407,7 +407,7 @@ c = c | /d*/;)");
         auto m = ctx.r_ruleList->parse(R"(c = c | b^/d*/
 )");
         ASSERT_EQ(m.get() == nullptr, true);
-        auto err = ctx.m_parser.getLastError();
+        auto err = ctx.getLastError();
         ASSERT_EQ(!!err, true);
         std::cerr << err->message() << std::endl;
     }
@@ -476,6 +476,7 @@ c = re | /\/\//;
     }
     {
         EXPECT_EQ(KLib42::KObject::count, 0);
+
         KLib42::DSLContext ctx;
         ctx.prepareRules(R"(  a = ID;
 a = NUM;
@@ -651,9 +652,38 @@ b = (...(a@abc))* EOF;
             ASSERT_EQ(false, true);
         }
         else {
-            p.parse("b", "11, 22 ,aa, bb");
+            p.parse("b", R"(11, 22 ,aa, bb)");
             EXPECT_EQ(numval, 33);
             EXPECT_EQ(strval, "aabb");
+        }
+    }
+}
+
+TEST(DSL, fail) {
+    KLib42::EasyParser p;
+
+    {
+        double numval = 0;
+        std::string strval = "";
+        p.prepareRules(R"(
+a = ID | NUM;
+b = a (',' a)* EOF;
+)");
+        
+        auto r = p.build();
+        if (!r) {
+            std::cerr << p.getLastError()->message() << std::endl;
+            ASSERT_EQ(false, true);
+        }
+        else {
+            auto m = p.parse("b", R"(11, ^22 ,aa, bb)");
+            if (m) {
+
+            }
+            else {
+                std::cerr << p.getLastError()->message();
+            }
+            
         }
     }
 }

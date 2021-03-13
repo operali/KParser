@@ -8,7 +8,7 @@
 #include "./util.h"
 #include "./impl.h"
 
-#include "./ebnf.h"
+#include "./dsl.h"
 
 namespace KLib42 {
     KUSIZE KObject::count = 0;
@@ -24,7 +24,7 @@ namespace KLib42 {
     }
 
     KShared<KError> Parser::getLastError() {
-        return impl->parseErrInfo.clone();
+        return impl->m_parseErrInfo.clone();
         /*std::stringstream ss;
         ss << "parse fail at (line:column)" << err.row << ":" << err.col << std::endl;
         ss << std::string(err.lineLeft, err.lineMid)

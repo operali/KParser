@@ -10,6 +10,7 @@
 namespace KLib42 {
 
     struct RuleNode;
+    struct MatchR;
     class Parser;
     struct ParserImpl {
         Parser* m_interface;
@@ -18,13 +19,13 @@ namespace KLib42 {
         CustomT m_skipRule;
         KUSIZE m_lookback;
         KUSIZE m_headMax;
+        Rule* m_headRule;
         bool m_trace;
 
         // state / error 
         std::vector<KAny> m_expStk;
         std::stringstream m_ss;
-        KShared<KError> parseErrInfo;
-
+        KShared<KError> m_parseErrInfo;
 
         // source
         const char* m_cache;
@@ -37,6 +38,8 @@ namespace KLib42 {
         void setText(const std::string& text);
         void genParseError();
         void setRuleName(RuleNode* node, const std::string& name);
+        void setRuleInfo(RuleNode* node, uint64_t srcId);
+        
         RuleInfo* getRuleInfo(RuleNode* node);
 
         ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank, CustomT skipRule);
@@ -45,6 +48,8 @@ namespace KLib42 {
 
     struct RuleInfo : private KObject {
         std::string name;
-        RuleInfo(const std::string& name) :name(name) {}
+        uint64_t srcId;
+        RuleInfo(std::string name, uint64_t srcId):name(name), srcId(srcId) {
+        }
     };
 }

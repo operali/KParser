@@ -3,14 +3,14 @@
 
 #include <iostream>
 #include "common.h"
-#include "dsl.h"
-#include "util.h"
 #include "../kparser.h"
+#include "./dsl.h"
+#include "./util.h"
+#include "./impl.h"
 
 namespace KLib42 {
 
-    DSLNode::DSLNode(DSLFactory* builder, KUnique<IRange> range) :builder(builder), range(range){
-        builder->nodes.push_back(this);
+    DSLNode::DSLNode(KUnique<IRange> range) :range(range){
     };
 
     void DSLNode::visit(std::function<void(bool sink, DSLNode * node)> handle) {
@@ -168,14 +168,7 @@ namespace KLib42 {
         return true;
     }
 
-
-    DSLFactory::~DSLFactory() {
-        for (auto* node : nodes) {
-            delete node;
-        }
-    }
-
-    void DSLContext::prepareCapture(const std::string& evtName, std::function<KAny(KLib42::Match & m, KLib42::IT arg, KLib42::IT noarg)> handle) {
+    void DSLContext::prepareCapture(const std::string& evtName, CaptureT&& handle) {
         handleMap[evtName] = handle;
     }
 
@@ -183,9 +176,6 @@ namespace KLib42 {
         auto it = idMap.find(ruleName);
         if (it != idMap.end()) {
             auto m = it->second->rule->parse(str);
-            if (m.get() == nullptr) {
-                lastError = m_parser.getErrInfo();
-            }
             return m;
         }
         return nullptr;
@@ -197,40 +187,53 @@ namespace KLib42 {
         auto range = src->getRange(loc, loc + len);
         return range;
     }
+    
+    DSLContext::~DSLContext() {
+        for (auto* node : m_nodes) {
+            delete node;
+        }
+    }
 
     DSLContext::DSLContext() {
-        KLib42::Parser& p = m_parser;
-        idMap.emplace(std::make_pair("ID", new DSLID{ this, nullptr, "ID" , true }));
-        idMap.emplace(std::make_pair("NUM", new DSLID{ this, nullptr, "NUM", true }));
-        idMap.emplace(std::make_pair("NONE", new DSLID{ this, nullptr, "NONE", true }));
-        idMap.emplace(std::make_pair("EOF", new DSLID{ this,nullptr, "EOF", true }));
+        KLib42::Parser& p = m_ruleParser;
 
-        auto commentRule1 = p.custom([=](const char* b, const char* e)->const char* {
+        idMap.emplace(std::make_pair("ID", create<DSLID>(nullptr, "ID" , true )));
+        idMap.emplace(std::make_pair("NUM", create<DSLID>(nullptr, "NUM", true )));
+        idMap.emplace(std::make_pair("NONE", create<DSLID>(nullptr, "NONE", true)));
+        idMap.emplace(std::make_pair("EOF", create<DSLID>(nullptr, "EOF", true)));
+
+        auto commentRule1 = [=](const char* b, const char* e)->const char* {
+            // match left
             if (*b++ != '/' || b == e) {
                 return nullptr;
             }
             if (*b++ != '*' || b == e) {
                 return nullptr;
             }
-            bool tryEnd = false;
+
+            bool matchRight = false;
             for (; b != e; ++b) {
-                if (tryEnd) {
+                if (matchRight) {
                     if (*b == '/') {
                         return b + 1;
                     }
                     else {
-                        tryEnd = false;
+                        matchRight = false;
                     }
                 }
                 else {
                     if (*b == '*') {
-                        tryEnd = true;
+                        matchRight = true;
                     }
                 }
             }
             return b;
-            });
-        auto commentRule2 = p.custom([=](const char* b, const char* e)->const char* {
+            };
+        auto commentRule2 = [=](const char* b, const char* e)->const char* {
+            auto r = commentRule1(b, e);
+            if(r){
+                return r;
+            }
             if (*b++ != '/' || b == e) {
                 return nullptr;
             }
@@ -244,10 +247,10 @@ namespace KLib42 {
                 }
             }
             return b;
-            });
-        r_comment = p.any(commentRule1, commentRule2);
+            };
+        p.setSkippedRule(commentRule2);
 
-        r_id = p.regex(R"(^[a-zA-Z_][a-zA-Z0-9_]*)");
+        r_id = p.identifier();
         r_text = p.custom([&](const char* begin, const char* end)->const char* {
             int len = 0;
             std::string r;
@@ -287,27 +290,27 @@ namespace KLib42 {
         r_till = p.all("...", r_item);
         r_list = p.all("[", r_item, r_item, "]");
         r_expr->add(r_till, r_many, r_many1, r_option, r_list, r_event, r_item);
-        r_rule = p.all(p.many(r_comment), r_id, "=", r_any, ";", p.many(r_comment));
+        r_rule = p.all(r_id, "=", r_any, ";");
         r_ruleList = p.all(p.many1(r_rule), p.eof());
 
         r_id->eval([&](Match& m, IT b, IT e) {
-            return (DSLNode*)new DSLID(this, getRange(p, m), m.str() );
+            return (DSLNode*)create<DSLID>(getRange(p, m), m.str());
             });
         r_regex->eval([&](Match& m, IT b, IT e) {
             std::string s = m.str();
             s = s.substr(1, s.length() - 2);
-            return (DSLNode*)new DSLRegex{ this, getRange(p, m), s };
+            return (DSLNode*)create<DSLRegex>(getRange(p, m), s );
             });
         r_text->eval([&](Match& m, IT b, IT e) {
             auto s = m.str();
             std::string r;
             int rsz = 0;
             auto ret = parseCSTR(s.data(), s.length(), r, rsz);
-            return (DSLNode*)new DSLText{ this, getRange(p, m), r };
+            return (DSLNode*)create<DSLText>(getRange(p, m), r);
             });
 
         r_any->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLAny(this, getRange(p, m));
+            auto* node = create<DSLAny>(getRange(p, m));
             while (b != e) {
                 node->nodes.push_back(*(*b++).template get<DSLNode*>());
             }
@@ -332,7 +335,7 @@ namespace KLib42 {
             }
         );
         r_all->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLAll(this, getRange(p, m));
+            auto* node = create<DSLAll>(getRange(p, m));
             while (b != e) {
                 node->nodes.push_back(*(*b++).template get<DSLNode*>());
             }
@@ -344,38 +347,38 @@ namespace KLib42 {
 
             });
         r_many->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLMany(this, getRange(p, m), *(*b).template get<DSLNode*>());
+            auto* node = create<DSLMany>(getRange(p, m), *(*b).template get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_many1->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLMany1(this, getRange(p, m), *(*b).template get<DSLNode*>());
+            auto* node = create<DSLMany1>(getRange(p, m), *(*b).template get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_list->eval([&](Match& m, IT b, IT e) {
             auto* item = *(*b++).template get<DSLNode*>();
             auto* dem = *(*b++).template get<DSLNode*>();
-            auto* node = new DSLList(this, getRange(p, m), item, dem);
+            auto* node = create<DSLList>(getRange(p, m), item, dem);
             return (DSLNode*)node;
             });
         r_till->eval([&](Match& m, IT b, IT e) {
             auto* item = *(*b++).template get<DSLNode*>();
-            auto* node = new DSLTill(this, getRange(p, m), item);
+            auto* node = create<DSLTill>(getRange(p, m), item);
             return (DSLNode*)node;
             });
         r_option->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLOption(this, getRange(p, m), *(*b).template get<DSLNode*>());
+            auto* node = create<DSLOption>(getRange(p, m), *(*b).template get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_rule->eval([&](Match& m, IT b, IT e) {
             DSLID* id = (DSLID*)*(*b++).template get<DSLNode*>();
-            DSLRule* r = new DSLRule(this, getRange(p, m), *(*b++).template get<DSLNode*>());
+            DSLRule* r = create<DSLRule>(getRange(p, m), *(*b++).template get<DSLNode*>());
             r->name = id->name;
             r->id = id;
             r->ruleLine = m.str();
             return (DSLNode*)r;
             });
         r_ruleList->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLRuleList(this, getRange(p, m));
+            auto* node = create<DSLRuleList>(getRange(p, m));
             while (b != e) {
                 node->nodes.push_back((DSLRule*)*(*b++).template get<DSLNode*>());
             }
@@ -383,15 +386,48 @@ namespace KLib42 {
             });
     }
 
-    void DSLContext::prepareRules(std::string strRuleList) {
+    KShared<KError> DSLContext::getLastError() {
+        auto err = m_ruleParser.getLastError();
+        if (err) {
+            return err.clone();
+        }
+        if (checkRuleError) {
+            return checkRuleError.clone();
+        }
+        auto err1 = m_userParser.getLastError();
+        if (err1) {
+            SyntaxError* serr = dynamic_cast<SyntaxError*>(err1.get());
+            if (serr) {
+                auto infoId = serr->rule->getInfo();
+                if (infoId != -1) {
+                    auto loc = m_ruleParser.getSource()->getLocation(infoId);
+                    std::cerr << loc->getLine()->str();
+                }
+            }
+            return err1;
+        }
+        return nullptr;
+    }
+
+    void DSLContext::prepareRules(const std::string& strRuleList) {
         m_strRule = strRuleList;
+    }
+
+    void DSLContext::prepareSkippedRule(CustomT&& p) {
+        m_userParser.setSkippedRule(std::move(p));
+    }
+
+    void DSLContext::prepareConstant(const std::string& idName, CustomT&& p) {
+        auto* id = create<DSLID>(nullptr, idName , true);
+        id->rule = m_userParser.custom(p);
+        idMap.emplace(std::make_pair(idName, id));
     }
 
     bool DSLContext::build() {
         auto m = r_ruleList->parse(m_strRule);
         if (!m) {
-            lastError = m_parser.getErrInfo();
-            std::cerr << lastError << std::endl;
+            auto err = m_ruleParser.getLastError();
+            std::cerr << err << std::endl;
             return false;
         }
         DSLNode** d = m->capture<DSLNode*>(0);
@@ -406,7 +442,7 @@ namespace KLib42 {
                     DSLRule* rule = (DSLRule*)n;
                     auto it = idMap.find(rule->name);
                     if (it != idMap.end()) {
-                        lastError = KShared<KError>(new RedefinedIDError(this->m_parser.getSource(), rule->id));
+                        checkRuleError = KShared<KError>(new RedefinedIDError(this->m_ruleParser.getSource(), rule->id));
                         succ = false;
                         return;
                     }
@@ -437,13 +473,13 @@ namespace KLib42 {
                 if (it == idMap.end()) {
                     std::cerr << id->name << " is not defined " << std::endl;
                     // id->name + " is not defined\n";
-                    lastError = KShared<KError>(new UndefinedIDError(this->m_parser.getSource(), id));
+                    checkRuleError = KShared<KError>(new UndefinedIDError(this->m_ruleParser.getSource(), id));
                     succ = false;
                     break;
                 }
                 node = it->second;
                 if (node == kv.second) {
-                    lastError = KShared<KError>(new RecursiveIDError(this->m_parser.getSource(), id));
+                    checkRuleError = KShared<KError>(new RecursiveIDError(this->m_ruleParser.getSource(), id));
                     // lastError = id->name + " is defined recursively\n";
                     succ = false;
                     break;
@@ -475,10 +511,10 @@ namespace KLib42 {
                         auto* rn = rule->node;
                         auto* id = dynamic_cast<DSLID*>(rn);
                         if (id) {
-                            auto* r = new DSLAny{ this, id->range };
+                            /*auto* r = new DSLAny{ this, id->range };
                             r->nodes.push_back(rn);
                             rule->node = r;
-                            idMap[rule->name] = r;
+                            idMap[rule->name] = r;*/
                         }
                     }
                 }
@@ -508,7 +544,7 @@ namespace KLib42 {
                             else {
                                 succ = false;
                                 // std::string("invalid id of ") + id->name;
-                                lastError = KShared<KError>(new UndefinedIDError(this->m_parser.getSource(), id));
+                                checkRuleError = KShared<KError>(new UndefinedIDError(this->m_ruleParser.getSource(), id));
                             }
                         }
                         return;
@@ -522,7 +558,7 @@ namespace KLib42 {
                     }
                     else {
                         succ = false;
-                        lastError = KShared<KError>(new UndefinedIDError(this->m_parser.getSource(), id));
+                        checkRuleError = KShared<KError>(new UndefinedIDError(this->m_ruleParser.getSource(), id));
                         // lastError = std::string("invalid id of ") + child->name;
                         return;
                     }
@@ -532,7 +568,7 @@ namespace KLib42 {
                     auto it = idMap.find(idNode->name);
                     if (it == idMap.end()) {
                         succ = false;
-                        lastError = KShared<KError>(new UndefinedIDError(this->m_parser.getSource(), idNode));
+                        checkRuleError = KShared<KError>(new UndefinedIDError(this->m_ruleParser.getSource(), idNode));
                         // lastError = std::string("invalid id of ") + id->name;
                     }
                     return;
@@ -548,7 +584,7 @@ namespace KLib42 {
                         }
                         else {
                             succ = false;
-                            lastError = KShared<KError>(new UndefinedIDError(this->m_parser.getSource(), id));
+                            checkRuleError = KShared<KError>(new UndefinedIDError(this->m_ruleParser.getSource(), id));
                             // lastError = std::string("invalid id of ") + id->name;
                         }
                     }
@@ -561,7 +597,7 @@ namespace KLib42 {
                         }
                         else {
                             succ = false;
-                            lastError = KShared<KError>(new UndefinedIDError(this->m_parser.getSource(), id));
+                            checkRuleError = KShared<KError>(new UndefinedIDError(this->m_ruleParser.getSource(), id));
                             // lastError = std::string("invalid id of ") + id->name;
                         }
                     }
@@ -585,7 +621,7 @@ namespace KLib42 {
                         }
                         else {
                             succ = false;
-                            lastError = KShared<KError>(new UndefinedIDError(this->m_parser.getSource(), id));
+                            checkRuleError = KShared<KError>(new UndefinedIDError(this->m_ruleParser.getSource(), id));
                             // lastError = std::string("invalid id of ") + id->name;
                         }
                     }
@@ -605,11 +641,11 @@ namespace KLib42 {
                     return;
                 }
                 if (!sink) {
-                    n->prepare(m_parser);
+                    n->prepare(m_userParser);
                     return;
                 }
                 else {
-                    auto r = n->build(m_parser);
+                    auto r = n->build(m_userParser);
                     n->haveBuild = true;
                     if (!r) {
                         succ = false;
@@ -618,6 +654,20 @@ namespace KLib42 {
                 }
             };
             rlist->visit(hBuild);
+            if (!succ) {
+                return false;
+            }
+
+            // pass, set rule info
+            auto hSetInfo = [&](bool sink, DSLNode* n) {
+                if (n->range) {
+                    auto rgn = n->range->range();
+                    if (n->rule) {
+                        n->rule->setInfo(rgn.first);
+                    }
+                }
+            };
+            rlist->visit(hSetInfo);
             if (!succ) {
                 return false;
             }

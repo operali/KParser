@@ -6,7 +6,7 @@
 #include "../src/impl/impl.h"
 #include "../src/impl/error.h"
 
-#include "../src/impl/ebnf.h"
+#include "../src/impl/dsl.h"
 
 #include "./conf.h"
 
@@ -32,14 +32,14 @@
 TEST(TEXT, TMP2) {
 	
 	KLib42::DSLContext ctx;
-	ctx.m_parser.enableTrace(true);
+	ctx.m_ruleParser.enableTrace(true);
 	{
 		auto m = ctx.r_ruleList->parse(R"(c = c | b/*
 )");
-		std::cerr << ctx.m_parser.getDebugInfo();
+		std::cerr << ctx.m_ruleParser.getDebugInfo();
 		//ASSERT_EQ(m.get() == nullptr, true);
 		//ASSERT_EQ(!!err, true);
-		std::cerr << ctx.m_parser.getLastError()->message() << std::endl;
+		std::cerr << ctx.m_ruleParser.getLastError()->message() << std::endl;
 	}
 
 	{

@@ -37,10 +37,11 @@ namespace KLib42 {
         // some rules like comments can be skipped
         void setSkippedRule(CustomT&& r);
         KShared<KError> getLastError();
+        
         void enableTrace(bool trace);
         std::string getDebugInfo();
         KShared<ISource> getSource();
-
+        
         // epsilon
         Rule* none();
         // match to string excatly
@@ -124,6 +125,8 @@ namespace KLib42 {
         virtual void appendChild(Rule* r) = 0;
         virtual Parser* host() = 0;
         virtual void setName(const std::string& name) = 0;
+        virtual void setInfo(int64_t infoId) = 0;
+        virtual int64_t getInfo() = 0;
 
         template<typename T, typename ...TS>
         void add(T node, TS ...nodes) {
