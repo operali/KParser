@@ -18,7 +18,7 @@ namespace KLib42 {
         bool visiting = false;
         virtual void visit(std::function<void(bool sink, DSLNode* node)> handle);
         Rule* rule = nullptr;
-        bool haveBuild = false;
+        bool haveBuilt = false;
         virtual void prepare(Parser& p) {}
         virtual bool build(Parser& p) { return true; }
     };
@@ -29,8 +29,6 @@ namespace KLib42 {
         DSLID(KUnique<IRange> range, std::string name, bool isPreset = false) :DSLNode(range), name(name), isPreset(isPreset) {
 
         };
-
-        void prepare(Parser& p) override;
     };
 
     struct DSLText : public DSLNode {
@@ -116,7 +114,6 @@ namespace KLib42 {
         DSLRuleList(KUnique<IRange> range) :DSLChildren(range) {};
     };
 
-    using dsl_t = std::function<DSLNode* ()>;
     struct DSLContext {
         // TODO, private
         Parser m_ruleParser;
@@ -126,6 +123,7 @@ namespace KLib42 {
     private:
         std::string m_strRule;
         
+        std::unordered_map <std::string, CustomT> constantId;
         std::unordered_map <std::string, DSLNode*> idMap;
         std::unordered_map <std::string, CaptureT> handleMap;
 
@@ -159,7 +157,7 @@ namespace KLib42 {
             m_nodes.push_back(node);
             return node;
         }
-
+        DSLID* createId(KUnique<IRange> range, std::string& name);
         KShared<KError> getLastError();
         void prepareRules(const std::string& str);
         void prepareSkippedRule(CustomT&& p);

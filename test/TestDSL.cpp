@@ -659,7 +659,62 @@ b = (...(a@abc))* EOF;
     }
 }
 
+TEST(DSL, recursive_id_fail) {
+    {
+        KLib42::EasyParser p;
+        p.prepareRules(R"(
+a = a;
+)");
+        if(!p.build()){
+            auto rawErr = p.getLastError().get();
+            auto err1 = dynamic_cast<KLib42::RecursiveIDError*>(rawErr);
+            std::cerr << rawErr->message() << std::endl;
+        }
+        else {
+            ASSERT_EQ(false, true);
+        }
+    }
+
+
+    {
+        KLib42::EasyParser p;
+        p.prepareRules(R"(
+a = b;
+b = c;
+c = a;
+)");
+        if (!p.build()) {
+            auto rawErr = p.getLastError().get();
+            auto err1 = dynamic_cast<KLib42::RecursiveIDError*>(rawErr);
+            std::cerr << rawErr->message() << std::endl;
+        }
+        else {
+            ASSERT_EQ(false, true);
+        }
+    }
+}
+
+
+TEST(DSL, undefine_id_fail) {
+    {
+        KLib42::EasyParser p;
+        p.prepareRules(R"(
+a = x;
+)");
+        if (!p.build()) {
+            auto rawErr = p.getLastError().get();
+            auto err1 = dynamic_cast<KLib42::UndefinedIDError*>(rawErr);
+            std::cerr << rawErr->message() << std::endl;
+        }
+        else {
+            ASSERT_EQ(false, true);
+        }
+    }
+}
+
+
 TEST(DSL, fail) {
+    // TODO
     KLib42::EasyParser p;
 
     {
@@ -674,8 +729,7 @@ b = a (',' a)* EOF;
         if (!r) {
             std::cerr << p.getLastError()->message() << std::endl;
             ASSERT_EQ(false, true);
-        }
-        else {
+        } else {
             auto m = p.parse("b", R"(11, ^22 ,aa, bb)");
             if (m) {
 
@@ -683,7 +737,6 @@ b = a (',' a)* EOF;
             else {
                 std::cerr << p.getLastError()->message();
             }
-            
         }
     }
 }

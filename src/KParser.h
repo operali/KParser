@@ -2,7 +2,8 @@
 // desc: interface
 
 #pragma once
-#include "impl/common.h"
+#include "./impl/common.h"
+#include "./impl/error.h"
 
 
 namespace KLib42 {
@@ -52,6 +53,8 @@ namespace KLib42 {
         Rule* any();
         // match nothing, but cut branch
         Rule* cut();
+        // identical 
+        Rule* clone(Rule* node);
         // ! pattern
         Rule* not_(Rule* node);
         // one char
