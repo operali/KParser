@@ -400,17 +400,32 @@ namespace KLib42 {
         if (err1) {
             SyntaxError* serr = dynamic_cast<SyntaxError*>(err1.get());
             if (serr) {
-                auto infoId = serr->rule->getInfo();
-                if (infoId != -1) {
-                    auto loc = m_ruleParser.getSource()->getLocation(infoId);
-                    auto l = loc->location();
-                    std::cerr << "expect(" << l.row << ":" << l.col << ")" << std::endl;
-                    std::cerr << l.row << " | " << loc->getLine()->str() << std::endl;
-                    std::cerr << "    ";
-                    for (auto i = 0; i < l.col; ++i) {
-                        std::cerr << " ";
+                auto& info = serr->rule->getInfo();
+                if (!info.empty()) {
+                    DSLNode** pnode = info.get<DSLNode*>();
+                    if (pnode) {
+                        auto* node = *pnode;
+                        auto r = node->range->range();
+                        auto locL = node->range->getRawSource()->getLocation(r.first);
+                        auto locR = node->range->getRawSource()->getLocation(r.second);
+                        auto posL = locL->location();
+                        auto posR = locR->location();
+                        std::cerr << "expect token at(" << posL.row << ":" << posL.col << ")" << std::endl;
+                        std::cerr << posL.row << " | " << locL->getLine()->str() << std::endl;
+                        std::cerr << "    ";
+                        int i = 0;
+                        for (i = 0; i < posL.col; ++i) {
+                            std::cerr << " ";
+                        }
+                        std::cerr << "^";
+                        i++;
+                        for (; i < posR.col; ++i) {
+                            std::cerr << " ";
+                        }
+                        std::cerr << "^";
+                        std::cerr << std::endl;
+                        
                     }
-                    std::cerr << "^" << std::endl;
                 }
             }
             return err1;
@@ -660,9 +675,8 @@ namespace KLib42 {
         // pass, set rule info
         auto hSetInfo = [&](bool sink, DSLNode* n) {
             if (n->range) {
-                auto rgn = n->range->range();
                 if (n->rule) {
-                    n->rule->setInfo(rgn.first);
+                    n->rule->setInfo(n);
                 }
             }
         };

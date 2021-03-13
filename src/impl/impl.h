@@ -32,24 +32,13 @@ namespace KLib42 {
         KUSIZE length;
         KShared<ISource> m_text;
         std::vector<RuleNode*> rules;
-        std::unordered_map<RuleNode*, struct RuleInfo*> m_ruleInfoMap;
-
+        
         void reset();
         void setText(const std::string& text);
         void genParseError();
-        void setRuleName(RuleNode* node, const std::string& name);
-        void setRuleInfo(RuleNode* node, uint64_t srcId);
         
-        RuleInfo* getRuleInfo(RuleNode* node);
-
         ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank, CustomT skipRule);
         ~ParserImpl();
     };
-
-    struct RuleInfo : private KObject {
-        std::string name;
-        uint64_t srcId;
-        RuleInfo(std::string name, uint64_t srcId):name(name), srcId(srcId) {
-        }
-    };
+    
 }

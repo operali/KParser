@@ -14,9 +14,6 @@ namespace KLib42 {
         for (auto r : rules) {
             delete r;
         }
-        for (auto& p : m_ruleInfoMap) {
-            delete p.second;
-        }
         reset();
     }
 
@@ -47,33 +44,5 @@ namespace KLib42 {
     void ParserImpl::genParseError() {
         const char* errLoc = m_cache + m_headMax;
         m_parseErrInfo.reset(new SyntaxError(m_interface->getSource(), m_headRule, m_headMax ));
-    }
-
-    void ParserImpl::setRuleName(RuleNode* node, const std::string& name) {
-        auto it = m_ruleInfoMap.find(node);
-        if (it != m_ruleInfoMap.end()) {
-            it->second->name = name;
-        }
-        else {
-            m_ruleInfoMap.insert(m_ruleInfoMap.end(), std::make_pair(node, new RuleInfo(name, 0)));
-        }
-    }
-
-    void ParserImpl::setRuleInfo(RuleNode* node, uint64_t srcId) {
-        auto it = m_ruleInfoMap.find(node);
-        if (it != m_ruleInfoMap.end()) {
-            it->second->srcId = srcId;
-        }
-        else {
-            m_ruleInfoMap.insert(m_ruleInfoMap.end(), std::make_pair(node, new RuleInfo(std::string(), srcId)));
-        }
-    }
-
-    RuleInfo* ParserImpl::getRuleInfo(RuleNode* node) {
-        auto it = m_ruleInfoMap.find(node);
-        if (it != m_ruleInfoMap.end()) {
-            return it->second;
-        }
-        return nullptr;
     }
 }

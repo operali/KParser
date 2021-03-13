@@ -53,8 +53,6 @@ namespace KLib42 {
         Rule* any();
         // match nothing, but cut branch
         Rule* cut();
-        // identical 
-        Rule* clone(Rule* node);
         // ! pattern
         Rule* not_(Rule* node);
         // one char
@@ -127,9 +125,8 @@ namespace KLib42 {
         virtual std::string toString() = 0;
         virtual void appendChild(Rule* r) = 0;
         virtual Parser* host() = 0;
-        virtual void setName(const std::string& name) = 0;
-        virtual void setInfo(int64_t infoId) = 0;
-        virtual int64_t getInfo() = 0;
+        virtual void setInfo(KAny info) = 0;
+        virtual KAny& getInfo() = 0;
 
         template<typename T, typename ...TS>
         void add(T node, TS ...nodes) {

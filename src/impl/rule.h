@@ -79,7 +79,7 @@ namespace KLib42 {
     };
     struct RuleNode : public Rule {
         ParserImpl* m_gen;
-
+        KAny m_info;
         RuleNode(ParserImpl* gen);
         virtual ~RuleNode() = default;
         
@@ -94,9 +94,8 @@ namespace KLib42 {
         void appendChild(Rule* r) override;
         std::string toString() override;
         Parser* host() override;
-        void setName(const std::string& name);
-        void setInfo(int64_t infoId);
-        int64_t getInfo();
+        void setInfo(KAny info) override;
+        KAny& getInfo() override;
     };
 
     struct RuleEmpty : public RuleNode{

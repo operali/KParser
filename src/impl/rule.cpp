@@ -132,17 +132,12 @@ namespace KLib42 {
         return m_gen->m_interface;
     }
 
-    void RuleNode::setName(const std::string& name) {
-        m_gen->setRuleName(this, name);
+    void RuleNode::setInfo(KAny info) {
+        m_info = info;
     }
 
-    void RuleNode::setInfo(int64_t infoId) {
-        m_gen->setRuleInfo(this, infoId);
-    }
-
-    int64_t RuleNode::getInfo() {
-        auto* info = m_gen->getRuleInfo(this);
-        return info?info->srcId:-1;
+    KAny& RuleNode::getInfo() {
+        return m_info;
     }
 
     KUnique<Match> RuleNode::parse(const std::string& text) {
@@ -252,12 +247,12 @@ namespace KLib42 {
         if (trace) {
             auto* ruleNode = curM->m_ruleNode;
             auto* parser = ruleNode->m_gen;
-            auto* info = parser->getRuleInfo(ruleNode);
-            if (info) {
+            auto& info = ruleNode->getInfo();
+            if (!info.empty()) {
                 for (size_t i = 0; i < outputMargin; ++i) {
                     parser->m_ss << " ";
                 }
-                parser->m_ss << "on_rule: " << info->name << std::endl;
+                parser->m_ss << "on_rule: " << info.toString() << std::endl;
             }
             outputMargin++;
         }
@@ -282,20 +277,20 @@ namespace KLib42 {
                         if (trace) {
                             auto* ruleNode = lastM->m_ruleNode;
                             auto* parser = ruleNode->m_gen;
-                            auto* info = parser->getRuleInfo(ruleNode);
-                            if (info) {
+                            auto& info = ruleNode->getInfo();
+                            if (!info.empty()) {
                                 for (size_t i = 0; i < outputMargin; ++i) {
                                     parser->m_ss << " ";
                                 }
-                                parser->m_ss << "succ" << std::endl;
+                                parser->m_ss << "succ " << info.toString() << std::endl;
                             }
+
                             outputMargin--;
                         }
 
                         auto headLength = lastM->m_startPos + lastM->length();
                         if (headLength > gen->m_headMax) {
                             gen->m_headMax = headLength;
-                            gen->m_headRule = lastM->m_ruleNode;
                         }
                         curM->stepOut(lastM);
                     }
@@ -303,17 +298,21 @@ namespace KLib42 {
                         if(trace) {
                             auto* ruleNode = lastM->m_ruleNode;
                             auto* parser = ruleNode->m_gen;
-                            auto* info = parser->getRuleInfo(ruleNode);
-                            if (info) {
+                            auto& info = ruleNode->getInfo();
+                            if (!info.empty()) {
                                 for (size_t i = 0; i < outputMargin; ++i) {
                                     parser->m_ss << " ";
                                 }
-                                parser->m_ss << "fail" << std::endl;
+                                parser->m_ss << "fail " << info.toString() << std::endl;
                             }
                             outputMargin--;
                         }
 
-                        if ((int)gen->m_headMax - (int)lastM->m_startPos> (int)lookback) {
+                        auto back = (int)gen->m_headMax - (int)lastM->m_startPos;
+                        if (back == 0) {
+                            gen->m_headRule = lastM->m_ruleNode;
+                        }
+                        if (back > (int)lookback) {
                             auto* node = dynamic_cast<RuleCompound*>(lastM->m_ruleNode);
                             if (node) {
                                 // clear all temporary matcher
@@ -336,12 +335,13 @@ namespace KLib42 {
                 if(trace) {
                     auto* ruleNode = curM->m_ruleNode;
                     auto* parser = ruleNode->m_gen;
-                    auto* info = parser->getRuleInfo(ruleNode);
-                    if (info) {
+
+                    auto& info = ruleNode->getInfo();
+                    if (!info.empty()) {
                         for (size_t i = 0; i < outputMargin; ++i) {
                             parser->m_ss << " ";
                         }
-                        parser->m_ss << "on_rule: " << info->name << std::endl;
+                        parser->m_ss << "on_rule: " << info.toString() << std::endl;
                     }
                     outputMargin++;
                 }

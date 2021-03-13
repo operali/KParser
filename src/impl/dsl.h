@@ -27,7 +27,6 @@ namespace KLib42 {
         std::string name;
         bool isPreset;
         DSLID(KUnique<IRange> range, std::string name, bool isPreset = false) :DSLNode(range), name(name), isPreset(isPreset) {
-
         };
     };
 
@@ -175,4 +174,4 @@ namespace KLib42 {
         ss << ")";
         return ss.str();
     }
-}
+}  
