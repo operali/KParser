@@ -10,8 +10,7 @@
 
 namespace KLib42 {
 
-    DSLNode::DSLNode(DSLFactory* builder, KUnique<IRange> range) :builder(builder), range(range){
-        builder->nodes.push_back(this);
+    DSLNode::DSLNode(KUnique<IRange> range) :range(range){
     };
 
     void DSLNode::visit(std::function<void(bool sink, DSLNode * node)> handle) {
@@ -169,13 +168,6 @@ namespace KLib42 {
         return true;
     }
 
-
-    DSLFactory::~DSLFactory() {
-        for (auto* node : nodes) {
-            delete node;
-        }
-    }
-
     void DSLContext::prepareCapture(const std::string& evtName, CaptureT&& handle) {
         handleMap[evtName] = handle;
     }
@@ -198,13 +190,20 @@ namespace KLib42 {
         auto range = src->getRange(loc, loc + len);
         return range;
     }
+    
+    DSLContext::~DSLContext() {
+        for (auto* node : m_nodes) {
+            delete node;
+        }
+    }
 
     DSLContext::DSLContext() {
         KLib42::Parser& p = m_parser;
-        idMap.emplace(std::make_pair("ID", new DSLID{ this, nullptr, "ID" , true }));
-        idMap.emplace(std::make_pair("NUM", new DSLID{ this, nullptr, "NUM", true }));
-        idMap.emplace(std::make_pair("NONE", new DSLID{ this, nullptr, "NONE", true }));
-        idMap.emplace(std::make_pair("EOF", new DSLID{ this,nullptr, "EOF", true }));
+
+        idMap.emplace(std::make_pair("ID", create<DSLID>(nullptr, "ID" , true )));
+        idMap.emplace(std::make_pair("NUM", create<DSLID>(nullptr, "NUM", true )));
+        idMap.emplace(std::make_pair("NONE", create<DSLID>(nullptr, "NONE", true)));
+        idMap.emplace(std::make_pair("EOF", create<DSLID>(nullptr, "EOF", true)));
 
         auto commentRule1 = [=](const char* b, const char* e)->const char* {
             if (*b++ != '/' || b == e) {
@@ -296,23 +295,23 @@ namespace KLib42 {
         r_ruleList = p.all(p.many1(r_rule), p.eof());
 
         r_id->eval([&](Match& m, IT b, IT e) {
-            return (DSLNode*)new DSLID(this, getRange(p, m), m.str() );
+            return (DSLNode*)create<DSLID>(getRange(p, m), m.str());
             });
         r_regex->eval([&](Match& m, IT b, IT e) {
             std::string s = m.str();
             s = s.substr(1, s.length() - 2);
-            return (DSLNode*)new DSLRegex{ this, getRange(p, m), s };
+            return (DSLNode*)create<DSLRegex>(getRange(p, m), s );
             });
         r_text->eval([&](Match& m, IT b, IT e) {
             auto s = m.str();
             std::string r;
             int rsz = 0;
             auto ret = parseCSTR(s.data(), s.length(), r, rsz);
-            return (DSLNode*)new DSLText{ this, getRange(p, m), r };
+            return (DSLNode*)create<DSLText>(getRange(p, m), r);
             });
 
         r_any->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLAny(this, getRange(p, m));
+            auto* node = create<DSLAny>(getRange(p, m));
             while (b != e) {
                 node->nodes.push_back(*(*b++).template get<DSLNode*>());
             }
@@ -337,7 +336,7 @@ namespace KLib42 {
             }
         );
         r_all->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLAll(this, getRange(p, m));
+            auto* node = create<DSLAll>(getRange(p, m));
             while (b != e) {
                 node->nodes.push_back(*(*b++).template get<DSLNode*>());
             }
@@ -349,38 +348,38 @@ namespace KLib42 {
 
             });
         r_many->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLMany(this, getRange(p, m), *(*b).template get<DSLNode*>());
+            auto* node = create<DSLMany>(getRange(p, m), *(*b).template get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_many1->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLMany1(this, getRange(p, m), *(*b).template get<DSLNode*>());
+            auto* node = create<DSLMany1>(getRange(p, m), *(*b).template get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_list->eval([&](Match& m, IT b, IT e) {
             auto* item = *(*b++).template get<DSLNode*>();
             auto* dem = *(*b++).template get<DSLNode*>();
-            auto* node = new DSLList(this, getRange(p, m), item, dem);
+            auto* node = create<DSLList>(getRange(p, m), item, dem);
             return (DSLNode*)node;
             });
         r_till->eval([&](Match& m, IT b, IT e) {
             auto* item = *(*b++).template get<DSLNode*>();
-            auto* node = new DSLTill(this, getRange(p, m), item);
+            auto* node = create<DSLTill>(getRange(p, m), item);
             return (DSLNode*)node;
             });
         r_option->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLOption(this, getRange(p, m), *(*b).template get<DSLNode*>());
+            auto* node = create<DSLOption>(getRange(p, m), *(*b).template get<DSLNode*>());
             return (DSLNode*)node;
             });
         r_rule->eval([&](Match& m, IT b, IT e) {
             DSLID* id = (DSLID*)*(*b++).template get<DSLNode*>();
-            DSLRule* r = new DSLRule(this, getRange(p, m), *(*b++).template get<DSLNode*>());
+            DSLRule* r = create<DSLRule>(getRange(p, m), *(*b++).template get<DSLNode*>());
             r->name = id->name;
             r->id = id;
             r->ruleLine = m.str();
             return (DSLNode*)r;
             });
         r_ruleList->eval([&](Match& m, IT b, IT e) {
-            auto* node = new DSLRuleList(this, getRange(p, m));
+            auto* node = create<DSLRuleList>(getRange(p, m));
             while (b != e) {
                 node->nodes.push_back((DSLRule*)*(*b++).template get<DSLNode*>());
             }
@@ -405,7 +404,7 @@ namespace KLib42 {
     }
 
     void DSLContext::prepareConstant(const std::string& idName, CustomT&& p) {
-        auto* id = new DSLID{ this, nullptr, idName , true };
+        auto* id = create<DSLID>(nullptr, idName , true);
         id->rule = m_parser.custom(p);
         idMap.emplace(std::make_pair(idName, id));
     }
@@ -498,10 +497,10 @@ namespace KLib42 {
                         auto* rn = rule->node;
                         auto* id = dynamic_cast<DSLID*>(rn);
                         if (id) {
-                            auto* r = new DSLAny{ this, id->range };
+                            /*auto* r = new DSLAny{ this, id->range };
                             r->nodes.push_back(rn);
                             rule->node = r;
-                            idMap[rule->name] = r;
+                            idMap[rule->name] = r;*/
                         }
                     }
                 }
