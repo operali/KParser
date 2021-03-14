@@ -3,7 +3,7 @@
 #include "gtest/gtest.h"
 #include "./conf.h"
 #include <sstream>
-#include "../src/impl/util.h"
+#include "../src/detail/util.h"
 
 
 #ifdef enable_test_util

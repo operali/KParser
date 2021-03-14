@@ -5,7 +5,6 @@ namespace KLib42 {
         :m_interface(parser), 
         m_skipBlank(skipBlank), 
         m_lookback(lookback), 
-        m_headRule(nullptr),
         m_headMax(0), 
         m_cache(nullptr), length(0), m_text(new KSource()), m_skipRule(skipRule), m_trace(false){
     }
@@ -23,6 +22,8 @@ namespace KLib42 {
         length = 0;
         m_headMax = 0;
         
+        m_headRule.clear();
+
         m_expStk.resize(64);
         m_expStk.clear();
 

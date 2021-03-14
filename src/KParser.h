@@ -2,8 +2,8 @@
 // desc: interface
 
 #pragma once
-#include "./impl/common.h"
-#include "./impl/error.h"
+#include "./detail/common.h"
+#include "./detail/error.h"
 
 
 namespace KLib42 {

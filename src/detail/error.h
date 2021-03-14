@@ -17,8 +17,8 @@ namespace KLib42 {
 
     struct SyntaxError : public KParserError {
         KUSIZE location;
-        Rule* rule;
-        SyntaxError(KShared<ISource> source, Rule* r, KUSIZE location):KParserError(source), rule(r), location(location) {
+        std::vector<Rule*>& rule;
+        SyntaxError(KShared<ISource> source, std::vector<Rule*>& r, KUSIZE location):KParserError(source), rule(r), location(location) {
         }
         
         std::pair<size_t, size_t> getRange() override;

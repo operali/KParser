@@ -1,7 +1,7 @@
 // author: operali
 
 #include "gtest/gtest.h"
-#include "../src/impl/doc.h"
+#include "../src/detail/doc.h"
 #include "./conf.h"
 
 #ifdef enable_test_doc

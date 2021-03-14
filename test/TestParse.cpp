@@ -2,7 +2,7 @@
 
 #include "gtest/gtest.h"
 #include "../src/kparser.h"
-#include "../src/impl/rule.h"
+#include "../src/detail/rule.h"
 #include <sstream>
 #include <exception>
 #include "./conf.h"

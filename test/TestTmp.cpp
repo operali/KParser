@@ -3,10 +3,10 @@
 #include "gtest/gtest.h"
 
 #include "../src/kparser.h"
-#include "../src/impl/impl.h"
-#include "../src/impl/error.h"
+#include "../src/detail/impl.h"
+#include "../src/detail/error.h"
 
-#include "../src/impl/dsl.h"
+#include "../src/detail/dsl.h"
 
 #include "./conf.h"
 

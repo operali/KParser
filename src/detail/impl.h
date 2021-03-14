@@ -19,7 +19,7 @@ namespace KLib42 {
         CustomT m_skipRule;
         KUSIZE m_lookback;
         KUSIZE m_headMax;
-        Rule* m_headRule;
+        std::vector<Rule*> m_headRule;
         bool m_trace;
 
         // state / error 

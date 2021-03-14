@@ -294,6 +294,7 @@ namespace KLib42 {
                         auto headLength = lastM->m_startPos + lastM->length();
                         if (headLength > gen->m_headMax) {
                             gen->m_headMax = headLength;
+                            gen->m_headRule.clear();
                         }
                         curM->stepOut(lastM);
                     }
@@ -313,7 +314,7 @@ namespace KLib42 {
 
                         auto back = (int)gen->m_headMax - (int)lastM->m_startPos;
                         if (back == 0) {
-                            gen->m_headRule = lastM->m_ruleNode;
+                            gen->m_headRule.push_back(lastM->m_ruleNode);
                         }
                         if (back > (int)lookback) {
                             auto* node = dynamic_cast<RuleCompound*>(lastM->m_ruleNode);
