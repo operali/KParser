@@ -37,7 +37,7 @@ namespace KLib42 {
 	}
 	
 	KProperty* KProperty::getByNameRaw(const std::string& name) {
-		assert(isObject(), "KProperty::getByName must be object");
+		assert(isObject()); // , "KProperty::getByName must be object");
 		auto& vals = static_cast<PropNodeObjectImpl*>(pImpl)->values;
 		using IT = std::decay_t<decltype(vals)>::iterator;
 		using E = std::pair < std::string, KProperty*>;
@@ -51,7 +51,7 @@ namespace KLib42 {
 	}
 
 	KProperty* KProperty::setByNameRaw(const std::string& name, KProperty* prop, bool check) {
-		assert(isObject(), "KProperty::addByName must be object");
+		assert(isObject()); //, "KProperty::addByName must be object");
 		auto& vals = static_cast<PropNodeObjectImpl*>(pImpl)->values;
 		
 		if (check) {
@@ -81,7 +81,7 @@ namespace KLib42 {
 	}
 
 	KProperty* KProperty::setRaw(KProperty* val) {
-		assert(isArray(), "KProperty::add must be object");
+		assert(isArray()); //, "KProperty::add must be object");
 
 		auto& vals = static_cast<PropNodeArrayImpl*>(pImpl)->values;
 		vals.emplace_back(val);
@@ -104,7 +104,7 @@ namespace KLib42 {
 	}
 
 	KAny* KProperty::getRaw() {
-		assert(isElement(), "KProperty::getPropAny must be property");
+		assert(isElement()); //, "KProperty::getPropAny must be property");
 		auto prop = static_cast<PropNodePropImpl*>(pImpl);
 		return &prop->value;
 	}
@@ -160,7 +160,7 @@ namespace KLib42 {
 	}
 
 	void KProperty::setAny(KAny&& val) {
-		assert(isElement(), "KProperty::setAny must be property");
+		assert(isElement()); //, "KProperty::setAny must be property");
 		auto* prop = static_cast<PropNodePropImpl*>(pImpl);
 		prop->value = val;
 	}

@@ -53,7 +53,7 @@ namespace KLib42 {
         inline bool isArray() {
             return _type == ETYPE::array;
         }
-        int KProperty::arraySize();
+        int arraySize();
         KProperty* getByIndexRaw(size_t idx);
         KProperty* setRaw(KProperty* val);
         KProperty* setByNameRaw(const std::string& name, KProperty* val, bool check=false);

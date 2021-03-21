@@ -26,9 +26,9 @@ term = '(' operation1 ')' | NUM;
     };
     auto onOprand = [&](Match& m, auto b, auto e) {
         if (e - b == 3) {
-            double left = *b->get<double>();
-            int op = *(b + 1)->get<char>();
-            double right = *(b+2)->get<double>();
+            double left = *b->template get<double>();
+            int op = *(b + 1)->template get<char>();
+            double right = *(b+2)->template get<double>();
             if (op == '+') {
                 return left + right;
             } else if (op == '-') {
@@ -40,7 +40,7 @@ term = '(' operation1 ')' | NUM;
             }
         }
         else {
-            return *b->get<double>();
+            return *b->template get<double>();
         }
     };
     p.prepareCapture("op1", onOp);
