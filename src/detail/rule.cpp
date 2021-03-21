@@ -584,7 +584,7 @@ namespace KLib42 {
             return m_curMatcher;
         }
 
-        bool fromStepOut = false;
+        
         StepInT stepIn() override {
             if (m_length == LEN::INIT) {
                 if(nextNode()){
@@ -650,11 +650,8 @@ namespace KLib42 {
     struct MatchRAll : public MatchR {
         MatchRAll(KUSIZE start, RuleNode* rule) 
             :MatchR(start, rule) {
-            m_curStart = start;
-            nextNode();
         }
         std::vector<MatchR*> childMatch;
-        KUSIZE m_curStart;
         
         void release() override {
              MatchR::release();
@@ -662,11 +659,18 @@ namespace KLib42 {
         }
 
         bool nextNode() {
+            int start = 0;
+            if(childMatch.size() == 0){
+                start = m_startPos;
+            } else {
+                auto m = childMatch.back();
+                start = m->m_startPos+m->m_length;
+            }
             auto* parser = this->m_ruleNode->m_gen;
             auto pBegin = parser->m_cache;
             auto textLen = parser->length;
             auto pEnd = pBegin + textLen;
-            const char* cptr = pBegin + m_curStart;
+            const char* cptr = pBegin + start;
             while (true) {
                 bool change = false;
                 while (cptr != pEnd) {
@@ -685,7 +689,7 @@ namespace KLib42 {
                     }
                 }
                 if (change) {
-                    m_curStart = cptr - pBegin;
+                    start = cptr - pBegin;
                 }
                 else {
                     break;
@@ -697,8 +701,7 @@ namespace KLib42 {
                 return false;
             }
             auto node = thisNode->children[len];
-            auto matcher = node->match(this->m_curStart);
-            
+            auto matcher = node->match(start);
             childMatch.push_back(matcher);
             return true;
         }
@@ -714,50 +717,45 @@ namespace KLib42 {
                 this->release();
                 return false;
             }
-
-            m->visit([](Match& child, bool capture) {
-                if (!capture) {
-                    delete& child;
-                }
-                });
+            m->release();
             delete m;
             childMatch.pop_back();
+            if(len == 1) {
+                return false;
+            }
             return true;
         }
 
-        bool fromStepOut = false;
         StepInT stepIn() override {
-            if ( m_length >= LEN::SUCC && fromStepOut) {
-                fromStepOut = false;
-                return StepInT{ true};
-            }
-            else if (m_length == LEN::FAIL) {
-                return StepInT{ false };
-            }
-            auto len = childMatch.size();
-            if (len == 0) {
-                m_length = LEN::FAIL;
-                return StepInT{ false };
-            }
-
-            MatchR* matcher = childMatch.back();
-            m_curStart = matcher->m_startPos;
-            return StepInT{ matcher };
+            if(m_length == LEN::INIT ) {
+                    if(nextNode() ) {
+                        return StepInT(childMatch.back());
+                    } else {
+                        auto& m = childMatch.back();
+                        m_length = (m->m_startPos+m->m_length)-m_startPos;
+                        return StepInT(true);
+                    }
+                } else if(m_length == LEN::FAIL) {
+                    return StepInT(false);
+                } else if(m_length == LEN::CERT ) {
+                    if(preNode()){
+                        m_length = LEN::INIT;
+                        return StepInT(childMatch.back());
+                    } else {
+                        m_length = LEN::FAIL;
+                        return StepInT(false);
+                    }
+                } else if(m_length >= LEN::SUCC)  {
+                   return StepInT(childMatch.back());
+                }
         };
 
         void stepOut(MatchR* r) override {
-            if (r != nullptr) {
-                MatchR* matcher = childMatch.back();
-                m_curStart = m_curStart + matcher->length();
-                if (!nextNode()) {
-                    m_length = m_curStart - m_startPos;
-                    fromStepOut = true;
-                }
+            if (r) {
+                m_length = LEN::INIT;
             }
             else {
-                if (!preNode()) {
-                    m_length = LEN::FAIL;
-                }
+                m_length = LEN::CERT;
             }
         };
 
