@@ -34,15 +34,13 @@ namespace KLib42 {
         enum LEN : KSIZE {
             FAIL = -2,
             INIT = -1,
+            CERT = -3,
             SUCC = 0
         };
         
+
         RuleNode* m_ruleNode;
         MatchR(KUSIZE start, RuleNode* rule);
-        
-        inline bool succ(){
-            return m_length >= LEN::SUCC;
-        }
         
         KUSIZE length() override {
             return (KUSIZE)m_length;
@@ -50,10 +48,6 @@ namespace KLib42 {
 
         KUSIZE location() override {
             return m_startPos;
-        }
-
-        inline void accept(KUSIZE sz) {
-            m_length = sz;
         }
 
         std::string str() override;

@@ -550,30 +550,25 @@ namespace KLib42 {
 
         MatchRAny(KUSIZE start, RuleNode* rule) 
             :MatchR(start, rule), m_curIdx(-1) {
-            nextNode();
+
         }
 
-         void release() override {
-             MatchR::release();
-             m_curMatcher = nullptr;
-         }
+        void release() override {
+            MatchR::release();
+            m_curMatcher = nullptr;
+        }
 
         inline bool nextNode() {
-            this->m_curIdx++;
-            const RuleAny* thisNode = static_cast<const RuleAny*>(m_ruleNode);
-            if (this->m_curIdx == thisNode->children.size()) {
-                if (!m_curMatcher) {
-                    m_curMatcher->release();
-                    delete m_curMatcher;
-                    m_curMatcher = nullptr;
-                }
-                return false;
-            }
-            auto node = thisNode->children[this->m_curIdx];
-            if (m_curMatcher != nullptr) {
+            if (m_curMatcher) {
+                m_curMatcher->release();
                 delete m_curMatcher;
                 m_curMatcher = nullptr;
             }
+            const RuleAny* thisNode = static_cast<const RuleAny*>(m_ruleNode);
+            if(this->m_curIdx+1 == thisNode->children.size()){
+                return false;
+            }
+            auto node = thisNode->children[++this->m_curIdx];
             m_curMatcher = node->match(this->m_startPos);
             return true;
         }
@@ -591,29 +586,31 @@ namespace KLib42 {
 
         bool fromStepOut = false;
         StepInT stepIn() override {
-            if (m_length >= LEN::SUCC && fromStepOut) {
-                fromStepOut = false;
+            if (m_length == LEN::INIT) {
+                if(nextNode()){
+                    return StepInT(m_curMatcher);
+                } else {
+                    m_length = LEN::FAIL;
+                    return StepInT(false);
+                }
+            } else if(m_length == LEN::CERT) {
+                m_length = m_curMatcher->m_length;
                 return StepInT(true);
-            }
-            if (!m_curMatcher) {
+            } else if( m_length >= LEN::SUCC ) {
+                return m_curMatcher;
+            }  
+            else {
                 m_length = LEN::FAIL;
                 return StepInT(false);
             }
-            return StepInT(m_curMatcher);
         };
 
         void stepOut(MatchR* r) override {
-            if (r != nullptr) {
-                m_length = m_curMatcher->length();
-                fromStepOut = true;
+            if (r) {
+                m_length = LEN::CERT;
             }
             else {
-                if (!nextNode()) {
-                    m_length = LEN::FAIL;
-                    m_curMatcher->release();
-                    delete m_curMatcher;
-                    m_curMatcher = nullptr;
-                }
+                m_length = LEN::INIT;
             }
         };
     };
