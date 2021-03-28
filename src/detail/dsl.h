@@ -183,7 +183,7 @@ namespace KLib42 {
         void prepareSkippedRule(CustomT&& p);
         void prepareConstant(const std::string& idName, CustomT&& p);
         void prepareCapture(const std::string& evtName, CaptureT&& handle);
-        bool build();
+        bool compile();
         KUnique<Match> parse(const std::string& ruleName, const std::string& str);
     };
 

@@ -104,12 +104,19 @@ namespace KLib42 {
 
     struct EasyParserImpl;
     struct  EasyParser  {
+        // EBNF rules for parser
         void prepareRules(const char* strRule);
+        // constance ID in rules, for example, NUM, ID, MYCONS...
         void prepareConstant(const std::string& idName, CustomT&& p);
+        // skip rules when parsing, for example, comments of language: /*...*/, #
         void prepareSkippedRule(CustomT&& pred);
+        // when matched, iterator matching tree, capture when reduce to this rule
         void prepareCapture(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)>&& eval);
-        bool build();
+        // after prepare...， you should compile
+        bool compile();
+        // after built, you can parse according to special rule 
         KUnique<Match> parse(const char* ruleName, const std::string& toParse);
+        // get last error, when parsing fail or building fail
         KShared<KError> getLastError();
         
         EasyParser();

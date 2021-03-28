@@ -47,7 +47,7 @@ term = '(' operation1 ')' | NUM;
     p.prepareCapture("op2", onOp);
     p.prepareCapture("operation1", onOprand);
     p.prepareCapture("operation2", onOprand);
-    auto r = p.build();
+    auto r = p.compile();
     if (!r) {
         std::cerr << p.getLastError()->message() << std::endl;
     }
