@@ -21,7 +21,7 @@ namespace KLib42 {
         m_cache = "";
         length = 0;
         m_headMax = 0;
-        
+
         m_headRule.clear();
 
         m_expStk.resize(64);
@@ -30,6 +30,10 @@ namespace KLib42 {
         m_ss.clear();
         m_parseErrInfo.reset(nullptr);
 
+        for (auto* obj : m_tmpObj) {
+            delete obj;
+        }
+        m_tmpObj.clear();
         /*for (auto& p : m_ruleInfoMap) {
             delete p.second;
         }
@@ -45,5 +49,9 @@ namespace KLib42 {
     void ParserImpl::genParseError() {
         const char* errLoc = m_cache + m_headMax;
         m_parseErrInfo.reset(new SyntaxError(m_interface->getSource(), m_headRule, m_headMax ));
+    }
+
+    void ParserImpl::appendTmp(MatchR* obj) {
+        m_tmpObj.push_back(obj);
     }
 }

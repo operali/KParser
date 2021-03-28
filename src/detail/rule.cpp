@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
-
+#include "./common.h"
 #include "util.h"
 #include "impl.h"
 
@@ -168,19 +168,19 @@ namespace KLib42 {
         }
         opStk.push_back(expStk.size());
 
-        m->visit([&](KLib42::Match& m, bool is_begin) {
+        m->visit([&](KLib42::Match& m, bool sink) {
             auto mr = (MatchR*)&m;
             auto rule = mr->m_ruleNode;
             auto f = rule->m_visitHandle;
             if (f) {
                 try {
-                    f(*mr, is_begin);
+                    f(*mr, sink);
                 }
                 catch (std::exception& e) {
                     std::cerr << e.what() << std::endl;
                 }
             }
-            if (is_begin) {
+            if (sink) {
                 opStk.push_back(expStk.size());
             } else {
                 auto eval = mr->m_ruleNode->m_evalHandle;
@@ -199,7 +199,8 @@ namespace KLib42 {
                     }
                 }
                 opStk.pop_back();
-                delete mr;
+                m_gen->appendTmp(mr);
+                //delete mr;
             }
         });
         if (f) {

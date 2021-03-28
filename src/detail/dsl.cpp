@@ -1,7 +1,10 @@
 // author: operali
 // desc: Domain special language of ENBF
 
+#include <string>
 #include <iostream>
+#include <sstream>
+
 #include <unordered_set>
 #include "common.h"
 #include "../kparser.h"
@@ -516,12 +519,12 @@ namespace KLib42 {
                             for (i = 0; i < posL.col; ++i) {
                                 std::cerr << " ";
                             }
-                            std::cerr << "^";
+                            std::cerr << "~";
                             i++;
                             for (; i < posR.col; ++i) {
-                                std::cerr << " ";
+                                std::cerr << "~";
                             }
-                            std::cerr << "^";
+                            std::cerr << "~";
                             std::cerr << std::endl;
                         }
                     }
@@ -838,5 +841,31 @@ namespace KLib42 {
         }
 
         return true;
+    }
+
+    std::string match2string(Match* m) {
+        std::stringstream ss;
+        MatchR* mr = (MatchR*)m;
+        int iden = 0;
+        mr->visit([&](Match & m_, bool isSink)->void {
+            if (isSink) {
+                iden++;
+                MatchR* mr_ = (MatchR*)&m_;
+                DSLNode** n = mr_->m_ruleNode->getInfo().get<DSLNode*>();
+                if (n) {
+                    for (size_t i = 0; i < iden; ++i) {
+                        ss << "  ";
+                    }
+                    ss << "|";
+                    DSLNode* dnode = *n;
+                    ss << dnode->range->str() <<" = " << m_.str();
+                    ss << std::string("\n");
+                }
+            }
+            else {
+                iden--;
+            }
+        });
+        return ss.str();
     }
 }

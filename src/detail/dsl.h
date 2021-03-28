@@ -195,4 +195,6 @@ namespace KLib42 {
         ss << ")";
         return ss.str();
     }
+
+    std::string match2string(Match* m);
 }  

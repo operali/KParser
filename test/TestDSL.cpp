@@ -794,4 +794,44 @@ nocut = (a)* EOF;
         }
     }
 }
+
+TEST(DSL, trace) {
+    double numval = 0;
+    KLib42::EasyParser p;
+    std::string strval = "";
+    p.prepareRules(R"(
+a = ID | NUM;
+b = (...a)* EOF;
+)");
+    p.build();
+    auto m = p.parse("b", "3 100 abc d 200");
+    auto matchStr = KLib42::match2string(m.get());
+    // std::cerr << matchStr << std::endl;
+std::string s = R"(  |(...a)* = 3 100 abc d 200
+      |...a = 3
+        |ID | NUM = 3
+          |NUM = 3
+      |(...a)* = 100 abc d 200
+          |...a = 100
+            |ID | NUM = 100
+              |NUM = 100
+          |(...a)* = abc d 200
+              |...a = abc
+                |ID | NUM = abc
+                  |ID = abc
+              |(...a)* = d 200
+                  |...a = d
+                    |ID | NUM = d
+                      |ID = d
+                  |(...a)* = 200
+                      |...a = 200
+                        |ID | NUM = 200
+                          |NUM = 200
+                      |(...a)* = 
+  |EOF = 
+)";
+
+EXPECT_EQ(matchStr, s);
+
+}
 #endif

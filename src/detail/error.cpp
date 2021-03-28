@@ -33,7 +33,13 @@ namespace KLib42 {
         ss << loc.row << "| " << std::string(left, mid)
             << std::string(mid, mid1)
             << std::string(mid1, right) << std::endl;
-        ss << std::setw(mid - left + 4) << "^" << std::setw(mid1 - mid) << "^" << std::endl;
+        for (auto i = 0; i < mid - left + 3; ++i) {
+            ss << " ";
+        }
+        for (auto i = 0; i < mid1 - mid; ++i) {
+            ss << "~";
+        }
+        // ss << std::setw(mid - left + 4) << "^" << std::setw(mid1 - mid) << "^" << std::endl;
         /*if (loc.row + 1 != source->lineCount()) {
             auto lno = loc.row + 1;
             auto iline = source->getLine(lno);

@@ -26,6 +26,7 @@ namespace KLib42 {
         std::vector<KAny> m_expStk;
         std::stringstream m_ss;
         KShared<KError> m_parseErrInfo;
+        std::vector<MatchR*> m_tmpObj;
 
         // source
         const char* m_cache;
@@ -36,6 +37,7 @@ namespace KLib42 {
         void reset();
         void setText(const std::string& text);
         void genParseError();
+        void appendTmp(MatchR* obj);
         
         ParserImpl(Parser* parser, KUSIZE lookback, bool skipBlank, CustomT skipRule);
         ~ParserImpl();
