@@ -232,7 +232,7 @@ namespace KLib42 {
     }
 
     //////////////////////////////////////////////////////////////////////////
-    //alter
+    // alter once to match
 
     bool MatchR::alter() {
         std::vector<MatchR*> vec;

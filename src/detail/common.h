@@ -9,6 +9,7 @@
 #include "./text.h"
 
 namespace KLib42 {
+    // count objects in runtime, KObject::count should be 0 after destruction;
     struct KObject {
         static KUSIZE count;
 #ifdef KOBJECT_DEBUG
@@ -33,7 +34,7 @@ namespace KLib42 {
         }
     };
 
-
+    
     struct KError : public KObject {
         virtual ~KError() {};
         virtual std::string message() = 0;

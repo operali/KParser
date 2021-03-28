@@ -8,7 +8,7 @@
 #include "./impl.h"
 #include "./doc.h"
 namespace KLib42 {
-
+    struct DSLContext;
     struct DSLNode {
         KUnique<IRange> range;
         DSLNode(KUnique<IRange> range);
@@ -16,22 +16,31 @@ namespace KLib42 {
         virtual ~DSLNode() {}
         bool visiting = false;
         virtual void visit(std::function<void(bool sink, DSLNode* node)> handle);
+        virtual void visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx);
         Rule* rule = nullptr;
         bool haveBuilt = false;
         virtual void prepare(Parser& p) {}
         virtual bool build(Parser& p) { return true; }
     };
 
+    
     // only preset after build, others will be replacing with its rule node defination
     struct DSLID : public DSLNode {
         std::string name;
         bool isPreset;
         DSLID(KUnique<IRange> range, std::string name, bool isPreset = false) :DSLNode(range), name(name), isPreset(isPreset) {
         };
+        void visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) override;
     };
 
     struct DSLCUT : public DSLNode {
         DSLCUT(KUnique<IRange> range) :DSLNode(range) {
+        };
+        bool build(Parser& p) override;
+    };
+
+    struct DSLNone : public DSLNode {
+        DSLNone(KUnique<IRange> range) :DSLNode(range) {
         };
         bool build(Parser& p) override;
     };
@@ -53,6 +62,7 @@ namespace KLib42 {
         DSLNode* node;
         DSLWrap(KUnique<IRange> range, DSLNode* node) :DSLNode(range), node(node) {};
         void visit(std::function<void(bool sink, DSLNode* node)> handle) override;
+        void visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) override;
     };
 
     struct DSLMany : public DSLWrap {
@@ -73,6 +83,7 @@ namespace KLib42 {
         DSLList(KUnique<IRange> range, DSLNode* node, DSLNode* dem) :DSLNode(range), node(node), dem(dem) {};
 
         void visit(std::function<void(bool sink, DSLNode* node)> handle) override;
+        void visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) override;
         bool build(Parser& p) override;
     };
 
@@ -98,12 +109,14 @@ namespace KLib42 {
         };
         void prepare(Parser& p) override;
         bool build(Parser& p) override;
+        void visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) override;
     };
 
     struct DSLAll : public DSLChildren {
         DSLAll(KUnique<IRange> range) :DSLChildren(range) {};
         void prepare(Parser& p) override;
         bool build(Parser& p) override;
+        void visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) override;
     };
 
     struct DSLRule : public DSLWrap {
@@ -125,13 +138,14 @@ namespace KLib42 {
         Parser m_userParser;
         std::vector<DSLNode*> m_nodes;
         
-    private:
+    
         std::string m_strRule;
         
         std::unordered_map <std::string, CustomT> constantId;
         std::unordered_map <std::string, DSLNode*> idMap;
         std::unordered_map <std::string, CaptureT> handleMap;
 
+        std::vector<DSLNode*> m_visitPath;
         // debug
         KShared<KError> checkRuleError;
         KDocument m_doc;

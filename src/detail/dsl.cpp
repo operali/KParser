@@ -2,6 +2,7 @@
 // desc: Domain special language of ENBF
 
 #include <iostream>
+#include <unordered_set>
 #include "common.h"
 #include "../kparser.h"
 #include "./dsl.h"
@@ -14,8 +15,31 @@ namespace KLib42 {
     };
 
     void DSLNode::visit(std::function<void(bool sink, DSLNode* node)> handle) {
-        handle(false, this);
         handle(true, this);
+        handle(false, this);
+    }
+
+
+    void DSLNode::visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) {
+        handle(true, this);
+        handle(false, this);
+    }
+
+    void DSLID::visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) {
+        handle(true, this);
+        auto it = ctx->idMap.find(name);
+        if (it != ctx->idMap.end()) {
+            if (it->second == this) {
+                handle(false, this);
+                return;
+            }
+            if (it->second->visiting) {
+                handle(false, this);
+                return;
+            }
+            it->second->visitLeftDeep(handle, ctx);
+        }
+        handle(false, this);
     }
 
     bool DSLCUT::build(Parser& p) {
@@ -23,10 +47,14 @@ namespace KLib42 {
         return true;
     };
 
+    bool DSLNone::build(Parser& p) {
+        rule = p.none();
+        return true;
+    }
+
     void DSLText::prepare(KLib42::Parser& p) {
         rule = p.str(std::string(name));
     }
-
     
     void DSLRegex::prepare(KLib42::Parser& p) {
         rule = p.regex(name);
@@ -37,9 +65,20 @@ namespace KLib42 {
             return;
         }
         visiting = true;
-        handle(false, this);
-        node->visit(handle);
         handle(true, this);
+        node->visit(handle);
+        handle(false, this);
+        visiting = false;
+    }
+
+    void DSLWrap::visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) {
+        if (visiting) {
+            return;
+        }
+        visiting = true;
+        handle(true, this);
+        node->visitLeftDeep(handle, ctx);
+        handle(false, this);
         visiting = false;
     }
 
@@ -59,23 +98,35 @@ namespace KLib42 {
         return true;
     }
 
-    void DSLList::visit(std::function<void(bool sink, DSLNode* node)> handle) {
-        if (visiting) {
-            return;
-        }
-        visiting = true;
-        handle(false, this);
-        node->visit(handle);
-        dem->visit(handle);
-        handle(true, this);
-        visiting = false;
-    }
     bool DSLList::build(KLib42::Parser& p) {
         if (!node->rule || !dem->rule) {
             return false;
         }
         rule = p.list(node->rule, dem->rule);
         return true;
+    }
+
+    void DSLList::visit(std::function<void(bool sink, DSLNode* node)> handle) {
+        if (visiting) {
+            return;
+        }
+        visiting = true;
+        handle(true, this);
+        node->visit(handle);
+        dem->visit(handle);
+        handle(false, this);
+        visiting = false;
+    }
+
+    void DSLList::visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) {
+        if (visiting) {
+            return;
+        }
+        visiting = true;
+        handle(true, this);
+        node->visitLeftDeep(handle, ctx);
+        handle(false, this);
+        visiting = false;
     }
 
     bool DSLTill::build(Parser& p) {
@@ -99,31 +150,46 @@ namespace KLib42 {
             return;
         }
         visiting = true;
-        handle(false, this);
+        handle(true, this);
         for (auto& c : nodes) {
             c->visit(handle);
         }
-        handle(true, this);
+        handle(false, this);
         visiting = false;
     }
 
     void DSLAny::prepare(KLib42::Parser& p) {
         rule = p.any();
     }
+
     bool DSLAny::build(KLib42::Parser& p) {
-        for (auto& c : nodes) {
-            if (!c->rule) {
+        for (auto& n : nodes) {
+            if (!n->rule) {
                 std::cerr << "invalid rule of " << rule->toString() << std::endl;
                 return false;
             }
-            rule->add(c->rule);
+            rule->add(n->rule);
         }
         return true;
+    }
+
+    void DSLAny::visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) {
+        if (visiting) {
+            return;
+        }
+        visiting = true;
+        handle(true, this);
+        for (auto& c : nodes) {
+            c->visitLeftDeep(handle, ctx);
+        }
+        handle(false, this);
+        visiting = false;
     }
 
     void DSLAll::prepare(KLib42::Parser& p) {
         rule = p.all();
     }
+
     bool DSLAll::build(KLib42::Parser& p) {
         for (auto& c : nodes) {
             if (!c->rule) {
@@ -133,6 +199,21 @@ namespace KLib42 {
             rule->add(c->rule);
         }
         return true;
+    }
+
+    void DSLAll::visitLeftDeep(std::function<void(bool sink, DSLNode* node)> handle, DSLContext* ctx) {
+        if (visiting) {
+            return;
+        }
+        visiting = true;
+        handle(true, this);
+        if (nodes.size() == 0) {
+        }
+        else {
+            nodes[0]->visitLeftDeep(handle, ctx);
+        }
+        handle(false, this);
+        visiting = false;
     }
 
     bool DSLRule::build(KLib42::Parser& p) {
@@ -260,6 +341,8 @@ namespace KLib42 {
 
         r_id = p.identifier();
         r_cut = p.str("!");
+        auto r_none = p.str("NONE");
+
         r_text = p.custom([&](const char* begin, const char* end)->const char* {
             int len = 0;
             std::string r;
@@ -290,7 +373,7 @@ namespace KLib42 {
             });
         auto evt = p.optional(p.all("@", evtName));
         r_group = p.all("(", r_any, ")");
-        r_item->add(r_regex, r_text, r_id, r_group, r_cut);
+        r_item->add(r_regex, r_text, r_id, r_group, r_cut, r_none);
         r_option = p.all(r_item, "?");
         r_many = p.all(r_item, "*");
         r_many1 = p.all(r_item, "+");
@@ -308,6 +391,10 @@ namespace KLib42 {
 
         r_cut->eval([&](Match& m, IT b, IT e) {
             return (DSLNode*)create<DSLCUT>(getRange(p, m));
+            });
+
+        r_none->eval([&](Match& m, IT b, IT e) {
+            return (DSLNode*)create<DSLNone>(getRange(p, m));
             });
 
         r_regex->eval([&](Match& m, IT b, IT e) {
@@ -486,7 +573,7 @@ namespace KLib42 {
 
         // pass, collect rule nodes
         auto hCollectId = [&](bool sink, DSLNode* n) {
-            if (sink) {
+            if (!sink) {
                 DSLRule* rule = dynamic_cast<DSLRule*>(n);
                 if (rule) {
                     // unique
@@ -505,10 +592,9 @@ namespace KLib42 {
             return false;
         }
 
-        // pass, replace id in idMap to final defination
+        // pass, replace id in idMap to final defination, in case a = b, b = c, c = a;
         std::vector<std::pair<std::string, DSLNode*>> changes;
         {
-
             bool change = false;
 
             while (true) {
@@ -547,9 +633,9 @@ namespace KLib42 {
             return false;
         }
 
-        // pass, check ids
+        // pass, check ids, in case: a = ... unknow_id
         auto hCheckId = [&](bool sink, DSLNode* n) {
-            if (sink) {
+            if (!sink) {
                 DSLID* id = dynamic_cast<DSLID*>(n);
                 if (id) {
                     auto it = idMap.find(id->name);
@@ -566,10 +652,50 @@ namespace KLib42 {
             return false;
         }
 
+        // pass, detect left recursive, must be in front of replace;
+        std::vector<DSLNode*> visitList;
+        std::vector<DSLNode*> recList;
+        std::string ruleName = "";
+        bool leftRec = false;
+        std::unordered_set<DSLNode*> nodes;
+        auto detectedLeftRec = [&](bool sink, DSLNode* n) {
+            // recursive
+            if (sink) {
+                visitList.push_back(n);
+                DSLID* id = dynamic_cast<DSLID*>(n);
+                if (id != nullptr) {
+                    if (id->name == ruleName) {
+                        if (!leftRec) {
+                            leftRec = true;
+                            recList = visitList;
+                        }
+                    }
+                }
+            }
+            else {
+                visitList.pop_back();
+            }
+        };
+        for (auto& r : rlist->nodes) {
+            visitList.clear();
+            recList.clear();
+            DSLRule* ruleNode = dynamic_cast<DSLRule*>(r);
+            auto* err = new RecursiveIDError(this->m_ruleParser.getSource(), ruleNode->id);
+            auto serr = KShared<KError>(err);
+            leftRec = false;
+            ruleName = ruleNode->name;
+            
+            ruleNode->visitLeftDeep(detectedLeftRec, this);
+            if (leftRec) {
+                err->recList = recList;
+                checkRuleError = serr;
+                return false;
+            }
+        }
 
         // pass, replace id
         auto hReplaceId = [&](bool sink, DSLNode* n) {
-            if (sink) {
+            if (!sink) {
                 DSLWrap* wrap = dynamic_cast<DSLWrap*>(n);
                 if (wrap) {
                     auto* id = dynamic_cast<DSLID*>(wrap->node);
@@ -660,14 +786,12 @@ namespace KLib42 {
             }
         }
 
-        // pass , check left recursive
-
         // pass , build RULES
         auto hBuild = [&](bool sink, DSLNode* n) {
             if (n->haveBuilt) {
                 return;
             }
-            if (!sink) {
+            if (sink) {
                 n->prepare(m_userParser);
                 return;
             }

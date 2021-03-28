@@ -11,8 +11,10 @@ namespace KLib42 {
 
     char tanslateEscapedChar(char ch);
 
+    // c-like string, support `'`, or `"`, for example: 'asdf\n\t\345\xff'
     bool parseCSTR(const char* buff, size_t len, std::string& ret, int& rlen);
 
+    // js-like regex object, for example: /[0-9]*/
     bool parseRegex(const char* buff, size_t len, int& rlen);
 
     bool parseInteger(const char* buff, size_t len, int64_t& ret, int& rlen);

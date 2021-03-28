@@ -16,6 +16,7 @@ namespace KLib42 {
     };
 
     struct ISource {
+        // raw text
         virtual const char* raw() = 0;
         virtual size_t lineCount() = 0;
         virtual size_t len() = 0;

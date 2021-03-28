@@ -14,8 +14,9 @@ namespace KLib42 {
     
     struct MatchR;
     struct StepInT {
-        MatchR* const TRUE = (MatchR*)0x1;
-        MatchR* const FALSE = (MatchR*)0x2;
+        // cannot be a object* for 0x2/0x3
+        MatchR* const TRUE = (MatchR*)0x2;
+        MatchR* const FALSE = (MatchR*)0x3;
         MatchR* mr;
         StepInT(bool res):mr(res? TRUE : FALSE) {}
         StepInT(MatchR* mr):mr(mr) {}
@@ -58,11 +59,10 @@ namespace KLib42 {
         size_t captureSize() override;
         
         virtual StepInT stepIn() {
-            throw std::exception();//TODO
+            return StepInT(true);
         };
 
         virtual void stepOut(MatchR* r) {
-            throw std::exception();//TODO
         };
 
         virtual bool alter();

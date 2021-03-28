@@ -17,13 +17,13 @@ namespace KLib42 {
         auto loc = ilocLeft->location();
         ss << desc << "(" << loc.row << "," << loc.col << ")" << "\n";
         
-        if (loc.row != 0) {
-            auto lno = loc.row - 1;
-            auto iline = source->getLine(lno);
-            if (iline) {
-                ss << lno << "| " << iline->str() << std::endl;
-            }
-        }
+        //if (loc.row != 0) {
+        //    auto lno = loc.row - 1;
+        //    auto iline = source->getLine(lno);
+        //    if (iline) {
+        //        ss << lno << "| " << iline->str() << std::endl;
+        //    }
+        //}
 
         auto buff = source->raw();
         auto left = buff + loc.left;
@@ -34,13 +34,13 @@ namespace KLib42 {
             << std::string(mid, mid1)
             << std::string(mid1, right) << std::endl;
         ss << std::setw(mid - left + 4) << "^" << std::setw(mid1 - mid) << "^" << std::endl;
-        if (loc.row + 1 != source->lineCount()) {
+        /*if (loc.row + 1 != source->lineCount()) {
             auto lno = loc.row + 1;
             auto iline = source->getLine(lno);
             if (iline) {
                 ss << lno << "| " << iline->str() << std::endl;
             }
-        }
+        }*/
         return ss.str();
     }
 
@@ -67,7 +67,13 @@ namespace KLib42 {
         return genErrorMessage("undefine ID of "+id->name, source.get(), getRange());
     };
 
+
     std::string RecursiveIDError::message() {
-        return genErrorMessage("define ID recursively of " + id->name, source.get(), getRange());
-    };
+        std::stringstream ss;
+        ss << genErrorMessage(std::string("rule of \"")+ id->name + "\" is left recursive", source.get(), id->range->range() );
+        for (auto& node : recList) {
+            ss << "    " << node->range->str() << " -> " << std::endl;
+        }
+        return ss.str();
+    }
 }
