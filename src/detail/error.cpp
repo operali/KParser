@@ -33,9 +33,10 @@ namespace KLib42 {
         ss << loc.row << "| " << std::string(left, mid)
             << std::string(mid, mid1)
             << std::string(mid1, right) << std::endl;
-        for (auto i = 0; i < mid - left + 3; ++i) {
+        for (auto i = 0; i < mid - left + 2; ++i) {
             ss << " ";
         }
+        ss << "~";
         for (auto i = 0; i < mid1 - mid; ++i) {
             ss << "~";
         }

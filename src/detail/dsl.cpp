@@ -562,7 +562,7 @@ namespace KLib42 {
         return cloneId;
     }
 
-    bool DSLContext::build() {
+    bool DSLContext::compile() {
         auto m = r_ruleList->parse(m_strRule);
         if (!m) {
             auto err = m_ruleParser.getLastError();

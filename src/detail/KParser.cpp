@@ -273,8 +273,8 @@ namespace KLib42 {
         impl->prepareSkippedRule(std::move(pred));
     }
 
-    bool EasyParser::build() {
-        return impl->build();
+    bool EasyParser::compile() {
+        return impl->compile();
     }
 
     void EasyParser::prepareCapture(const char* ruleName, std::function<KAny(Match& m, IT arg, IT noarg)>&& eval) {

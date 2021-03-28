@@ -728,27 +728,32 @@ namespace KLib42 {
         }
 
         StepInT stepIn() override {
-            if(m_length == LEN::INIT ) {
-                    if(nextNode() ) {
-                        return StepInT(childMatch.back());
-                    } else {
-                        auto& m = childMatch.back();
-                        m_length = (m->m_startPos+m->m_length)-m_startPos;
-                        return StepInT(true);
-                    }
-                } else if(m_length == LEN::FAIL) {
-                    return StepInT(false);
-                } else if(m_length == LEN::CERT ) {
-                    if(preNode()){
-                        m_length = LEN::INIT;
-                        return StepInT(childMatch.back());
-                    } else {
-                        m_length = LEN::FAIL;
-                        return StepInT(false);
-                    }
-                } else if(m_length >= LEN::SUCC)  {
-                   return StepInT(childMatch.back());
+            if (m_length == LEN::INIT) {
+                if (nextNode()) {
+                    return StepInT(childMatch.back());
                 }
+                else {
+                    auto& m = childMatch.back();
+                    m_length = (m->m_startPos + m->m_length) - m_startPos;
+                    return StepInT(true);
+                }
+            }
+            else if (m_length == LEN::FAIL) {
+                return StepInT(false);
+            }
+            else if (m_length == LEN::CERT) {
+                if (preNode()) {
+                    m_length = LEN::INIT;
+                    return StepInT(childMatch.back());
+                }
+                else {
+                    m_length = LEN::FAIL;
+                    return StepInT(false);
+                }
+            }
+            else {// if (m_length >= LEN::SUCC) {
+                return StepInT(childMatch.back());
+            }
         };
 
         void stepOut(MatchR* r) override {

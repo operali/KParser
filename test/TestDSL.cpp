@@ -450,7 +450,7 @@ b = a+ EOF;
            }
            return nullptr;
            });
-       auto r = ctx.build();
+       auto r = ctx.compile();
        if (!r) {
            std::cerr << ctx.getLastError() << std::endl;
        }
@@ -468,7 +468,7 @@ b = a | b;
 dd xxtt
 c = re | /\/\//;
 )");
-       auto r = ctx.build();
+       auto r = ctx.compile();
        ASSERT_EQ(r, false);
        if (!r) {
            std::cerr << ctx.getLastError() << std::endl;
@@ -481,7 +481,7 @@ c = re | /\/\//;
        ctx.prepareRules(R"(  a = ID;
 a = NUM;
 )");
-       auto r = ctx.build();
+       auto r = ctx.compile();
        ASSERT_EQ(r, false);
        if (!r) {
            std::cerr << ctx.getLastError() << std::endl;
@@ -524,7 +524,7 @@ b = [a ','] EOF;
 
            }
            });
-       auto r = p.build();
+       auto r = p.compile();
        if (!r) {
            std::cerr << p.getLastError()->message() << std::endl;
            ASSERT_EQ(false, true);
@@ -570,7 +570,7 @@ b = (...a)* EOF;
 
            }
            });
-       auto r = p.build();
+       auto r = p.compile();
        if (!r) {
            std::cerr << p.getLastError()->message() << std::endl;
            ASSERT_EQ(false, true);
@@ -597,7 +597,7 @@ ROOT = TOB TOB;
        p.prepareCapture("TOB", [&](auto& m, auto b, auto e) {
            return m.str();
            });
-       bool b = p.build();
+       bool b = p.compile();
        if (!b) {
            std::cout << p.getLastError()->message();
            ASSERT_EQ(1, 0);
@@ -646,7 +646,7 @@ b = (...(a@abc))* EOF;
 
            }
            });
-       auto r = p.build();
+       auto r = p.compile();
        if (!r) {
            std::cerr << p.getLastError()->message() << std::endl;
            ASSERT_EQ(false, true);
@@ -665,7 +665,7 @@ TEST(DSL, recursive_id_fail) {
        p.prepareRules(R"(
 a = a;
 )");
-       if(!p.build()){
+       if(!p.compile()){
            auto rawErr = p.getLastError().get();
            auto err1 = dynamic_cast<KLib42::RecursiveIDError*>(rawErr);
            std::cerr << rawErr->message() << std::endl;
@@ -683,7 +683,7 @@ a = b;
 b = c;
 c = a;
 )");
-       if (!p.build()) {
+       if (!p.compile()) {
            auto rawErr = p.getLastError().get();
            auto err1 = dynamic_cast<KLib42::RecursiveIDError*>(rawErr);
            std::cerr << rawErr->message() << std::endl;
@@ -701,7 +701,7 @@ TEST(DSL, undefine_id_fail) {
        p.prepareRules(R"(
 a = x;
 )");
-       if (!p.build()) {
+       if (!p.compile()) {
            auto rawErr = p.getLastError().get();
            auto err1 = dynamic_cast<KLib42::UndefinedIDError*>(rawErr);
            std::cerr << rawErr->message() << std::endl;
@@ -725,7 +725,7 @@ a = ID | NUM;
 b = a (',' a)* EOF;
 )");
         
-        auto r = p.build();
+        auto r = p.compile();
         if (!r) {
             std::cerr << p.getLastError()->message() << std::endl;
             ASSERT_EQ(false, true);
@@ -758,7 +758,7 @@ nocut = (a)* EOF;
         p.prepareCapture("a", [](auto& m, auto b, auto e) {
             return m.str();
             });
-        auto r = p.build();
+        auto r = p.compile();
         if (!r) {
             std::cerr << p.getLastError()->message() << std::endl;
             ASSERT_EQ(false, true);
@@ -803,7 +803,7 @@ TEST(DSL, trace) {
 a = ID | NUM;
 b = (...a)* EOF;
 )");
-    p.build();
+    p.compile();
     auto m = p.parse("b", "3 100 abc d 200");
     auto matchStr = KLib42::match2string(m.get());
     // std::cerr << matchStr << std::endl;
